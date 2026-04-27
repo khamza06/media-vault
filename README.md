@@ -1,5 +1,7 @@
 # Media Vault
 
+![CI](https://github.com/khamza06/media-vault/actions/workflows/ci.yml/badge.svg)
+
 Media Vault is a personal media tracker for anime, manga, movies, series, and
 books. It gives each signed-in user a private vault with imports, backups,
 stats, custom lists, and optional read-only public sharing.
@@ -110,7 +112,17 @@ The app is deployed on Vercel and connected to this GitHub repository.
 Every push to the `main` branch triggers a production deployment automatically.
 
 Production: https://media-vault-seven.vercel.app
-```
+
+## CI
+
+GitHub Actions runs lint and production build checks on every push and pull
+request to `main`.
+
+The workflow requires these GitHub repository secrets:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_TMDB_API_KEY` for TMDB-backed search parity, if available
 
 Public pages are read-only and gated by Supabase RLS. Private controls such as
 edit, delete, bulk delete, import, backup, add-to-list, and progress updates are
