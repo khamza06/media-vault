@@ -21,7 +21,7 @@ export const mediaTypes = [
 
 export type MediaStatus = (typeof mediaStatuses)[number]
 export type MediaType = (typeof mediaTypes)[number]
-export type MediaProgressMode = 'episode' | 'page'
+export type MediaProgressMode = 'episode' | 'chapter' | 'page'
 export type MediaShelfKey = 'anime' | 'manga-family' | 'movies' | 'series' | 'books'
 
 export type MediaItem = {
@@ -113,6 +113,7 @@ export type NormalizedMediaItemWriteInput = {
 }
 
 const pagedMediaTypes: MediaType[] = ['Manga', 'Manhwa', 'Manhua', 'Book']
+const chapterMediaTypes: MediaType[] = ['Manga', 'Manhwa', 'Manhua']
 const episodicMediaTypes: MediaType[] = ['Anime', 'Movie', 'TV Series']
 
 const genreStopwords = new Set([
@@ -214,6 +215,10 @@ export function usesPageProgress(type: string) {
   return pagedMediaTypes.includes(type as MediaType)
 }
 
+export function usesChapterProgress(type: string) {
+  return chapterMediaTypes.includes(type as MediaType)
+}
+
 export function usesEpisodeProgress(type: string) {
   return episodicMediaTypes.includes(type as MediaType)
 }
@@ -223,6 +228,10 @@ export function isMovieType(type: string) {
 }
 
 export function getProgressMode(type: string): MediaProgressMode {
+  if (usesChapterProgress(type)) {
+    return 'chapter'
+  }
+
   return usesPageProgress(type) ? 'page' : 'episode'
 }
 
@@ -243,14 +252,26 @@ export function getDefaultStatus(type: string): MediaStatus {
 }
 
 export function getCurrentProgressLabel(type: string) {
+  if (usesChapterProgress(type)) {
+    return 'Current Chapter'
+  }
+
   return usesPageProgress(type) ? 'Current Page' : 'Current Episode'
 }
 
 export function getTotalProgressLabel(type: string) {
+  if (usesChapterProgress(type)) {
+    return 'Total Chapters'
+  }
+
   return usesPageProgress(type) ? 'Total Pages' : 'Total Episodes'
 }
 
 export function getProgressUnitLabel(type: string) {
+  if (usesChapterProgress(type)) {
+    return 'ch.'
+  }
+
   if (usesPageProgress(type)) {
     return 'pg.'
   }
