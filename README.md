@@ -110,6 +110,7 @@ The app is deployed on Vercel and connected to this GitHub repository.
 Every push to the `main` branch triggers a production deployment automatically.
 
 Production: https://media-vault-seven.vercel.app
+```
 
 Public pages are read-only and gated by Supabase RLS. Private controls such as
 edit, delete, bulk delete, import, backup, add-to-list, and progress updates are
