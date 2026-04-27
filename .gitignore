@@ -147,3 +147,5 @@ dist
 .vercel
 # Next.js local logs
 .next-*.log
+# Sentry Config File
+.env.sentry-build-plugin
