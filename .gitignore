@@ -145,3 +145,5 @@ dist
 
 # Vercel
 .vercel
+# Next.js local logs
+.next-*.log
