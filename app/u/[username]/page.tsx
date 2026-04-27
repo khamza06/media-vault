@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Compass, ListChecks, Lock, UserRound } from 'lucide-react'
+import { ArrowLeft, Compass, ListChecks, Lock, UserRound } from 'lucide-react'
 
-import PublicLibraryGrid from '../../../components/PublicLibraryGrid'
+import CopyPublicLinkButton from '../../../components/public/CopyPublicLinkButton'
+import PublicVaultExplorer from '../../../components/public/PublicVaultExplorer'
+import { getCurrentUser } from '../../../lib/auth/dal'
 import { getPublicItemsByUserId } from '../../../lib/data/items'
 import { getPublicListsForProfile } from '../../../lib/data/lists'
 import { getProfileByUsername } from '../../../lib/data/profiles'
@@ -11,11 +13,6 @@ import { toMediaItem, type MediaItemRecord } from '../../../lib/media'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export const metadata: Metadata = {
-  title: 'Public Profile | Media Vault',
-  description: 'A public, read-only Media Vault profile.',
-}
-
 type PageProps = {
   params: Promise<{
     username: string
@@ -23,6 +20,60 @@ type PageProps = {
 }
 
 const usernamePattern = /^[a-z0-9_-]{3,30}$/
+
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const { username: usernameParam } = await props.params
+  const username = usernameParam.trim().toLowerCase()
+
+  if (!usernamePattern.test(username)) {
+    return {
+      title: 'Profile Not Found',
+      description: 'This Media Vault public profile is not available.',
+    }
+  }
+
+  const profileResult = await getProfileByUsername(username)
+
+  if (profileResult.error || !profileResult.data) {
+    return {
+      title: 'Profile Not Found',
+      description: 'This Media Vault public profile is not available.',
+    }
+  }
+
+  const profile = profileResult.data
+
+  if (!profile.isPublic) {
+    return {
+      title: 'Private Vault',
+      description: 'This Media Vault profile is private.',
+    }
+  }
+
+  const displayName = profile.displayName || profile.username
+  const description = `Browse ${displayName}'s public Media Vault in read-only mode.`
+  const path = `/u/${profile.username}`
+
+  return {
+    title: `${displayName} | Media Vault`,
+    description,
+    alternates: {
+      canonical: path,
+    },
+    openGraph: {
+      title: `${displayName} | Media Vault`,
+      description,
+      url: path,
+      siteName: 'Media Vault',
+      type: 'profile',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${displayName} | Media Vault`,
+      description,
+    },
+  }
+}
 
 export default async function PublicUserProfilePage(props: PageProps) {
   const { username: usernameParam } = await props.params
@@ -62,9 +113,10 @@ export default async function PublicUserProfilePage(props: PageProps) {
     )
   }
 
-  const [itemsResult, publicListsResult] = await Promise.all([
+  const [itemsResult, publicListsResult, currentUser] = await Promise.all([
     getPublicItemsByUserId(profile.id),
     getPublicListsForProfile(profile.id),
+    getCurrentUser(),
   ])
 
   if (itemsResult.error) {
@@ -81,48 +133,68 @@ export default async function PublicUserProfilePage(props: PageProps) {
   const typeCounts = getTopCounts(items.map((item) => item.type))
   const statusCounts = getTopCounts(items.map((item) => item.status))
   const displayName = profile.displayName || profile.username
+  const publicListsSupported = !publicListsResult.error
+  const publicLists = publicListsSupported ? publicListsResult.lists : []
+  const completedCount = items.filter(
+    (item) => item.status.trim().toLowerCase() === 'completed'
+  ).length
+  const ratedCount = items.filter((item) => typeof item.rating === 'number').length
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 pb-32 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl min-w-0">
-        <header className="mb-8 max-w-4xl min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
-            <Compass className="h-4 w-4" />
-            Public Vault
-          </div>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
-            {displayName}
-          </h1>
-          <p className="mt-3 text-sm font-medium text-blue-200">@{profile.username}</p>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400">
-            Browse this Media Vault in read-only mode. Editing, deleting, importing,
-            backups, list management, and private account controls are hidden from visitors.
-          </p>
-        </header>
+        <header className="mb-8 min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl shadow-slate-950/30 sm:p-7">
+          <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
+                <Compass className="h-4 w-4" />
+                Public Vault
+              </div>
+              <h1 className="mt-5 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                {displayName}
+              </h1>
+              <p className="mt-3 text-sm font-medium text-blue-200">@{profile.username}</p>
+              <p className="mt-5 max-w-3xl text-base leading-7 text-slate-400">
+                Browse this Media Vault in read-only mode. Public visitors can explore visible
+                titles and shared lists, while editing, deleting, importing, backups, and account
+                controls stay private.
+              </p>
 
-        <section className="mb-6 grid min-w-0 gap-4 md:grid-cols-3">
-          <SummaryCard label="Public items" value={String(items.length)} />
-          <SummaryCard
-            label="Completed"
-            value={String(
-              items.filter((item) => item.status.trim().toLowerCase() === 'completed')
-                .length
-            )}
-          />
-          <SummaryCard
-            label="Rated"
-            value={String(items.filter((item) => typeof item.rating === 'number').length)}
-          />
-        </section>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <CopyPublicLinkButton path={`/u/${profile.username}`} />
+                {currentUser ? (
+                  <Link
+                    href="/"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 hover:bg-slate-800"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to vault
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <SummaryCard label="Public items" value={String(items.length)} />
+              <SummaryCard label="Completed" value={String(completedCount)} />
+              <SummaryCard label="Rated" value={String(ratedCount)} />
+              {publicListsSupported ? (
+                <SummaryCard label="Public lists" value={String(publicLists.length)} />
+              ) : null}
+            </div>
+          </div>
+        </header>
 
         <section className="mb-8 grid min-w-0 gap-4 lg:grid-cols-2">
           <BreakdownCard emptyLabel="No media types yet." items={typeCounts} title="By Type" />
           <BreakdownCard emptyLabel="No statuses yet." items={statusCounts} title="By Status" />
         </section>
 
-        <PublicListsSection lists={publicListsResult.lists} username={profile.username} />
+        {publicListsSupported ? (
+          <PublicListsSection lists={publicLists} username={profile.username} />
+        ) : null}
 
-        <PublicLibraryGrid items={items} />
+        <PublicVaultExplorer items={items} />
       </div>
     </main>
   )
@@ -144,7 +216,7 @@ function getTopCounts(values: string[]) {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-950 p-4">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">{label}</p>
       <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{value}</p>
     </div>
@@ -212,9 +284,12 @@ function PublicListsSection({
       </div>
 
       {lists.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-          No public lists yet.
-        </p>
+        <div className="mt-5 rounded-xl border border-dashed border-slate-800 bg-slate-950 p-5">
+          <h3 className="text-base font-semibold text-slate-100">No public lists yet.</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            This vault is public, but the owner has not shared any custom lists.
+          </p>
+        </div>
       ) : (
         <div className="mt-5 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {lists.map((list) => (
@@ -230,6 +305,9 @@ function PublicListsSection({
               <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">
                 {list.itemCount} item{list.itemCount === 1 ? '' : 's'} - /{list.slug}
               </p>
+              <span className="mt-4 inline-flex min-h-10 items-center rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-100">
+                Open list
+              </span>
             </Link>
           ))}
         </div>

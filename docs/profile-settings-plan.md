@@ -1,6 +1,6 @@
-# Public Profile Setup
+# Public Profile and Public List Setup
 
-Media Vault now supports username-based public profiles at:
+Media Vault supports username-based public profiles at:
 
 ```text
 /u/[username]
@@ -9,7 +9,7 @@ Media Vault now supports username-based public profiles at:
 The public profile is read-only. Visitors can see vault items only when the
 owner has enabled `profiles.is_public = true`.
 
-## Migration
+## Public Profile Migration
 
 Run this Supabase migration:
 
@@ -88,7 +88,7 @@ Rules:
 
 ## Public Custom Lists
 
-Media Vault also supports read-only public custom list URLs:
+Media Vault supports read-only public custom list URLs:
 
 ```text
 /u/[username]/lists/[listSlug]

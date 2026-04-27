@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Media Vault',
     short_name: 'Vault',
-    description: 'A personal media vault for anime, manga, movies, series, and books.',
+    description: 'Track anime, manga, movies, series, and books in one personal media vault.',
     start_url: '/',
     scope: '/',
     display: 'standalone',

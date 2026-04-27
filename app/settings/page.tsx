@@ -11,7 +11,11 @@ import {
 
 import { getOrCreateProfile } from '../actions/profile'
 import ProfileSettingsPanel from '../../components/ProfileSettingsPanel'
+import SetupChecklist from '../../components/onboarding/SetupChecklist'
 import { getCurrentUser } from '../../lib/auth/dal'
+import { getItems } from '../../lib/data/items'
+import { getCustomLists } from '../../lib/data/lists'
+import { toMediaItem } from '../../lib/media'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,7 +60,25 @@ export default async function SettingsPage() {
     )
   }
 
-  const profileResult = await getOrCreateProfile()
+  const [profileResult, itemsResult, listsResult] = await Promise.all([
+    getOrCreateProfile(),
+    getItems(),
+    getCustomLists(),
+  ])
+  const mediaItems = (itemsResult.data ?? []).map(toMediaItem)
+  const shouldShowSetupChecklist =
+    mediaItems.length < 3 ||
+    !profileResult.profile?.username ||
+    !profileResult.profile?.isPublic
+  const onboardingState = {
+    importedItemCount: mediaItems.filter((item) => Boolean(item.externalSource?.trim())).length,
+    isProfilePublic: Boolean(profileResult.profile?.isPublic),
+    itemCount: mediaItems.length,
+    listCount: listsResult.schemaReady ? listsResult.lists.length : null,
+    listsReady: listsResult.schemaReady,
+    profileReady: Boolean(profileResult.profile),
+    username: profileResult.profile?.username ?? null,
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 pb-32 text-slate-100 sm:px-6 lg:px-8">
@@ -70,9 +92,18 @@ export default async function SettingsPage() {
           </h1>
           <p className="mt-4 text-base leading-7 text-slate-400">
             Manage the safe foundation for your profile, sharing links, and vault tools.
-            Custom profile fields will unlock once the profile settings schema exists.
+            Configure your public identity, vault visibility, and safe backup/import tools.
           </p>
         </header>
+
+        {shouldShowSetupChecklist ? (
+          <SetupChecklist
+            className="mb-4"
+            state={onboardingState}
+            storageKey="media-vault-settings-onboarding-dismissed"
+            variant="compact"
+          />
+        ) : null}
 
         <section className="grid min-w-0 gap-4 lg:grid-cols-2">
           <SettingsCard

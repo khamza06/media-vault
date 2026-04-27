@@ -19,6 +19,7 @@ import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
 import { shelfDefinitions } from '../lib/shelves'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
 import LibraryFilterControls from './LibraryFilterControls'
+import SetupChecklist, { type SetupChecklistState } from './onboarding/SetupChecklist'
 import { useToast } from './ToastProvider'
 import type { AddToListOption } from './lists/AddToListButton'
 import ShelfItemCard from './ShelfItemCard'
@@ -34,10 +35,12 @@ const shelfIcons = {
 export default function HomeShelvesView({
   items,
   listOptions,
+  onboardingState,
   recommendations,
 }: {
   items: MediaItem[]
   listOptions: AddToListOption[]
+  onboardingState: SetupChecklistState
   recommendations: DiscoverRecommendation[]
 }) {
   const router = useRouter()
@@ -345,15 +348,7 @@ export default function HomeShelvesView({
       </section>
 
       {totalCount === 0 ? (
-        <section className="glass-panel-soft flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-white/10 px-6 text-center">
-          <Sparkles className="h-8 w-8 text-slate-500" />
-          <div>
-            <h3 className="text-xl font-semibold text-white">Your vault is empty.</h3>
-            <p className="mt-2 max-w-md text-sm text-slate-400">
-              Time to start a new adventure and build your first shelf.
-            </p>
-          </div>
-        </section>
+        <SetupChecklist state={onboardingState} variant="empty" />
       ) : visibleCount === 0 ? (
         <section className="glass-panel-soft flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-white/10 px-6 text-center">
           <Sparkles className="h-8 w-8 text-slate-500" />
@@ -374,54 +369,60 @@ export default function HomeShelvesView({
           ) : null}
         </section>
       ) : (
-        sortedShelves.map((shelf) => {
-          const ShelfIcon = shelfIcons[shelf.key]
+        <>
+          {totalCount < 3 ? (
+            <SetupChecklist state={onboardingState} variant="compact" />
+          ) : null}
 
-          return (
-            <section key={shelf.key} className="min-w-0 space-y-4">
-              <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/12 text-blue-200">
-                    <ShelfIcon className="h-5 w-5" />
+          {sortedShelves.map((shelf) => {
+            const ShelfIcon = shelfIcons[shelf.key]
+
+            return (
+              <section key={shelf.key} className="min-w-0 space-y-4">
+                <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/12 text-blue-200">
+                      <ShelfIcon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-bold tracking-tight text-white sm:text-2xl">{shelf.label}</h2>
+                      <p className="text-sm text-slate-400">{shelf.description}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="text-lg font-bold tracking-tight text-white sm:text-2xl">{shelf.label}</h2>
-                    <p className="text-sm text-slate-400">{shelf.description}</p>
-                  </div>
+                  <Link
+                    href={`/shelves/${shelf.slug}`}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/30 hover:text-white sm:shrink-0"
+                  >
+                    See All
+                  </Link>
                 </div>
-                <Link
-                  href={`/shelves/${shelf.slug}`}
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/30 hover:text-white sm:shrink-0"
-                >
-                  See All
-                </Link>
-              </div>
 
-              <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2 md:gap-4">
-                {shelf.items.length > 0 ? (
-                  shelf.items.map((item) => (
-                    <ShelfItemCard
-                      key={item.id}
-                      accentHandler={resolveAccent}
-                      isSelected={selectedIds.has(item.id)}
-                      isSelectionMode={selectionMode}
-                      item={item}
-                      listOptions={listOptions}
-                      onIncrement={handleIncrement}
-                      onToggleSelection={toggleSelection}
-                      progressBusy={Boolean(busyIds[item.id])}
-                      returnTo={`/shelves/${shelf.slug}`}
-                    />
-                  ))
-                ) : (
-                  <article className="glass-panel-soft flex min-h-[220px] min-w-[260px] items-center justify-center rounded-xl border border-dashed border-white/10 px-6 text-center text-sm text-slate-400">
-                    Nothing here yet. Add the first title to start this shelf.
-                  </article>
-                )}
-              </div>
-            </section>
-          )
-        })
+                <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2 md:gap-4">
+                  {shelf.items.length > 0 ? (
+                    shelf.items.map((item) => (
+                      <ShelfItemCard
+                        key={item.id}
+                        accentHandler={resolveAccent}
+                        isSelected={selectedIds.has(item.id)}
+                        isSelectionMode={selectionMode}
+                        item={item}
+                        listOptions={listOptions}
+                        onIncrement={handleIncrement}
+                        onToggleSelection={toggleSelection}
+                        progressBusy={Boolean(busyIds[item.id])}
+                        returnTo={`/shelves/${shelf.slug}`}
+                      />
+                    ))
+                  ) : (
+                    <article className="glass-panel-soft flex min-h-[220px] min-w-[260px] items-center justify-center rounded-xl border border-dashed border-white/10 px-6 text-center text-sm text-slate-400">
+                      Nothing here yet. Add the first title to start this shelf.
+                    </article>
+                  )}
+                </div>
+              </section>
+            )
+          })}
+        </>
       )}
 
       <section className="min-w-0 space-y-4">

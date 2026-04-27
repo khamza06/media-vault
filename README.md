@@ -1,134 +1,122 @@
 # Media Vault
 
-Personal media tracker for anime, manga, manhwa, manhua, movies, TV series, and books.
+Media Vault is a personal media tracker for anime, manga, movies, series, and
+books. It gives each signed-in user a private vault with imports, backups,
+stats, custom lists, and optional read-only public sharing.
 
-Built with:
+Production: [https://media-vault-seven.vercel.app](https://media-vault-seven.vercel.app)
 
-- Next.js 16 App Router
+## Tech stack
+
+- Next.js App Router
+- React
 - TypeScript
 - Tailwind CSS
-- Supabase Postgres + Auth
+- Supabase Auth, Postgres, and RLS
+- AniList GraphQL for anime/manga metadata and imports
+- TMDB API for movie/series discovery
+- Recharts for analytics
+- Vercel for deployment
 
-## Features
+## Main features
 
-- Private user accounts with Supabase Auth
-- Add, edit, delete, and browse media entries
-- One-click quick import from MangaLib, ReManga, and Kinopoisk URLs
-- Search, filter, and sort the library
-- Item detail pages
-- Stats dashboard
-- JSON backup export and import
-- Optional genre tags with search and stats
-- Toast notifications
-- Query state synced to the URL
+- Private media library with shelves for anime, manga, movies, series, and books
+- Advanced library filters, sorting, cover filters, source filters, and bulk delete
+- Discover/search flows for adding new titles
+- MyAnimeList XML import with preview, duplicate protection, and cover enrichment
+- AniList username import and Generic CSV import when enabled in the Import Center
+- Fill Missing Covers utility for imported anime/manga
+- JSON and CSV backup export plus JSON restore preview with duplicate skipping
+- Custom private lists with add/remove existing vault items
+- Optional public profile at `/u/[username]`
+- Optional public read-only custom list sharing
+- Stats dashboard with ratings, media mix, status, genres, monthly additions, and insights
+- Settings, onboarding checklist, and auth recovery flows
 
-## Local development
+## Environment variables
 
-Create `.env.local` with:
+Create `.env.local` for development:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-# optional but recommended for production previews
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_TMDB_API_KEY=your-tmdb-api-key
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-Install dependencies and start the app:
+For production on Vercel:
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://media-vault-seven.vercel.app
+```
+
+Never commit real secrets. Use Vercel Environment Variables for production.
+
+## Local development
 
 ```bash
 npm install
 npm run dev
 ```
-
 ## Supabase setup
 
-### 1. Database table
+Run the SQL migrations in `supabase/migrations` in order for the full feature
+set. The key migrations are:
 
-The app expects an `items` table with:
+- `20260326_auth_user_ownership.sql` for `items.user_id` and RLS
+- `20260326_item_metadata.sql` for notes, total progress, and timeline fields
+- `20260326_item_favorites.sql` for favorites
+- `20260326_item_genres.sql` for genre tags and stats
+- `20260330_external_ratings.sql` for external scores/source metadata
+- `20260426_custom_lists.sql` for custom lists and list items
+- `20260427_public_profiles.sql` for username-based public profiles
+- `20260427_public_profiles_lists.sql` for public list sharing
 
-- `id uuid primary key`
-- `title text`
-- `type text`
-- `status text`
-- `progress int`
-- `rating int`
-- `image_url text`
-- `created_at timestamp`
+The app uses compatibility fallbacks where practical, but production portfolio
+use should apply the migrations so imports, public profiles, lists, and backups
+work with the intended schema.
 
-### 2. User ownership + RLS
+## Auth redirect setup
 
-Run the SQL migration:
-
-```text
-supabase/migrations/20260326_auth_user_ownership.sql
-```
-
-This adds `user_id`, creates an index, enables row-level security, and scopes rows to the signed-in user.
-
-Until this migration is applied, the app runs in compatibility mode and shows an in-app setup notice.
-
-### 3. Auth redirect URLs
-
-In Supabase Auth settings, add:
+In Supabase Dashboard:
 
 ```text
-http://localhost:3000/auth/confirm
-https://your-domain.com/auth/confirm
+Authentication -> URL Configuration
 ```
 
-The signup flow sends email confirmations through that route.
-
-### 4. Optional Storage bucket for cover uploads
-
-If you want uploadable cover images in the add/edit forms, also run:
+Set Site URL:
 
 ```text
-supabase/migrations/20260326_storage_media_covers.sql
+https://media-vault-seven.vercel.app
 ```
 
-This creates a public `media-covers` bucket with authenticated upload/delete rules scoped to each user's folder.
-
-### 5. Optional item metadata fields
-
-If you want richer tracking fields like notes, total progress, and start/finish dates, also run:
+Add Redirect URLs:
 
 ```text
-supabase/migrations/20260326_item_metadata.sql
+https://media-vault-seven.vercel.app/auth/callback
+https://media-vault-seven.vercel.app/auth/reset-password
+http://localhost:3000/auth/callback
+http://localhost:3000/auth/reset-password
 ```
 
-### 6. Optional favorites
+See [docs/auth-setup.md](docs/auth-setup.md) for email confirmation and password
+reset details.
 
-If you want favorites, quick starring, and favorites filters in the library, also run:
+## Deployment
 
-```text
-supabase/migrations/20260326_item_favorites.sql
-```
-
-### 7. Optional genres
-
-If you want genre tags, genre-aware search, and top-genre stats, also run:
-
-```text
-supabase/migrations/20260326_item_genres.sql
-```
-
-## Useful scripts
+The app is configured for Vercel. After environment variables are set:
 
 ```bash
-npm run dev
-npm run lint
+npx vercel --prod
 ```
 
-Type-check:
+Public pages are read-only and gated by Supabase RLS. Private controls such as
+edit, delete, bulk delete, import, backup, add-to-list, and progress updates are
+not shown on public profile/list routes.
 
-```bash
-node_modules/.bin/tsc --noEmit
-```
+## Project docs
 
-## Notes
-
-- Home, stats, and item pages are server-rendered.
-- Mutations use Next.js Server Actions.
-- Supabase reads are server-side.
-- Image covers are rendered with `next/image`.
-- Backups can be exported from `/backup` and imported back into the signed-in account.
+- [Auth setup](docs/auth-setup.md)
+- [Public profile and public list setup](docs/profile-settings-plan.md)
+- [Final QA checklist](docs/final-qa-checklist.md)

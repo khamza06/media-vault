@@ -7,6 +7,7 @@ import MobileTabBar from '../components/MobileTabBar'
 import PwaShell from '../components/PwaShell'
 import { ToastProvider } from '../components/ToastProvider'
 import { getCurrentUser } from '../lib/auth/dal'
+import { getConfiguredSiteUrl } from '../lib/auth/site-url'
 import { getRequestLocale } from '../lib/i18n-server'
 import './globals.css'
 
@@ -44,14 +45,32 @@ const geistMono = localFont({
 
 export const dynamic = 'force-dynamic'
 
+const siteUrl = getConfiguredSiteUrl() ?? 'https://media-vault-seven.vercel.app'
+const siteDescription =
+  'Track anime, manga, movies, series, and books in one personal media vault.'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'Media Vault',
     template: '%s | Media Vault',
   },
-  description: 'A private media vault for anime, manga, manhwa, movies, series, and books.',
+  description: siteDescription,
   applicationName: 'Media Vault',
-  manifest: '/manifest.json',
+  authors: [{ name: 'Media Vault' }],
+  category: 'Entertainment',
+  keywords: [
+    'media tracker',
+    'anime tracker',
+    'manga tracker',
+    'movie tracker',
+    'book tracker',
+    'personal media vault',
+  ],
+  manifest: '/manifest.webmanifest',
+  alternates: {
+    canonical: '/',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -67,6 +86,28 @@ export const metadata: Metadata = {
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
+  },
+  openGraph: {
+    title: 'Media Vault',
+    description: siteDescription,
+    url: siteUrl,
+    siteName: 'Media Vault',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Media Vault app preview',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Media Vault',
+    description: siteDescription,
+    images: ['/opengraph-image'],
   },
 }
 

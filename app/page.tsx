@@ -1,5 +1,6 @@
 import HomeShelvesView from '../components/HomeShelvesView'
 import SetupNotice from '../components/SetupNotice'
+import { getOrCreateProfile } from './actions/profile'
 import { getItems } from '../lib/data/items'
 import { getCustomLists } from '../lib/data/lists'
 import { getOwnershipMode } from '../lib/data/ownership'
@@ -10,10 +11,11 @@ export const revalidate = 0
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const [itemsResult, ownershipMode, listsResult] = await Promise.all([
+  const [itemsResult, ownershipMode, listsResult, profileResult] = await Promise.all([
     getItems(),
     getOwnershipMode(),
     getCustomLists(),
+    getOrCreateProfile(),
   ])
   const { data: items, error } = itemsResult
 
@@ -25,6 +27,15 @@ export default async function HomePage() {
   const recommendations = await getDiscoverRecommendations(mediaItems)
 
   const listOptions = listsResult.schemaReady ? listsResult.lists : []
+  const onboardingState = {
+    importedItemCount: mediaItems.filter((item) => Boolean(item.externalSource?.trim())).length,
+    isProfilePublic: Boolean(profileResult.profile?.isPublic),
+    itemCount: mediaItems.length,
+    listCount: listsResult.schemaReady ? listsResult.lists.length : null,
+    listsReady: listsResult.schemaReady,
+    profileReady: Boolean(profileResult.profile),
+    username: profileResult.profile?.username ?? null,
+  }
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 pb-24 sm:px-6 md:py-6 md:pb-6 lg:px-8">
@@ -43,7 +54,12 @@ export default async function HomePage() {
 
       {ownershipMode === 'legacy' ? <SetupNotice /> : null}
 
-      <HomeShelvesView items={mediaItems} listOptions={listOptions} recommendations={recommendations} />
+      <HomeShelvesView
+        items={mediaItems}
+        listOptions={listOptions}
+        onboardingState={onboardingState}
+        recommendations={recommendations}
+      />
     </main>
   )
 }

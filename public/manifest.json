@@ -1,7 +1,7 @@
 {
   "name": "Media Vault",
   "short_name": "Vault",
-  "description": "Private media tracker for anime, manga, movies, TV series, and books.",
+  "description": "Track anime, manga, movies, series, and books in one personal media vault.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
