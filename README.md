@@ -17,7 +17,7 @@ stats, custom lists, and optional read-only public sharing.
 
 ## Screenshots
 
-Add the screenshot PNGs to `public/screenshots/` to populate this section.
+A quick look at the private vault, analytics, imports, custom collections, public sharing, and mobile UI.
 
 | Library | Stats |
 |---|---|
@@ -177,7 +177,11 @@ The workflow requires these GitHub repository secrets:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_TMDB_API_KEY` for TMDB-backed search parity, if available
+- `NEXT_PUBLIC_TMDB_API_KEY`
+- `NEXT_PUBLIC_SENTRY_DSN`
+- `SENTRY_ORG`
+- `SENTRY_PROJECT`
+- `SENTRY_AUTH_TOKEN`
 
 Public pages are read-only and gated by Supabase RLS. Private controls such as
 edit, delete, bulk delete, import, backup, add-to-list, and progress updates are
