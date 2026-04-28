@@ -9,6 +9,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useMemo, useState } from 'react'
 
+import AppSelect from '@/components/ui/AppSelect'
+
 const PREVIEW_LIMIT = 250
 
 type CsvRow = Record<string, string>
@@ -571,20 +573,16 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
                       <span className="ml-1 text-blue-300">*</span>
                     ) : null}
                   </span>
-                  <select
+                  <AppSelect
+                    ariaLabel={`${fieldDefinition.label} column`}
                     value={mapping[fieldDefinition.field]}
-                    onChange={(event) =>
-                      updateMapping(fieldDefinition.field, event.target.value)
-                    }
+                    onValueChange={(value) => updateMapping(fieldDefinition.field, value)}
+                    options={[
+                      { label: 'Do not import', value: '' },
+                      ...csvData.headers.map((header) => ({ label: header, value: header })),
+                    ]}
                     className="mt-2 min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-blue-400"
-                  >
-                    <option value="">Do not import</option>
-                    {csvData.headers.map((header) => (
-                      <option key={header} value={header}>
-                        {header}
-                      </option>
-                    ))}
-                  </select>
+                  />
                   <span className="mt-2 block text-xs leading-5 text-slate-500">
                     {fieldDefinition.helper}
                   </span>

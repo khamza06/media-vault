@@ -16,6 +16,7 @@ import {
   type LibrarySortMode,
   type LibrarySourceFilter,
 } from '../lib/library-filters'
+import AppSelect from './ui/AppSelect'
 
 type LibraryFilterControlsProps = {
   filters: LibraryFilters
@@ -93,36 +94,26 @@ export default function LibraryFilterControls({
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
             Status
           </span>
-          <select
+          <AppSelect
+            ariaLabel="Status filter"
             value={filters.status}
-            onChange={(event) => updateFilters({ status: event.target.value })}
+            onValueChange={(value) => updateFilters({ status: value })}
+            options={libraryStatusOptions}
             className={controlClassName}
-          >
-            {libraryStatusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
             Cover
           </span>
-          <select
+          <AppSelect
+            ariaLabel="Cover filter"
             value={filters.cover}
-            onChange={(event) =>
-              updateFilters({ cover: event.target.value as LibraryCoverFilter })
-            }
+            onValueChange={(value) => updateFilters({ cover: value as LibraryCoverFilter })}
+            options={libraryCoverOptions}
             className={controlClassName}
-          >
-            {libraryCoverOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         {showSourceFilter ? (
@@ -130,19 +121,13 @@ export default function LibraryFilterControls({
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               Source
             </span>
-            <select
+            <AppSelect
+              ariaLabel="Source filter"
               value={filters.source}
-              onChange={(event) =>
-                updateFilters({ source: event.target.value as LibrarySourceFilter })
-              }
+              onValueChange={(value) => updateFilters({ source: value as LibrarySourceFilter })}
+              options={librarySourceOptions}
               className={controlClassName}
-            >
-              {librarySourceOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            />
           </label>
         ) : null}
 
@@ -150,36 +135,26 @@ export default function LibraryFilterControls({
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
             Rating
           </span>
-          <select
+          <AppSelect
+            ariaLabel="Rating filter"
             value={filters.rating}
-            onChange={(event) =>
-              updateFilters({ rating: event.target.value as LibraryRatingFilter })
-            }
+            onValueChange={(value) => updateFilters({ rating: value as LibraryRatingFilter })}
+            options={libraryRatingOptions}
             className={controlClassName}
-          >
-            {libraryRatingOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
             Sort
           </span>
-          <select
+          <AppSelect
+            ariaLabel="Sort library"
             value={filters.sort}
-            onChange={(event) => updateFilters({ sort: event.target.value as LibrarySortMode })}
+            onValueChange={(value) => updateFilters({ sort: value as LibrarySortMode })}
+            options={librarySortOptions}
             className={controlClassName}
-          >
-            {librarySortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         </label>
       </div>
     </section>

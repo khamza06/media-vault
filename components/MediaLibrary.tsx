@@ -18,6 +18,7 @@ import { translateStatus, translateType } from '../lib/i18n'
 import type { MediaItem } from '../lib/media'
 import { formatProgressValue, mediaStatuses, mediaTypes } from '../lib/media'
 import { mediaCardGridClassName } from '../lib/media-card-grid'
+import AppSelect from './ui/AppSelect'
 
 type MediaLibraryProps = {
   items: MediaItem[]
@@ -56,6 +57,13 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
   const searchQuery = searchParams.get('q') ?? ''
   const sortBy = getSortParam(searchParams.get('sort'))
   const deferredQuery = useDeferredValue(searchQuery)
+  const sortOptions = [
+    { label: t('library.sort.newest'), value: 'newest' },
+    { label: t('library.sort.titleAsc'), value: 'title-asc' },
+    { label: t('library.sort.titleDesc'), value: 'title-desc' },
+    { label: t('library.sort.ratingDesc'), value: 'rating-desc' },
+    { label: t('library.sort.progressDesc'), value: 'progress-desc' },
+  ]
 
   useEffect(() => {
     setLiveItems(items)
@@ -434,21 +442,17 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
 
           <label className="block">
             <span className="sr-only">{copy.sortLabel}</span>
-            <select
+            <AppSelect
+              ariaLabel={copy.sortLabel}
               value={sortBy}
-              onChange={(event) =>
+              onValueChange={(value) =>
                 updateQueryString({
-                  sort: event.target.value === 'newest' ? null : event.target.value,
+                  sort: value === 'newest' ? null : value,
                 })
               }
+              options={sortOptions}
               className="glass-panel-soft min-h-14 w-full rounded-[24px] px-4 py-3 text-white outline-none transition focus:border-blue-400/40"
-            >
-              <option value="newest">{t('library.sort.newest')}</option>
-              <option value="title-asc">{t('library.sort.titleAsc')}</option>
-              <option value="title-desc">{t('library.sort.titleDesc')}</option>
-              <option value="rating-desc">{t('library.sort.ratingDesc')}</option>
-              <option value="progress-desc">{t('library.sort.progressDesc')}</option>
-            </select>
+            />
           </label>
         </div>
 

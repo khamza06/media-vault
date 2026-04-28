@@ -15,6 +15,7 @@ import {
   type MediaItem,
 } from '../lib/media'
 import { useToast } from './ToastProvider'
+import AppSelect from './ui/AppSelect'
 
 type ItemQuickEditPanelProps = {
   item: MediaItem
@@ -29,6 +30,17 @@ const centeredMetricValueClassName =
   'mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-center text-sm font-semibold text-white'
 const progressInputClassName =
   'min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-center text-sm font-semibold tabular-nums text-white outline-none transition [appearance:textfield] focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+const ratingOptions = [
+  { label: 'Not rated', value: '' },
+  ...Array.from({ length: 10 }, (_, index) => {
+    const value = String(index + 1)
+
+    return {
+      label: `${value} / 10`,
+      value,
+    }
+  }),
+]
 
 export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   const router = useRouter()
@@ -162,18 +174,14 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
               </span>
             ) : null}
           </div>
-          <select
+          <AppSelect
+            ariaLabel="Status"
             value={status}
-            onChange={(event) => void handleStatusChange(event.target.value)}
+            onValueChange={(value) => void handleStatusChange(value)}
             disabled={savingField === 'status'}
+            options={allowedStatuses.map((option) => ({ label: option, value: option }))}
             className="mt-4 min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
-          >
-            {allowedStatuses.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
@@ -183,19 +191,14 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
             <div className={metricCardClassName}>
               <p className={metricLabelClassName}>My Rating</p>
-              <select
-                value={rating ?? ''}
-                onChange={(event) => void handleRatingChange(event.target.value)}
+              <AppSelect
+                ariaLabel="My rating"
+                value={rating == null ? '' : String(rating)}
+                onValueChange={(value) => void handleRatingChange(value)}
                 disabled={savingField === 'rating'}
+                options={ratingOptions}
                 className="mt-3 min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
-              >
-                <option value="">Not rated</option>
-                {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
-                  <option key={value} value={value}>
-                    {value} / 10
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className={metricCardClassName}>
               <p className={metricLabelClassName}>Official Rating</p>

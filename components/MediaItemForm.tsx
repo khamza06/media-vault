@@ -14,6 +14,7 @@ import {
   type MediaItemInput,
 } from '../lib/media'
 import { useLocale } from './LocaleProvider'
+import AppSelect from './ui/AppSelect'
 
 type MediaItemFormProps = {
   coverFileName?: string
@@ -53,12 +54,15 @@ export default function MediaItemForm({
   const showSuggestions =
     hasSelectedType && (titleSuggestionsLoading || titleSuggestions.length > 0 || Boolean(titleSuggestionsError))
   const statusOptions = hasSelectedType ? getAllowedStatuses(form.type) : []
+  const typeSelectOptions = [
+    { label: 'Select a type first', value: '' },
+    ...mediaTypes.map((type) => ({ label: type, value: type })),
+  ]
+  const statusSelectOptions = hasSelectedType
+    ? statusOptions.map((status) => ({ label: status, value: status }))
+    : [{ label: 'Select a type first', value: '' }]
   const currentProgressLabel = hasSelectedType ? getCurrentProgressLabel(form.type) : 'Current Progress'
   const totalProgressLabel = hasSelectedType ? getTotalProgressLabel(form.type) : 'Total Count'
-  const optionStyle = {
-    backgroundColor: '#f8fafc',
-    color: '#0f172a',
-  } as const
 
   function getCandidateRatingCopy(candidate: CatalogSearchCandidate) {
     if (!candidate.externalRatingLabel || typeof candidate.externalRatingValue !== 'number') {
@@ -94,10 +98,11 @@ export default function MediaItemForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-slate-200">Type</span>
-          <select
+          <AppSelect
+            ariaLabel="Media type"
             value={form.type}
-            onChange={(event) => {
-              const nextType = event.target.value
+            onValueChange={(value) => {
+              const nextType = value
               onChange('type', nextType)
 
               if (!nextType) {
@@ -109,39 +114,22 @@ export default function MediaItemForm({
                 onChange('status', getDefaultStatus(nextType))
               }
             }}
+            options={typeSelectOptions}
             className="glass-panel-soft min-h-12 w-full rounded-2xl px-4 py-3 text-base text-white outline-none transition focus:border-blue-400/40"
             disabled={isSubmitting}
-          >
-            <option value="" style={optionStyle}>
-              Select a type first
-            </option>
-            {mediaTypes.map((type) => (
-              <option key={type} value={type} style={optionStyle}>
-                {type}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-slate-200">Status</span>
-          <select
+          <AppSelect
+            ariaLabel="Status"
             value={form.status}
-            onChange={(event) => onChange('status', event.target.value)}
+            onValueChange={(value) => onChange('status', value)}
+            options={statusSelectOptions}
             className="glass-panel-soft min-h-12 w-full rounded-2xl px-4 py-3 text-base text-white outline-none transition focus:border-blue-400/40"
             disabled={isSubmitting || !hasSelectedType}
-          >
-            {!hasSelectedType ? (
-              <option value="" style={optionStyle}>
-                Select a type first
-              </option>
-            ) : null}
-            {statusOptions.map((status) => (
-              <option key={status} value={status} style={optionStyle}>
-                {status}
-              </option>
-            ))}
-          </select>
+          />
         </label>
       </div>
 

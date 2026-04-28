@@ -21,6 +21,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import EmptyVaultState from './EmptyVaultState'
 import { getGenreBadgeClass, translateGenre } from '../lib/genres'
 import { formatProgressValue, type MediaItem } from '../lib/media'
+import AppSelect from './ui/AppSelect'
 
 type DiscoveryHubViewProps = {
   availableGenres: string[]
@@ -57,6 +58,16 @@ const typeOptions = [
 ] as const
 
 const statusOptions = ['All', 'Reading', 'Watching', 'Completed', 'Planning'] as const
+const statusSelectOptions = statusOptions.map((status) => ({
+  label: status === 'All' ? 'All statuses' : status,
+  value: status,
+}))
+const sortSelectOptions: Array<{ label: string; value: SortMode }> = [
+  { label: 'Recently Updated', value: 'recent' },
+  { label: 'Title (A-Z)', value: 'title' },
+  { label: 'Rating (High-Low)', value: 'rating' },
+  { label: 'Release Year', value: 'year' },
+]
 
 export default function DiscoveryHubView({
   availableGenres,
@@ -252,17 +263,13 @@ export default function DiscoveryHubView({
 
       <section className="glass-panel-soft rounded-xl border border-white/10 p-4">
         <div className="mb-3 text-sm font-semibold text-white">Status</div>
-        <select
+        <AppSelect
+          ariaLabel="Status filter"
           value={draftFilters.status}
-          onChange={(event) => updateDraft('status', event.target.value)}
+          onValueChange={(value) => updateDraft('status', value)}
+          options={statusSelectOptions}
           className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/30"
-        >
-          {statusOptions.map((status) => (
-            <option key={status} value={status}>
-              {status === 'All' ? 'All statuses' : status}
-            </option>
-          ))}
-        </select>
+        />
       </section>
 
       <section className="glass-panel-soft rounded-xl border border-white/10 p-4">
@@ -422,16 +429,13 @@ export default function DiscoveryHubView({
               Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </button>
 
-            <select
+            <AppSelect
+              ariaLabel="Sort results"
               value={activeSort}
-              onChange={(event) => updateSort(event.target.value as SortMode)}
+              onValueChange={(value) => updateSort(value as SortMode)}
+              options={sortSelectOptions}
               className="min-h-11 rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm text-white outline-none transition focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/30"
-            >
-              <option value="recent">Recently Updated</option>
-              <option value="title">Title (A-Z)</option>
-              <option value="rating">Rating (High-Low)</option>
-              <option value="year">Release Year</option>
-            </select>
+            />
 
             <div className="inline-flex overflow-hidden rounded-xl border border-white/10 bg-white/5">
               <button

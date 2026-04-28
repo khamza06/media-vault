@@ -1,12 +1,13 @@
 'use client'
 
-import { ChevronDown, LoaderCircle, Search, Sparkles, Star, X } from 'lucide-react'
+import { LoaderCircle, Search, Sparkles, Star, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { dispatchOpenAddModal } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
 import { type CatalogSearchType, catalogSearchTypes } from '../lib/search-safety'
 import { useLocale } from './LocaleProvider'
+import AppSelect from './ui/AppSelect'
 
 function getResultTitle(item: CatalogSearchCandidate) {
   return item.title?.trim() || 'Untitled'
@@ -48,6 +49,14 @@ function getTypeLabel(type: CatalogSearchType) {
       return 'Type'
   }
 }
+
+const catalogTypeOptions = [
+  { label: 'Select type', value: '' },
+  ...catalogSearchTypes.map((type) => ({
+    label: getTypeLabel(type),
+    value: type,
+  })),
+]
 
 export default function HeaderCatalogSearch() {
   const { locale } = useLocale()
@@ -338,21 +347,13 @@ export default function HeaderCatalogSearch() {
 
         <div className="hidden items-center gap-3 md:flex">
           <div className="flex min-w-[156px] items-center">
-            <div className="relative w-full">
-              <select
-                value={searchType}
-                onChange={(event) => setSearchType(event.target.value as CatalogSearchType | '')}
-                className={`h-12 w-full appearance-none rounded-xl border px-4 pr-10 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-blue-500/40 ${desktopTypeSelectClass}`}
-              >
-                <option value="">Select type</option>
-                {catalogSearchTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {getTypeLabel(type)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            </div>
+            <AppSelect
+              ariaLabel="Search media type"
+              value={searchType}
+              onValueChange={(value) => setSearchType(value as CatalogSearchType | '')}
+              options={catalogTypeOptions}
+              className={`h-12 min-h-12 w-full rounded-xl border px-4 py-3 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-blue-500/40 ${desktopTypeSelectClass}`}
+            />
           </div>
 
           <div className="flex h-12 flex-1 items-center rounded-xl border border-slate-700 bg-slate-950 pl-4 pr-3 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/40">
@@ -432,21 +433,13 @@ export default function HeaderCatalogSearch() {
 
             <div className="relative mt-5">
               <div className="space-y-3">
-                <div className="relative w-full">
-                  <select
-                    value={searchType}
-                    onChange={(event) => setSearchType(event.target.value as CatalogSearchType | '')}
-                    className={`h-12 w-full appearance-none rounded-xl border px-4 pr-10 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-blue-500/40 ${mobileTypeSelectClass}`}
-                  >
-                    <option value="">Select type</option>
-                    {catalogSearchTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {getTypeLabel(type)}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                </div>
+                <AppSelect
+                  ariaLabel="Search media type"
+                  value={searchType}
+                  onValueChange={(value) => setSearchType(value as CatalogSearchType | '')}
+                  options={catalogTypeOptions}
+                  className={`h-12 min-h-12 w-full rounded-xl border px-4 py-3 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-blue-500/40 ${mobileTypeSelectClass}`}
+                />
 
                 <div className="flex h-12 items-center gap-3 rounded-xl border border-slate-700 bg-slate-950 px-4 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/40">
                   <Search className="h-4 w-4 text-slate-300" aria-hidden="true" />

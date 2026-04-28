@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 
 import PublicLibraryGrid from '../PublicLibraryGrid'
 import type { MediaItem } from '../../lib/media'
+import AppSelect from '../ui/AppSelect'
 
 type RatingFilter = 'all' | 'rated' | 'unrated' | '9plus' | '8plus' | '7plus'
 type SortMode = 'recent' | 'title-asc' | 'rating-desc' | 'status'
@@ -133,70 +134,58 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               Type
             </span>
-            <select
+            <AppSelect
+              ariaLabel="Type filter"
               value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value)}
+              onValueChange={setTypeFilter}
+              options={[
+                { label: 'All types', value: 'all' },
+                ...typeOptions.map((type) => ({ label: type, value: type })),
+              ]}
               className={controlClassName}
-            >
-              <option value="all">All types</option>
-              {typeOptions.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+            />
           </label>
 
           <label className="min-w-0 space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               Status
             </span>
-            <select
+            <AppSelect
+              ariaLabel="Status filter"
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+              onValueChange={setStatusFilter}
+              options={[
+                { label: 'All statuses', value: 'all' },
+                ...statusOptions.map((status) => ({ label: status, value: status })),
+              ]}
               className={controlClassName}
-            >
-              <option value="all">All statuses</option>
-              {statusOptions.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
+            />
           </label>
 
           <label className="min-w-0 space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               Rating
             </span>
-            <select
+            <AppSelect
+              ariaLabel="Rating filter"
               value={ratingFilter}
-              onChange={(event) => setRatingFilter(event.target.value as RatingFilter)}
+              onValueChange={(value) => setRatingFilter(value as RatingFilter)}
+              options={ratingOptions}
               className={controlClassName}
-            >
-              {ratingOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            />
           </label>
 
           <label className="min-w-0 space-y-2 sm:col-span-2 lg:col-span-1">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               Sort
             </span>
-            <select
+            <AppSelect
+              ariaLabel="Sort public vault"
               value={sortMode}
-              onChange={(event) => setSortMode(event.target.value as SortMode)}
+              onValueChange={(value) => setSortMode(value as SortMode)}
+              options={sortOptions}
               className={controlClassName}
-            >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            />
           </label>
         </div>
       </div>
