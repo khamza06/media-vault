@@ -207,7 +207,9 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
               <p className={metricLabelClassName}>Official Rating</p>
               <p className={centeredMetricValueClassName}>
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="min-w-0 truncate whitespace-nowrap">{officialRating}</span>
+                <span className="min-w-0 max-w-full whitespace-normal break-words text-center leading-snug">
+                  {officialRating}
+                </span>
               </p>
             </div>
           </div>
