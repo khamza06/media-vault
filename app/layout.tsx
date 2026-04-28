@@ -127,8 +127,10 @@ export default async function RootLayout({
   const user = await getCurrentUser()
   const locale = await getRequestLocale()
   const profileResult = user ? await getOrCreateProfile() : null
+  const displayName = profileResult?.profile?.displayName?.trim()
+  const username = profileResult?.profile?.username?.trim()
   const accountLabel =
-    profileResult?.profile?.username ?? user?.email?.split('@')[0] ?? 'Account'
+    displayName || (username ? `@${username}` : undefined) || user?.email?.split('@')[0] || 'Account'
 
   return (
     <html
