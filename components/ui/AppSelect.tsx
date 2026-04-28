@@ -18,17 +18,22 @@ type AppSelectProps = {
   onValueChange: (value: string) => void
   options: readonly AppSelectOption[]
   placeholder?: string
+  size?: 'compact' | 'default'
   value: string
 }
 
 const emptyValue = '__media_vault_empty_select_value__'
 
 const defaultTriggerClassName =
-  'inline-flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border border-slate-700/80 bg-slate-950/70 px-4 py-3 text-sm font-semibold text-white shadow-sm outline-none transition hover:border-blue-400/60 focus:ring-2 focus:ring-blue-500/40 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-60 data-[placeholder]:text-slate-500'
+  'inline-flex w-full items-center justify-between gap-2 overflow-hidden whitespace-nowrap rounded-xl border border-slate-700/80 bg-slate-950/70 text-sm font-semibold text-white shadow-sm outline-none transition hover:border-blue-400/60 focus:ring-2 focus:ring-blue-500/40 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-60 data-[placeholder]:text-slate-500'
 const defaultContentClassName =
   'z-[1200] max-h-[min(22rem,var(--radix-select-content-available-height))] w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 p-1 text-slate-100 shadow-2xl backdrop-blur'
 const defaultItemClassName =
   'relative flex min-h-10 cursor-pointer select-none items-center rounded-xl py-2 pl-9 pr-3 text-sm text-slate-200 outline-none transition hover:bg-blue-500/15 focus:bg-blue-500/20 data-[disabled]:pointer-events-none data-[disabled]:opacity-45 data-[state=checked]:bg-blue-500/20 data-[state=checked]:text-white'
+const triggerSizeClassNames = {
+  compact: 'h-11 min-h-11 min-w-[7rem] px-3 py-2',
+  default: 'min-h-12 px-4 py-3',
+} as const
 
 export default function AppSelect({
   ariaLabel,
@@ -39,6 +44,7 @@ export default function AppSelect({
   onValueChange,
   options,
   placeholder,
+  size = 'default',
   value,
 }: AppSelectProps) {
   return (
@@ -49,9 +55,9 @@ export default function AppSelect({
     >
       <Select.Trigger
         aria-label={ariaLabel}
-        className={mergeClassNames(defaultTriggerClassName, className)}
+        className={mergeClassNames(defaultTriggerClassName, triggerSizeClassNames[size], className)}
       >
-        <Select.Value placeholder={placeholder} />
+        <Select.Value className="min-w-0 flex-1 truncate whitespace-nowrap text-left" placeholder={placeholder} />
         <Select.Icon asChild>
           <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-slate-400" />
         </Select.Icon>
@@ -73,7 +79,9 @@ export default function AppSelect({
                 <Select.ItemIndicator className="absolute left-3 inline-flex items-center justify-center text-blue-300">
                   <Check className="h-4 w-4" />
                 </Select.ItemIndicator>
-                <Select.ItemText>{option.label}</Select.ItemText>
+                <Select.ItemText>
+                  <span className="whitespace-nowrap">{option.label}</span>
+                </Select.ItemText>
               </Select.Item>
             ))}
           </Select.Viewport>

@@ -180,7 +180,8 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             onValueChange={(value) => void handleStatusChange(value)}
             disabled={savingField === 'status'}
             options={allowedStatuses.map((option) => ({ label: option, value: option }))}
-            className="mt-4 min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
+            size="compact"
+            className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
           />
         </div>
 
@@ -197,7 +198,8 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
                 onValueChange={(value) => void handleRatingChange(value)}
                 disabled={savingField === 'rating'}
                 options={ratingOptions}
-                className="mt-3 min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
+                size="compact"
+                className="mt-3 w-full min-w-[7.5rem] rounded-xl border border-slate-700 bg-slate-900 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
               />
             </div>
             <div className={metricCardClassName}>
