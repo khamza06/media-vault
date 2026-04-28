@@ -181,7 +181,7 @@ export default function ProfileSettingsPanel({
         <div className="space-y-4">
           {publicPath ? (
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <p className="text-sm font-semibold text-white">Your public profile URL</p>
+              <p className="text-sm font-semibold text-white">Public profile URL</p>
               <p className="mt-2 break-all text-sm text-blue-200">{publicPath}</p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link
@@ -197,7 +197,7 @@ export default function ProfileSettingsPanel({
                   className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-900"
                 >
                   <Copy className="h-4 w-4" />
-                  Copy link
+                  Copy public profile link
                 </button>
               </div>
             </div>

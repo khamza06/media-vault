@@ -38,7 +38,7 @@ export default function ShelfItemCard({
 
   return (
     <article
-      className="group min-w-[44vw] max-w-[44vw] sm:min-w-[188px] sm:max-w-[188px]"
+      className="group min-w-0 w-full max-w-[188px] shrink-0"
       onMouseEnter={() => accentHandler?.(item.imageUrl)}
       onMouseLeave={() => accentHandler?.(null)}
       onTouchStart={() => accentHandler?.(item.imageUrl)}
@@ -84,7 +84,7 @@ export default function ShelfItemCard({
               src={item.imageUrl}
               alt={item.title}
               fill
-              sizes="(max-width: 640px) 44vw, 188px"
+              sizes="(max-width: 640px) 50vw, 188px"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (

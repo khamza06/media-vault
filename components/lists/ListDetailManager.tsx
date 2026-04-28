@@ -7,6 +7,7 @@ import { ArrowLeft, Check, Plus, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { addItemsToListAction, removeItemFromListAction } from '../../app/actions/lists'
+import { mediaCardGridClassName } from '../../lib/media-card-grid'
 import { formatProgressValue, type MediaItem } from '../../lib/media'
 import { useToast } from '../ToastProvider'
 
@@ -305,7 +306,7 @@ export default function ListDetailManager({
             </p>
           </div>
         ) : (
-          <div className="grid min-w-0 grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+          <div className={mediaCardGridClassName}>
             {liveItems.map((item) => (
               <ListItemCard
                 key={item.id}

@@ -12,6 +12,7 @@ import {
   type LibraryFilters,
 } from '../lib/library-filters'
 import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
+import { mediaCardGridClassName } from '../lib/media-card-grid'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
 import LibraryFilterControls from './LibraryFilterControls'
 import { useToast } from './ToastProvider'
@@ -253,7 +254,7 @@ export default function ShelfGridView({
           ) : null}
         </section>
       ) : (
-        <section className="grid min-w-0 grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <section className={mediaCardGridClassName}>
           {filteredItems.map((item) => (
             <ShelfItemCard
               key={item.id}

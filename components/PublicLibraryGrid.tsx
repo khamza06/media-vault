@@ -4,6 +4,7 @@ import { Star } from 'lucide-react'
 import EmptyVaultState from './EmptyVaultState'
 import { getGenreBadgeClass, translateGenre } from '../lib/genres'
 import { formatProgressValue, type MediaItem } from '../lib/media'
+import { mediaCardGridClassName } from '../lib/media-card-grid'
 
 type PublicLibraryGridProps = {
   emptyMessage?: string
@@ -19,7 +20,7 @@ export default function PublicLibraryGrid({
   }
 
   return (
-    <div className="grid min-w-0 grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+    <div className={mediaCardGridClassName}>
       {items.map((item) => (
         <article key={item.id} className="group min-w-0">
           <div className="glass-panel-soft relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 transition-all duration-300 group-hover:border-blue-400/30 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.2)]">

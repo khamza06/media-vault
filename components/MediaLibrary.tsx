@@ -17,6 +17,7 @@ import { useToast } from './ToastProvider'
 import { translateStatus, translateType } from '../lib/i18n'
 import type { MediaItem } from '../lib/media'
 import { formatProgressValue, mediaStatuses, mediaTypes } from '../lib/media'
+import { mediaCardGridClassName } from '../lib/media-card-grid'
 
 type MediaLibraryProps = {
   items: MediaItem[]
@@ -547,7 +548,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
         />
       </section>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <div className={mediaCardGridClassName}>
         {liveItems.length === 0 ? (
             <EmptyVaultState message="Your vault is empty. Time to start a new adventure!" />
         ) : null}

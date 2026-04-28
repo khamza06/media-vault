@@ -34,7 +34,7 @@ export default function CopyPublicLinkButton({ path }: CopyPublicLinkButtonProps
         className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-500/15 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500/25 sm:w-auto"
       >
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-        {copied ? 'Copied' : 'Copy profile link'}
+        {copied ? 'Copied' : 'Copy public profile link'}
       </button>
 
       {error ? (

@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import CopyShareLinkButton from '../../components/CopyShareLinkButton'
 import SetupNotice from '../../components/SetupNotice'
 import StatsDashboard from '../../components/stats/StatsDashboard'
+import { getOrCreateProfile } from '../actions/profile'
 import { getCurrentUser } from '../../lib/auth/dal'
 import { getItems } from '../../lib/data/items'
 import { getOwnershipMode } from '../../lib/data/ownership'
@@ -26,10 +27,11 @@ export const metadata: Metadata = {
 
 export default async function StatsPage() {
   const locale = await getRequestLocale()
-  const [itemsResult, ownershipMode, currentUser] = await Promise.all([
+  const [itemsResult, ownershipMode, currentUser, profileResult] = await Promise.all([
     getItems(),
     getOwnershipMode(),
     getCurrentUser(),
+    getOrCreateProfile(),
   ])
   const { data, error } = itemsResult
 
@@ -49,6 +51,9 @@ export default async function StatsPage() {
     .slice(0, 8)
   const topRated = getTopRatedItems(items).slice(0, 5)
   const recentItems = getRecentItems(items).slice(0, 5)
+  const publicProfilePath = profileResult.profile?.username
+    ? `/u/${profileResult.profile.username}`
+    : null
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 pb-24 sm:px-6 md:py-6 md:pb-6 lg:px-8">
@@ -61,13 +66,28 @@ export default async function StatsPage() {
         </div>
         {currentUser?.id ? (
           <div className="flex flex-wrap items-center gap-3">
-            <CopyShareLinkButton userId={currentUser.id} />
-            <CopyShareLinkButton
-              userId={currentUser.id}
-              pathPrefix="/public/"
-              label="Copy My Public Link"
-              copiedLabel="Public link copied"
-            />
+            {publicProfilePath ? (
+              <>
+                <CopyShareLinkButton
+                  path={publicProfilePath}
+                  label="Copy public profile link"
+                  copiedLabel="Public profile link copied"
+                />
+                <Link
+                  href={publicProfilePath}
+                  className="inline-flex min-h-11 items-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-900"
+                >
+                  Open public profile
+                </Link>
+              </>
+            ) : (
+              <Link
+                href="/settings"
+                className="inline-flex min-h-11 items-center rounded-xl border border-blue-400/30 bg-blue-500/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500/25"
+              >
+                Set up public profile
+              </Link>
+            )}
           </div>
         ) : null}
       </header>
