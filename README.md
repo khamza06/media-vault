@@ -6,7 +6,56 @@ Media Vault is a personal media tracker for anime, manga, movies, series, and
 books. It gives each signed-in user a private vault with imports, backups,
 stats, custom lists, and optional read-only public sharing.
 
-Production: [https://media-vault-seven.vercel.app](https://media-vault-seven.vercel.app)
+## Live Demo
+
+[https://media-vault-seven.vercel.app](https://media-vault-seven.vercel.app)
+
+## Screenshots
+
+Add the screenshot PNGs to `public/screenshots/` to populate this section.
+
+| Library | Stats |
+|---|---|
+| ![Library](public/screenshots/library.png) | ![Stats](public/screenshots/stats.png) |
+
+| Import Center | Custom Lists |
+|---|---|
+| ![Import Center](public/screenshots/import-center.png) | ![Custom Lists](public/screenshots/custom-lists.png) |
+
+| Public Profile | Mobile View |
+|---|---|
+| ![Public Profile](public/screenshots/public-profile.png) | ![Mobile View](public/screenshots/mobile-view.png) |
+
+## Portfolio highlights
+
+- Full-stack Next.js App Router project with TypeScript.
+- Supabase Auth, PostgreSQL, and RLS for private/public access control.
+- External API integrations with AniList GraphQL and TMDB.
+- Import pipelines for MyAnimeList XML, AniList, and CSV.
+- Public read-only sharing with `/u/[username]`.
+- Analytics dashboard with Recharts.
+- CI with GitHub Actions and deployment on Vercel.
+- Production monitoring with Sentry.
+
+## Architecture
+
+Media Vault uses Next.js App Router for routing, Server Components, and Server
+Actions. Supabase provides authentication, PostgreSQL storage, and row-level
+security for private vault data and public read-only sharing. AniList GraphQL
+and TMDB power external metadata search and imports, while Recharts renders the
+analytics dashboard. Vercel handles deployment, GitHub Actions runs CI, and
+Sentry captures production errors.
+
+## Suggested demo flow
+
+1. Sign in.
+2. Search and add a title.
+3. Edit rating, progress, and Markdown notes.
+4. Import from MyAnimeList or AniList.
+5. View Stats.
+6. Create a custom list.
+7. Enable public profile and open `/u/[username]`.
+8. Export a backup.
 
 ## Tech stack
 
@@ -19,6 +68,7 @@ Production: [https://media-vault-seven.vercel.app](https://media-vault-seven.ver
 - TMDB API for movie/series discovery
 - Recharts for analytics
 - Vercel for deployment
+- Sentry for production error monitoring
 
 ## Main features
 
