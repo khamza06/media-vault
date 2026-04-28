@@ -59,6 +59,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   const totalProgress = item.totalProgress
   const progressAtLimit = typeof totalProgress === 'number' && totalProgress > 0 && progress >= totalProgress
   const officialRating = formatOfficialRating(item.externalRatingLabel, item.externalRatingValue)
+  const officialRatingUnavailable = officialRating === 'Not available'
 
   async function saveQuickChange(
     field: SavingField,
@@ -206,10 +207,17 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             <div className={metricCardClassName}>
               <p className={metricLabelClassName}>Official Rating</p>
               <p className={centeredMetricValueClassName}>
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="min-w-0 max-w-full whitespace-normal break-words text-center leading-snug">
-                  {officialRating}
-                </span>
+                <Star className="h-4 w-4 shrink-0 fill-yellow-400 text-yellow-400" />
+                {officialRatingUnavailable ? (
+                  <span className="flex min-w-0 max-w-full flex-col items-center justify-center text-center leading-tight">
+                    <span className="whitespace-nowrap break-normal">Not</span>
+                    <span className="whitespace-nowrap break-normal">available</span>
+                  </span>
+                ) : (
+                  <span className="min-w-0 max-w-full whitespace-normal break-normal text-center leading-snug">
+                    {officialRating}
+                  </span>
+                )}
               </p>
             </div>
           </div>
