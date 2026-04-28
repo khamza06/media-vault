@@ -13,7 +13,7 @@ stats, custom lists, and optional read-only public sharing.
 
 ## Live Demo
 
-[https://media-vault-seven.vercel.app](https://media-vault-seven.vercel.app)
+[https://media-vault.app](https://media-vault.app)
 
 ## Screenshots
 
@@ -105,7 +105,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 For production on Vercel:
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://media-vault-seven.vercel.app
+NEXT_PUBLIC_SITE_URL=https://media-vault.app
 ```
 
 Never commit real secrets. Use Vercel Environment Variables for production.
@@ -145,16 +145,23 @@ Authentication -> URL Configuration
 Set Site URL:
 
 ```text
-https://media-vault-seven.vercel.app
+https://media-vault.app
 ```
 
 Add Redirect URLs:
 
 ```text
-https://media-vault-seven.vercel.app/auth/callback
-https://media-vault-seven.vercel.app/auth/reset-password
+https://media-vault.app/auth/callback
+https://media-vault.app/auth/reset-password
 http://localhost:3000/auth/callback
 http://localhost:3000/auth/reset-password
+```
+
+Optional fallback Redirect URLs if you still use the Vercel deployment URL:
+
+```text
+https://media-vault-seven.vercel.app/auth/callback
+https://media-vault-seven.vercel.app/auth/reset-password
 ```
 
 See [docs/auth-setup.md](docs/auth-setup.md) for email confirmation and password
@@ -166,7 +173,7 @@ The app is deployed on Vercel and connected to this GitHub repository.
 
 Every push to the `main` branch triggers a production deployment automatically.
 
-Production: https://media-vault-seven.vercel.app
+Production: https://media-vault.app
 
 ## CI
 
