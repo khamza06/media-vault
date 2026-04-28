@@ -1,2 +1,2 @@
 export const mediaCardGridClassName =
-  'grid min-w-0 grid-cols-[repeat(auto-fill,minmax(9rem,11.75rem))] justify-center gap-4 sm:gap-5 lg:gap-6'
+  'grid min-w-0 grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
