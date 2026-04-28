@@ -10,10 +10,10 @@ import HeaderCatalogSearch from './HeaderCatalogSearch'
 import LogoutButton from './LogoutButton'
 
 export default function AppHeader({
-  userEmail,
+  accountLabel,
   userId,
 }: {
-  userEmail: string | null
+  accountLabel: string
   userId: string | null
 }) {
   const pathname = usePathname()
@@ -106,11 +106,9 @@ export default function AppHeader({
             </div>
 
             <div className="ml-auto hidden flex-wrap items-center justify-end gap-3 md:flex">
-              {userEmail ? (
-                <span className="hidden rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-300 lg:inline">
-                  {userEmail}
-                </span>
-              ) : null}
+              <span className="hidden rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-300 lg:inline">
+                {accountLabel}
+              </span>
               <AddModal
                 listenForExternalOpen
                 triggerClassName="min-h-11 rounded-xl border border-blue-300/20 bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_24px_rgba(59,130,246,0.28)] transition-all duration-300 hover:bg-blue-400"
@@ -224,12 +222,12 @@ export default function AppHeader({
             </div>
 
             <div className="mt-6 min-h-0 flex-1 space-y-5 overflow-y-auto pr-1 pb-4">
-              {userEmail ? (
+              {userId ? (
                 <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                     Signed in
                   </p>
-                  <p className="mt-1 break-all text-sm text-slate-200">{userEmail}</p>
+                  <p className="mt-1 break-all text-sm text-slate-200">{accountLabel}</p>
                 </div>
               ) : null}
 

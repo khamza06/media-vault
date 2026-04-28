@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 
 import AppHeader from '../components/AppHeader'
+import { getOrCreateProfile } from './actions/profile'
 import { LocaleProvider } from '../components/LocaleProvider'
 import MobileTabBar from '../components/MobileTabBar'
 import PwaShell from '../components/PwaShell'
@@ -125,6 +126,9 @@ export default async function RootLayout({
 }>) {
   const user = await getCurrentUser()
   const locale = await getRequestLocale()
+  const profileResult = user ? await getOrCreateProfile() : null
+  const accountLabel =
+    profileResult?.profile?.username ?? user?.email?.split('@')[0] ?? 'Account'
 
   return (
     <html
@@ -139,7 +143,7 @@ export default async function RootLayout({
         <LocaleProvider locale={locale}>
           <ToastProvider>
             <PwaShell />
-            <AppHeader userEmail={user?.email ?? null} userId={user?.id ?? null} />
+            <AppHeader accountLabel={accountLabel} userId={user?.id ?? null} />
             {children}
             <MobileTabBar userId={user?.id ?? null} />
           </ToastProvider>
