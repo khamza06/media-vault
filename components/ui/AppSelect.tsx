@@ -31,7 +31,7 @@ const defaultContentClassName =
 const defaultItemClassName =
   'relative flex min-h-10 cursor-pointer select-none items-center rounded-xl py-2 pl-9 pr-3 text-sm text-slate-200 outline-none transition hover:bg-blue-500/15 focus:bg-blue-500/20 data-[disabled]:pointer-events-none data-[disabled]:opacity-45 data-[state=checked]:bg-blue-500/20 data-[state=checked]:text-white'
 const triggerSizeClassNames = {
-  compact: 'h-11 min-h-11 min-w-[7rem] px-3 py-2',
+  compact: 'h-11 min-h-11 min-w-0 px-3 py-2',
   default: 'min-h-12 px-4 py-3',
 } as const
 

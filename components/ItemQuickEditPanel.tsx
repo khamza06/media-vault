@@ -24,10 +24,10 @@ type ItemQuickEditPanelProps = {
 type SavingField = 'notes' | 'progress' | 'rating' | 'status'
 
 const metricCardClassName =
-  'flex min-h-[7rem] flex-col justify-between rounded-xl border border-slate-800 bg-slate-950 p-4'
+  'flex min-h-[7rem] min-w-0 flex-col justify-between rounded-xl border border-slate-800 bg-slate-950 p-4'
 const metricLabelClassName = 'text-sm text-slate-400'
 const centeredMetricValueClassName =
-  'mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-center text-sm font-semibold text-white'
+  'mt-3 flex min-h-11 w-full min-w-0 items-center justify-center gap-2 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-center text-sm font-semibold text-white'
 const progressInputClassName =
   'min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-center text-sm font-semibold tabular-nums text-white outline-none transition [appearance:textfield] focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
 const ratingOptions = [
@@ -159,7 +159,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
 
   return (
     <section className="space-y-4">
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-[minmax(0,0.95fr)_minmax(20rem,1.1fr)_minmax(0,1fr)]">
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -189,7 +189,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             Ratings
           </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+          <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
             <div className={metricCardClassName}>
               <p className={metricLabelClassName}>My Rating</p>
               <AppSelect
@@ -199,20 +199,21 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
                 disabled={savingField === 'rating'}
                 options={ratingOptions}
                 size="compact"
-                className="mt-3 w-full min-w-[7.5rem] rounded-xl border border-slate-700 bg-slate-900 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
+                className="mt-3 w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
+                contentClassName="min-w-[8rem]"
               />
             </div>
             <div className={metricCardClassName}>
               <p className={metricLabelClassName}>Official Rating</p>
               <p className={centeredMetricValueClassName}>
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                {officialRating}
+                <span className="min-w-0 truncate whitespace-nowrap">{officialRating}</span>
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 xl:col-span-2 2xl:col-span-1">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
