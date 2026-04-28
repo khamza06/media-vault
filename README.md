@@ -1,6 +1,11 @@
 # Media Vault
 
 ![CI](https://github.com/khamza06/media-vault/actions/workflows/ci.yml/badge.svg)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth-3ECF8E)
+![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 Media Vault is a personal media tracker for anime, manga, movies, series, and
 books. It gives each signed-in user a private vault with imports, backups,
