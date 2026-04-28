@@ -22,6 +22,14 @@ type ItemQuickEditPanelProps = {
 
 type SavingField = 'notes' | 'progress' | 'rating' | 'status'
 
+const metricCardClassName =
+  'flex min-h-[7rem] flex-col justify-between rounded-xl border border-slate-800 bg-slate-950 p-4'
+const metricLabelClassName = 'text-sm text-slate-400'
+const centeredMetricValueClassName =
+  'mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-center text-sm font-semibold text-white'
+const progressInputClassName =
+  'min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-center text-sm font-semibold tabular-nums text-white outline-none transition [appearance:textfield] focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+
 export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   const router = useRouter()
   const { showToast } = useToast()
@@ -173,8 +181,8 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             Ratings
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <p className="text-sm text-slate-400">My Rating</p>
+            <div className={metricCardClassName}>
+              <p className={metricLabelClassName}>My Rating</p>
               <select
                 value={rating ?? ''}
                 onChange={(event) => void handleRatingChange(event.target.value)}
@@ -189,9 +197,9 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
                 ))}
               </select>
             </div>
-            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <p className="text-sm text-slate-400">Official Rating</p>
-              <p className="mt-3 inline-flex min-h-11 items-center gap-2 text-lg font-semibold text-white">
+            <div className={metricCardClassName}>
+              <p className={metricLabelClassName}>Official Rating</p>
+              <p className={centeredMetricValueClassName}>
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 {officialRating}
               </p>
@@ -234,7 +242,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
                 max={totalProgress ?? undefined}
                 value={progressDraft}
                 onChange={(event) => setProgressDraft(event.target.value)}
-                className="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                className={progressInputClassName}
               />
             </label>
             <button
