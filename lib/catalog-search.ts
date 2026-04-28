@@ -1,6 +1,6 @@
 import 'server-only'
 
-import type { CatalogSearchCandidate } from './catalog-types'
+import type { CatalogProvider, CatalogSearchCandidate } from './catalog-types'
 import { normalizeGenreList } from './genres'
 import type { Locale } from './i18n'
 import type { QuickImportTypeHint } from './quick-import-parser'
@@ -15,6 +15,24 @@ const ANILIST_ANIME_FORMATS = new Set([
   'TV',
   'TV_SHORT',
 ])
+
+export class CatalogSearchProviderError extends Error {
+  provider: CatalogProvider
+  status: number | null
+
+  constructor(provider: CatalogProvider, message: string, status: number | null = null) {
+    super(message)
+    this.name = 'CatalogSearchProviderError'
+    this.provider = provider
+    this.status = status
+  }
+}
+
+export function isCatalogSearchProviderError(
+  error: unknown
+): error is CatalogSearchProviderError {
+  return error instanceof CatalogSearchProviderError
+}
 
 function sanitizeGenres(genres: string[]) {
   return normalizeGenreList(genres).join(', ')
@@ -250,6 +268,151 @@ async function safeFetchJson<T>(input: string, init?: RequestInit) {
   }
 }
 
+function getProviderPayloadMessage(payload: unknown) {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  const record = payload as {
+    error?: unknown
+    errors?: unknown
+    message?: unknown
+    status_message?: unknown
+  }
+
+  if (typeof record.status_message === 'string') {
+    return record.status_message
+  }
+
+  if (typeof record.message === 'string') {
+    return record.message
+  }
+
+  if (typeof record.error === 'string') {
+    return record.error
+  }
+
+  if (Array.isArray(record.errors)) {
+    const firstError = record.errors.find(
+      (error): error is { message?: unknown } => Boolean(error) && typeof error === 'object'
+    )
+
+    if (typeof firstError?.message === 'string') {
+      return firstError.message
+    }
+  }
+
+  return null
+}
+
+function getProviderPayloadStatus(payload: unknown) {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  const record = payload as {
+    errors?: unknown
+    status?: unknown
+    status_code?: unknown
+  }
+
+  if (typeof record.status === 'number') {
+    return record.status
+  }
+
+  if (typeof record.status_code === 'number') {
+    return record.status_code
+  }
+
+  if (Array.isArray(record.errors)) {
+    const firstError = record.errors.find(
+      (error): error is { status?: unknown } => Boolean(error) && typeof error === 'object'
+    )
+
+    if (typeof firstError?.status === 'number') {
+      return firstError.status
+    }
+  }
+
+  return null
+}
+
+async function fetchProviderJson<T>(
+  provider: CatalogProvider,
+  input: string,
+  init?: RequestInit
+) {
+  try {
+    const response = await fetch(input, init)
+    const rawBody = await response.text()
+    let payload: unknown = null
+
+    if (rawBody) {
+      try {
+        payload = JSON.parse(rawBody)
+      } catch {
+        payload = null
+      }
+    }
+
+    console.info('[catalog-search] provider response', {
+      ok: response.ok,
+      provider,
+      status: response.status,
+    })
+
+    if (!response.ok) {
+      const providerMessage = getProviderPayloadMessage(payload)
+      const message = providerMessage
+        ? `${provider} search failed: ${providerMessage}`
+        : `${provider} search failed with status ${response.status}.`
+
+      throw new CatalogSearchProviderError(provider, message, response.status)
+    }
+
+    return payload as T
+  } catch (error) {
+    if (isCatalogSearchProviderError(error)) {
+      throw error
+    }
+
+    const message = error instanceof Error ? error.message : 'Network request failed.'
+
+    console.warn('[catalog-search] provider request failed', {
+      message,
+      provider,
+      status: null,
+    })
+
+    throw new CatalogSearchProviderError(
+      provider,
+      `${provider} search is temporarily unavailable.`,
+      null
+    )
+  }
+}
+
+function throwProviderGraphQLError(provider: CatalogProvider, payload: unknown) {
+  const providerMessage = getProviderPayloadMessage(payload)
+
+  if (!providerMessage) {
+    return
+  }
+
+  throw new CatalogSearchProviderError(
+    provider,
+    `${provider} search failed: ${providerMessage}`,
+    getProviderPayloadStatus(payload)
+  )
+}
+
+function logProviderResult(provider: CatalogProvider, resultCount: number) {
+  console.info('[catalog-search] provider result', {
+    provider,
+    resultCount,
+  })
+}
+
 export async function searchShikimoriCandidates(
   searchTerms: string[],
   typeHint: QuickImportTypeHint
@@ -398,13 +561,13 @@ export async function searchTmdbCandidatesByType(
   const apiKey = getTmdbApiKey()
 
   if (!apiKey) {
-    return [] as CatalogSearchCandidate[]
+    throw new CatalogSearchProviderError('TMDB', 'TMDB API key is not configured.', null)
   }
 
   const genreMap = await getTmdbGenres(apiKey, mediaType)
   const results = await Promise.all(
     searchTerms.map(async (searchTerm) => {
-      const payload = await safeFetchJson<{
+      const payload = await fetchProviderJson<{
         results?: Array<{
           adult?: boolean | null
           first_air_date?: string | null
@@ -418,7 +581,9 @@ export async function searchTmdbCandidatesByType(
           title?: string | null
           vote_average?: number | null
         }>
+        status_message?: string
       }>(
+        'TMDB',
         `https://api.themoviedb.org/3/search/${mediaType}?api_key=${apiKey}&language=${getTmdbLanguage()}&include_adult=false&query=${encodeURIComponent(searchTerm)}`,
         {
           cache: 'no-store',
@@ -427,10 +592,6 @@ export async function searchTmdbCandidatesByType(
           },
         }
       )
-
-      if (!payload) {
-        return [] as CatalogSearchCandidate[]
-      }
 
       const candidates = await Promise.all(
         (payload.results ?? []).slice(0, 5).map(async (item) => {
@@ -482,7 +643,12 @@ export async function searchTmdbCandidatesByType(
         })
       )
 
-      return candidates.filter((candidate): candidate is CatalogSearchCandidate => candidate !== null)
+      const validCandidates = candidates.filter(
+        (candidate): candidate is CatalogSearchCandidate => candidate !== null
+      )
+
+      logProviderResult('TMDB', validCandidates.length)
+      return validCandidates
     })
   )
 
@@ -495,7 +661,7 @@ export async function searchAniListCandidates(
 ) {
   const results = await Promise.all(
     searchTerms.map(async (searchTerm) => {
-      const payload = await safeFetchJson<{
+      const payload = await fetchProviderJson<{
         data?: {
           Page?: {
             media?: Array<{
@@ -524,7 +690,8 @@ export async function searchAniListCandidates(
             }>
           }
         }
-      }>('https://graphql.anilist.co', {
+        errors?: Array<{ message?: string; status?: number }>
+      }>('AniList', 'https://graphql.anilist.co', {
         method: 'POST',
         cache: 'no-store',
         headers: {
@@ -569,11 +736,9 @@ export async function searchAniListCandidates(
         }),
       })
 
-      if (!payload) {
-        return [] as CatalogSearchCandidate[]
-      }
+      throwProviderGraphQLError('AniList', payload)
 
-      return (payload.data?.Page?.media ?? [])
+      const candidates = (payload.data?.Page?.media ?? [])
         .map((media) => {
           const title = getPreferredAniListTitle(media.title)
 
@@ -611,6 +776,9 @@ export async function searchAniListCandidates(
           )
         })
         .filter((candidate): candidate is CatalogSearchCandidate => candidate !== null)
+
+      logProviderResult('AniList', candidates.length)
+      return candidates
     })
   )
 
@@ -928,20 +1096,81 @@ function lockCandidateType(candidates: CatalogSearchCandidate[], selectedType: C
   }))
 }
 
-export async function searchCatalogByMediaType(
-  searchTerms: string[],
-  selectedType: CatalogSearchType,
-  _locale: Locale
+async function runCatalogProvider(
+  provider: CatalogProvider,
+  operation: () => Promise<CatalogSearchCandidate[]>,
+  providerErrors?: CatalogSearchProviderError[]
 ) {
-  void _locale
-  if (selectedType === 'anime') {
-    const aniList = await searchAniListCandidates(searchTerms, 'ANIME')
+  try {
+    return await operation()
+  } catch (error) {
+    if (isCatalogSearchProviderError(error)) {
+      providerErrors?.push(error)
+      console.warn('[catalog-search] provider failed', {
+        message: error.message,
+        provider: error.provider,
+        status: error.status,
+      })
+
+      return [] as CatalogSearchCandidate[]
+    }
+
+    console.warn('[catalog-search] provider failed', {
+      message: error instanceof Error ? error.message : 'Unknown provider error.',
+      provider,
+      status: null,
+    })
+
+    return [] as CatalogSearchCandidate[]
+  }
+}
+
+async function searchAnimeMangaWithFallbacks(
+  searchTerms: string[],
+  typeHint: Exclude<QuickImportTypeHint, null>,
+  selectedType: CatalogSearchType,
+  locale: Locale
+) {
+  const providerErrors: CatalogSearchProviderError[] = []
+  const aniList = await runCatalogProvider('AniList', () =>
+    searchAniListCandidates(searchTerms, typeHint),
+    providerErrors
+  )
+
+  if (aniList.length > 0) {
     return lockCandidateType(aniList.slice(0, 8), selectedType)
   }
 
+  const [jikan, kitsu, shikimori] = await Promise.all([
+    runCatalogProvider('Jikan', () => searchJikanCandidates(searchTerms, typeHint, locale)),
+    runCatalogProvider('Kitsu', () => searchKitsuCandidates(searchTerms, typeHint, locale)),
+    runCatalogProvider('Shikimori', () => searchShikimoriCandidates(searchTerms, typeHint)),
+  ])
+  const fallbackCandidates = rankCandidates([...jikan, ...kitsu, ...shikimori]).slice(0, 8)
+
+  if (fallbackCandidates.length === 0 && providerErrors.length > 0) {
+    const [firstError] = providerErrors
+    throw new CatalogSearchProviderError(
+      firstError.provider,
+      `${firstError.message} Fallback providers returned no matches.`,
+      firstError.status
+    )
+  }
+
+  return lockCandidateType(fallbackCandidates, selectedType)
+}
+
+export async function searchCatalogByMediaType(
+  searchTerms: string[],
+  selectedType: CatalogSearchType,
+  locale: Locale
+) {
+  if (selectedType === 'anime') {
+    return searchAnimeMangaWithFallbacks(searchTerms, 'ANIME', selectedType, locale)
+  }
+
   if (selectedType === 'manga') {
-    const aniList = await searchAniListCandidates(searchTerms, 'MANGA')
-    return lockCandidateType(aniList.slice(0, 8), selectedType)
+    return searchAnimeMangaWithFallbacks(searchTerms, 'MANGA', selectedType, locale)
   }
 
   if (selectedType === 'movie') {
