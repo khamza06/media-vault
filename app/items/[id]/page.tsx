@@ -9,7 +9,7 @@ import ItemQuickEditPanel from '../../../components/ItemQuickEditPanel'
 import AddToListButton from '../../../components/lists/AddToListButton'
 import { getItemById } from '../../../lib/data/items'
 import { getCustomLists } from '../../../lib/data/lists'
-import { toMediaItem, type MediaItemRecord } from '../../../lib/media'
+import { formatProgressValue, toMediaItem, type MediaItem, type MediaItemRecord } from '../../../lib/media'
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -58,8 +58,8 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
   const listOptions = listsResult.schemaReady ? listsResult.lists : []
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 pb-32 sm:px-6 lg:px-8">
-      <div className="mb-8">
+    <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 pb-32 sm:px-6 lg:px-8">
+      <div className="mb-5">
         <Link
           href={backQuery}
           className="glass-panel-soft inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
@@ -68,26 +68,30 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
         </Link>
       </div>
 
-      <section className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-        <div className="glass-panel surface-highlight relative aspect-[2/3] overflow-hidden rounded-xl">
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-white/5" />
-          {item.image_url ? (
-            <Image
-              src={item.image_url}
-              alt={item.title}
-              fill
-              sizes="(max-width: 1024px) 100vw, 320px"
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-slate-500">
-              No Cover
-            </div>
-          )}
-        </div>
+      <section className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
+          <div className="glass-panel surface-highlight relative aspect-[2/3] overflow-hidden rounded-xl">
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-white/5" />
+            {item.image_url ? (
+              <Image
+                src={item.image_url}
+                alt={item.title}
+                fill
+                sizes="(max-width: 1024px) 100vw, 320px"
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-slate-500">
+                No Cover
+              </div>
+            )}
+          </div>
 
-        <div className="space-y-6">
-          <div className="glass-panel space-y-4 rounded-xl p-6 sm:p-7">
+          <ItemSnapshot item={mediaItem} addedAt={createdAt} />
+        </aside>
+
+        <div className="min-w-0 space-y-4">
+          <div className="glass-panel space-y-4 rounded-xl p-5 sm:p-6">
             <div className="flex flex-wrap gap-2">
               {mediaItem.favorite ? <Badge tone="favorite">Favorite</Badge> : null}
               <Badge>{item.status}</Badge>
@@ -95,7 +99,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
             </div>
 
             <div>
-              <h1 className="text-4xl font-bold tracking-tight text-white">{item.title}</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{item.title}</h1>
               <p className="mt-3 max-w-2xl text-slate-400">
                 A focused view for this entry with its current status, progress, and saved
                 metadata.
@@ -134,17 +138,6 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <InfoCard label="Type" value={item.type} />
-            <InfoCard
-              label="Total"
-              value={mediaItem.totalProgress ? String(mediaItem.totalProgress) : 'Not set'}
-            />
-            <InfoCard label="Added" value={createdAt} />
-            <InfoCard label="Started" value={formatShortDate(mediaItem.startedAt)} />
-            <InfoCard label="Completed" value={formatShortDate(mediaItem.completedAt)} />
-          </div>
-
           <ItemQuickEditPanel item={mediaItem} />
 
           {mediaItem.genres.length > 0 ? (
@@ -162,6 +155,37 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
         </div>
       </section>
     </main>
+  )
+}
+
+function ItemSnapshot({ addedAt, item }: { addedAt: string; item: MediaItem }) {
+  const progressLabel =
+    item.progress > 0 || item.totalProgress !== null ? formatProgressValue(item) : 'Not started'
+
+  return (
+    <section className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+        Quick snapshot
+      </p>
+      <dl className="mt-4 space-y-3">
+        <SnapshotRow label="Type" value={item.type} />
+        <SnapshotRow label="Status" value={item.status} />
+        <SnapshotRow label="My rating" value={item.rating ? `${item.rating} / 10` : 'Not rated'} />
+        <SnapshotRow label="Progress" value={progressLabel} />
+        <SnapshotRow label="Added" value={addedAt} />
+      </dl>
+    </section>
+  )
+}
+
+function SnapshotRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 items-start justify-between gap-3 border-b border-slate-800/80 pb-3 last:border-b-0 last:pb-0">
+      <dt className="shrink-0 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+        {label}
+      </dt>
+      <dd className="min-w-0 text-right text-sm font-semibold text-slate-100">{value}</dd>
+    </div>
   )
 }
 
@@ -186,23 +210,4 @@ function Badge({
       {children}
     </span>
   )
-}
-
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="glass-panel-soft rounded-xl px-4 py-4">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">{label}</p>
-      <p className="mt-2 text-lg font-semibold tracking-tight text-white">{value}</p>
-    </div>
-  )
-}
-
-function formatShortDate(value?: string | null) {
-  if (!value) {
-    return 'Not set'
-  }
-
-  return new Intl.DateTimeFormat('en', {
-    dateStyle: 'medium',
-  }).format(new Date(value))
 }

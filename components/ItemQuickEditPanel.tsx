@@ -138,8 +138,8 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   }
 
   return (
-    <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-      <div className="space-y-4">
+    <section className="space-y-4">
+      <div className="grid gap-4 xl:grid-cols-3">
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -172,7 +172,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             Ratings
           </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
               <p className="text-sm text-slate-400">My Rating</p>
               <select
@@ -216,7 +216,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             ) : null}
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr_auto]">
+          <div className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr_auto] xl:grid-cols-3">
             <button
               type="button"
               onClick={() => void saveProgress(progress - 1)}
@@ -248,7 +248,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             </button>
           </div>
 
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-3 flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
             <p className="text-xs text-slate-400">
               {totalProgress
                 ? `${getTotalProgressLabel(item.type)}: ${totalProgress}`
@@ -287,7 +287,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
         </div>
 
         {showPreview ? (
-          <div className="prose prose-invert mt-4 min-h-48 max-w-none rounded-xl border border-slate-800 bg-slate-950 p-4 prose-headings:text-white prose-p:text-slate-200 prose-strong:text-white prose-a:text-blue-300 prose-li:text-slate-200">
+          <div className="prose prose-invert mt-4 min-h-40 max-w-none rounded-xl border border-slate-800 bg-slate-950 p-4 prose-headings:text-white prose-p:text-slate-200 prose-strong:text-white prose-a:text-blue-300 prose-li:text-slate-200">
             {notes.trim() ? (
               <ReactMarkdown>{notes}</ReactMarkdown>
             ) : (
@@ -298,7 +298,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            className="mt-4 min-h-48 w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm leading-6 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+            className="mt-4 min-h-40 w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm leading-6 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
             placeholder="Write notes, theories, favorite arcs, or watch reminders..."
           />
         )}
