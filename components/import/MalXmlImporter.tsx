@@ -65,6 +65,14 @@ function normalizeProgress(value: string) {
   return parsed
 }
 
+function buildMyAnimeListUrl(type: ImportCandidate['type'], externalId: string | null) {
+  if (!externalId || !/^\d+$/.test(externalId)) {
+    return null
+  }
+
+  return `https://myanimelist.net/${type}/${externalId}`
+}
+
 function normalizeStatus(value: string, type: ImportCandidate['type']) {
   const status = value.trim().toLowerCase().replace(/[_-]+/g, ' ')
 
@@ -93,6 +101,8 @@ function parseAnimeEntry(entry: Element): ImportCandidate | null {
     return null
   }
 
+  const externalId = getText(entry, ['series_animedb_id']) || null
+
   return {
     title,
     type: 'anime',
@@ -100,7 +110,8 @@ function parseAnimeEntry(entry: Element): ImportCandidate | null {
     rating: normalizeRating(getText(entry, ['my_score'])),
     progress: normalizeProgress(getText(entry, ['my_watched_episodes'])),
     external_source: 'myanimelist',
-    external_id: getText(entry, ['series_animedb_id']) || null,
+    external_id: externalId,
+    external_url: buildMyAnimeListUrl('anime', externalId),
     notes: '',
   }
 }
@@ -112,6 +123,8 @@ function parseMangaEntry(entry: Element): ImportCandidate | null {
     return null
   }
 
+  const externalId = getText(entry, ['manga_mangadb_id', 'series_mangadb_id']) || null
+
   return {
     title,
     type: 'manga',
@@ -119,7 +132,8 @@ function parseMangaEntry(entry: Element): ImportCandidate | null {
     rating: normalizeRating(getText(entry, ['my_score'])),
     progress: normalizeProgress(getText(entry, ['my_read_chapters'])),
     external_source: 'myanimelist',
-    external_id: getText(entry, ['manga_mangadb_id', 'series_mangadb_id']) || null,
+    external_id: externalId,
+    external_url: buildMyAnimeListUrl('manga', externalId),
     notes: '',
   }
 }

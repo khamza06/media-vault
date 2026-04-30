@@ -23,6 +23,7 @@ export type MalImportCandidate = {
   progress?: number | null
   external_source: 'myanimelist'
   external_id?: string | null
+  external_url?: string | null
   notes: string
 }
 
@@ -56,6 +57,7 @@ export type CsvImportCandidate = {
 
 type ValidatedMalImportItem = {
   externalId: string | null
+  externalUrl: string | null
   image_url: null
   notes: string
   progress: number
@@ -120,6 +122,7 @@ type ExistingItemLookup = {
 type ImportRowWithExternalMetadata = ImportRow & {
   external_id?: string | null
   external_source?: string | null
+  external_url?: string | null
 }
 
 export type MalImportResult = {
@@ -547,11 +550,15 @@ function validateCandidate(candidate: MalImportCandidate): ValidatedMalImportIte
     return null
   }
 
+  const providedExternalId =
+    typeof candidate.external_id === 'string' && candidate.external_id.trim()
+      ? candidate.external_id.trim()
+      : null
+  const externalId = providedExternalId ?? buildStableMyAnimeListId(title, type)
+
   return {
-    externalId:
-      typeof candidate.external_id === 'string' && candidate.external_id.trim()
-        ? candidate.external_id.trim()
-        : null,
+    externalId,
+    externalUrl: normalizeMyAnimeListUrl(candidate.external_url, type, externalId),
     image_url: null,
     notes: typeof candidate.notes === 'string' ? candidate.notes : '',
     progress: normalizeProgress(candidate.progress),
@@ -560,6 +567,49 @@ function validateCandidate(candidate: MalImportCandidate): ValidatedMalImportIte
     title,
     type,
   }
+}
+
+function buildStableMyAnimeListId(title: string, type: 'Anime' | 'Manga') {
+  const titleKey = normalizeComparableTitle(title)
+
+  if (!titleKey) {
+    return null
+  }
+
+  return `${type.toLowerCase()}::${titleKey}`
+}
+
+function buildMyAnimeListUrl(type: 'Anime' | 'Manga', externalId: string | null) {
+  if (!externalId || !/^\d+$/.test(externalId)) {
+    return null
+  }
+
+  return `https://myanimelist.net/${type === 'Anime' ? 'anime' : 'manga'}/${externalId}`
+}
+
+function normalizeMyAnimeListUrl(
+  value: unknown,
+  type: 'Anime' | 'Manga',
+  externalId: string | null
+) {
+  const fallbackUrl = buildMyAnimeListUrl(type, externalId)
+
+  if (typeof value !== 'string' || !value.trim()) {
+    return fallbackUrl
+  }
+
+  try {
+    const url = new URL(value.trim())
+    const hostname = url.hostname.toLowerCase()
+
+    if (url.protocol === 'https:' && (hostname === 'myanimelist.net' || hostname === 'www.myanimelist.net')) {
+      return url.toString()
+    }
+  } catch {
+    return fallbackUrl
+  }
+
+  return fallbackUrl
 }
 
 function validateAniListCandidate(
@@ -809,6 +859,7 @@ function withExternalMetadata(row: ImportRow, item: ValidatedMalImportItem) {
     ...row,
     external_id: item.externalId,
     external_source: 'myanimelist' as const,
+    external_url: item.externalUrl,
   }
 }
 
