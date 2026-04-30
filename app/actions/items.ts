@@ -23,6 +23,7 @@ import { createSupabaseServerClient } from '../../lib/supabase/server'
 
 type ActionResult = {
   error: string | null
+  itemId?: string
   success: boolean
 }
 
@@ -82,7 +83,7 @@ export async function createItemAction(input: MediaItemInput): Promise<ActionRes
   }
 
   await revalidateVaultPaths()
-  return { error: null, success: true }
+  return { error: null, itemId: result.data?.id, success: true }
 }
 
 export async function updateItemAction(

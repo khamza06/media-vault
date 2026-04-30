@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { BookOpen, Clapperboard, Library, MonitorPlay, Sparkles, Tv } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -18,6 +17,7 @@ import {
 import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
 import { shelfDefinitions } from '../lib/shelves'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
+import DiscoverRecommendationCard from './DiscoverRecommendationCard'
 import LibraryFilterControls from './LibraryFilterControls'
 import SetupChecklist, { type SetupChecklistState } from './onboarding/SetupChecklist'
 import { useToast } from './ToastProvider'
@@ -31,6 +31,8 @@ const shelfIcons = {
   series: MonitorPlay,
   books: BookOpen,
 } as const
+
+const DISMISSED_DISCOVER_RECOMMENDATIONS_KEY = 'media-vault-dismissed-ai-discover'
 
 export default function HomeShelvesView({
   items,
@@ -54,11 +56,29 @@ export default function HomeShelvesView({
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null)
+  const [dismissedRecommendations, setDismissedRecommendations] = useState<Set<string>>(
+    () => new Set()
+  )
   const accentCacheRef = useRef(new Map<string, string>())
 
   useEffect(() => {
     setLiveItems(items)
   }, [items])
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(DISMISSED_DISCOVER_RECOMMENDATIONS_KEY)
+      const parsed = stored ? (JSON.parse(stored) as unknown) : []
+
+      if (Array.isArray(parsed)) {
+        setDismissedRecommendations(
+          new Set(parsed.filter((value): value is string => typeof value === 'string'))
+        )
+      }
+    } catch {
+      setDismissedRecommendations(new Set())
+    }
+  }, [])
 
   const showSourceFilter = useMemo(() => hasSourceMetadata(liveItems), [liveItems])
 
@@ -146,6 +166,27 @@ export default function HomeShelvesView({
   const visibleShelfItems = useMemo(
     () => sortedShelves.flatMap((shelf) => shelf.items),
     [sortedShelves]
+  )
+  const ownedRecommendationItems = useMemo(() => {
+    const byTitleAndType = new Map<string, MediaItem>()
+    const byExternalId = new Map<string, MediaItem>()
+
+    for (const item of liveItems) {
+      byTitleAndType.set(getRecommendationTitleTypeKey(item.title, item.type), item)
+
+      if (item.externalSource && item.externalId) {
+        byExternalId.set(`${item.externalSource.toLowerCase()}::${item.externalId}`, item)
+      }
+    }
+
+    return { byExternalId, byTitleAndType }
+  }, [liveItems])
+  const visibleRecommendations = useMemo(
+    () =>
+      recommendations.filter(
+        (recommendation) => !dismissedRecommendations.has(getRecommendationKey(recommendation))
+      ),
+    [dismissedRecommendations, recommendations]
   )
 
   async function resolveAccent(imageUrl: string | null) {
@@ -248,6 +289,41 @@ export default function HomeShelvesView({
     setIsBulkDeleteOpen(false)
     setSelectionMode(false)
     setSelectedIds(new Set())
+  }
+
+  function dismissRecommendation(recommendation: DiscoverRecommendation) {
+    const key = getRecommendationKey(recommendation)
+
+    setDismissedRecommendations((current) => {
+      const next = new Set(current)
+      next.add(key)
+
+      try {
+        window.localStorage.setItem(
+          DISMISSED_DISCOVER_RECOMMENDATIONS_KEY,
+          JSON.stringify([...next])
+        )
+      } catch {}
+
+      return next
+    })
+  }
+
+  function getOwnedRecommendationItem(recommendation: DiscoverRecommendation) {
+    const [, externalId] = recommendation.id.split(':')
+    const externalMatch = externalId
+      ? ownedRecommendationItems.byExternalId.get(`anilist::${externalId}`)
+      : null
+
+    if (externalMatch) {
+      return externalMatch
+    }
+
+    return (
+      ownedRecommendationItems.byTitleAndType.get(
+        getRecommendationTitleTypeKey(recommendation.title, recommendation.type)
+      ) ?? null
+    )
   }
 
   async function confirmBulkDelete() {
@@ -438,31 +514,16 @@ export default function HomeShelvesView({
           </div>
         </div>
 
-        {recommendations.length > 0 ? (
+        {visibleRecommendations.length > 0 ? (
           <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2 md:gap-4">
-            {recommendations.map((recommendation) => (
-              <article
+            {visibleRecommendations.map((recommendation) => (
+              <DiscoverRecommendationCard
                 key={`${recommendation.provider}-${recommendation.title}`}
-                className="min-w-[44vw] max-w-[44vw] sm:min-w-[188px] sm:max-w-[188px]"
-              >
-                <div className="glass-panel-soft relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10">
-                  {recommendation.imageUrl ? (
-                    <Image
-                      src={recommendation.imageUrl}
-                      alt={recommendation.title}
-                      fill
-                      sizes="188px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-slate-500">No Cover</div>
-                  )}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent p-3">
-                    <p className="line-clamp-2 text-sm font-semibold text-white">{recommendation.title}</p>
-                    <p className="text-xs text-slate-300">{recommendation.subtitle}</p>
-                  </div>
-                </div>
-              </article>
+                listOptions={listOptions}
+                onDismiss={dismissRecommendation}
+                ownedItem={getOwnedRecommendationItem(recommendation)}
+                recommendation={recommendation}
+              />
             ))}
           </div>
         ) : (
@@ -492,6 +553,28 @@ export default function HomeShelvesView({
       />
     </div>
   )
+}
+
+function getRecommendationKey(recommendation: DiscoverRecommendation) {
+  return `${recommendation.provider}:${recommendation.id}:${recommendation.title}`
+}
+
+function getRecommendationTitleTypeKey(title: string, type: string) {
+  return `${getRecommendationTypeFamily(type)}::${normalizeRecommendationTitle(title)}`
+}
+
+function getRecommendationTypeFamily(type: string) {
+  return ['Manga', 'Manhwa', 'Manhua'].includes(type) ? 'Manga' : type
+}
+
+function normalizeRecommendationTitle(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\u0400-\u04ff]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function InsightCard({ label, value }: { label: string; value: string }) {

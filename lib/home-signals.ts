@@ -11,10 +11,20 @@ export type UpcomingEpisode = {
 }
 
 export type DiscoverRecommendation = {
+  description: string
+  externalRatingLabel: 'AniList' | null
+  externalRatingValue: number | null
+  genres: string[]
+  id: string
   imageUrl: string
   provider: 'AniList'
+  sourceUrl: string | null
+  status: string
   subtitle: string
   title: string
+  totalProgress: string
+  type: 'Anime' | 'Manga' | 'Manhwa' | 'Manhua'
+  year: string | null
 }
 
 function normalizeComparableTitle(value: string) {
@@ -41,6 +51,48 @@ function createCountdownLabel(timeUntilAiring: number) {
   }
 
   return 'soon'
+}
+
+function stripDescription(value: string | null | undefined) {
+  if (!value) {
+    return ''
+  }
+
+  return value
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function normalizeExternalRating(value: number | null | undefined) {
+  if (typeof value !== 'number' || value <= 0) {
+    return null
+  }
+
+  return Math.round((value / 10) * 10) / 10
+}
+
+function resolveRecommendationType(
+  mediaType: string | null | undefined,
+  countryOfOrigin: string | null | undefined,
+  format: string | null | undefined
+): DiscoverRecommendation['type'] {
+  if (mediaType === 'ANIME') {
+    return 'Anime'
+  }
+
+  const normalizedFormat = format?.toLowerCase() ?? ''
+
+  if (countryOfOrigin === 'KR' || normalizedFormat.includes('manhwa')) {
+    return 'Manhwa'
+  }
+
+  if (countryOfOrigin === 'CN' || normalizedFormat.includes('manhua')) {
+    return 'Manhua'
+  }
+
+  return 'Manga'
 }
 
 export async function getUpcomingEpisodes(items: MediaItem[], locale: 'en') {
@@ -164,14 +216,29 @@ export async function getDiscoverRecommendations(items: MediaItem[]) {
                 recommendations(perPage: 6, sort: RATING_DESC) {
                   nodes {
                     mediaRecommendation {
+                      averageScore
+                      chapters
+                      countryOfOrigin
                       coverImage {
                         extraLarge
                         large
                       }
+                      description(asHtml: false)
+                      episodes
                       format
+                      genres
+                      id
+                      siteUrl
+                      startDate {
+                        year
+                      }
                       title {
+                        english
+                        romaji
                         userPreferred
                       }
+                      type
+                      volumes
                     }
                   }
                 }
@@ -195,14 +262,29 @@ export async function getDiscoverRecommendations(items: MediaItem[]) {
             recommendations?: {
               nodes?: Array<{
                 mediaRecommendation?: {
+                  averageScore?: number | null
+                  chapters?: number | null
+                  countryOfOrigin?: string | null
                   coverImage?: {
                     extraLarge?: string | null
                     large?: string | null
                   } | null
+                  description?: string | null
+                  episodes?: number | null
                   format?: string | null
+                  genres?: string[] | null
+                  id?: number | null
+                  siteUrl?: string | null
+                  startDate?: {
+                    year?: number | null
+                  } | null
                   title?: {
+                    english?: string | null
+                    romaji?: string | null
                     userPreferred?: string | null
                   } | null
+                  type?: string | null
+                  volumes?: number | null
                 } | null
               }>
             } | null
@@ -215,15 +297,41 @@ export async function getDiscoverRecommendations(items: MediaItem[]) {
       >((collection, node) => {
         const media = node.mediaRecommendation
 
-        if (!media?.title?.userPreferred) {
+        if (!media) {
           return collection
         }
 
+        const title =
+          media?.title?.english?.trim() ||
+          media?.title?.romaji?.trim() ||
+          media?.title?.userPreferred?.trim() ||
+          ''
+
+        if (!title) {
+          return collection
+        }
+
+        const type = resolveRecommendationType(media.type, media.countryOfOrigin, media.format)
+        const totalProgress =
+          type === 'Anime'
+            ? String(media.episodes ?? '')
+            : String(media.chapters ?? media.volumes ?? '')
+
         collection.push({
+          description: stripDescription(media.description),
+          externalRatingLabel: media.averageScore ? 'AniList' : null,
+          externalRatingValue: normalizeExternalRating(media.averageScore),
+          genres: media.genres ?? [],
+          id: media.id ? `anilist:${media.id}` : `anilist:${type}:${title}`,
           imageUrl: media.coverImage?.extraLarge ?? media.coverImage?.large ?? '',
           provider: 'AniList',
+          sourceUrl: media.siteUrl ?? null,
+          status: type === 'Anime' ? 'Planning' : 'Reading',
           subtitle: media.format ?? 'AniList',
-          title: media.title.userPreferred,
+          title,
+          totalProgress: totalProgress === '0' ? '' : totalProgress,
+          type,
+          year: media.startDate?.year ? String(media.startDate.year) : null,
         })
 
         return collection
