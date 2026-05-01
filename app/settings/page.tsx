@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 
 import { getOrCreateProfile } from '../actions/profile'
+import MetadataRefreshButton from '../../components/MetadataRefreshButton'
 import ProfileSettingsPanel from '../../components/ProfileSettingsPanel'
 import SetupChecklist from '../../components/onboarding/SetupChecklist'
 import { getCurrentUser } from '../../lib/auth/dal'
@@ -162,6 +163,9 @@ export default async function SettingsPage() {
               Use Backup before large imports, cleanup runs, or schema changes. Tiny seatbelt,
               big relief.
             </p>
+            <div className="mt-4">
+              <MetadataRefreshButton />
+            </div>
           </SettingsCard>
 
           <SettingsCard
