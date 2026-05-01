@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { quickUpdateItemAction } from '../app/actions/items'
 import {
   formatProgressValue,
+  formatExternalRatingValue,
   getAllowedStatuses,
   getCurrentProgressLabel,
   getTotalProgressLabel,
@@ -367,9 +368,5 @@ function formatOfficialRating(label?: string | null, value?: number | null) {
     return 'Not available'
   }
 
-  if (label === 'AniList') {
-    return value > 10 ? `${Math.round(value)}% AniList` : `${Math.round(value * 10)}% AniList`
-  }
-
-  return `${value.toFixed(1)} ${label}`
+  return formatExternalRatingValue(label, value)
 }

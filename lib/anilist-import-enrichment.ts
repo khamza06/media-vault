@@ -498,7 +498,7 @@ async function fetchJikanMetadataByMalId(
     const totalProgress = type === 'Anime' ? data.episodes : data.chapters
 
     return {
-      externalRatingLabel: externalRatingValue === null ? null : 'MAL',
+      externalRatingLabel: externalRatingValue === null ? null : 'MyAnimeList',
       externalRatingValue,
       genres: getJikanGenres(data),
       imageUrl: getJikanImageUrl(data),

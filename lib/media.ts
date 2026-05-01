@@ -503,3 +503,11 @@ export function formatProgressValue(item: Pick<MediaItem, 'progress' | 'totalPro
 
   return 'Not started yet'
 }
+
+export function formatExternalRatingValue(label: string, value: number) {
+  const normalized = value > 10 ? value / 10 : value
+  const rounded = Math.round(normalized * 10) / 10
+  const rating = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
+
+  return `${rating} / 10 ${label}`
+}

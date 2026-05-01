@@ -487,7 +487,7 @@ export async function searchShikimoriCandidates(
             return buildCandidate(
               {
               description: '',
-              externalRatingLabel: 'MAL',
+              externalRatingLabel: 'MyAnimeList',
               externalRatingValue: normalizeExternalRating(item.score),
               genres: '',
               id: `shikimori:${endpoint}:${item.id}`,
@@ -870,7 +870,7 @@ export async function searchJikanCandidates(
             return buildCandidate(
               {
               description: '',
-              externalRatingLabel: item.score ? 'MAL' : null,
+              externalRatingLabel: item.score ? 'MyAnimeList' : null,
               externalRatingValue: normalizeExternalRating(item.score),
               genres: sanitizeGenres(genres),
                 id: `jikan:${endpoint}:${item.mal_id}`,

@@ -6,7 +6,7 @@ import { Check, Plus } from 'lucide-react'
 
 import { getGenreBadgeClass } from '../lib/genres'
 import type { MediaItem } from '../lib/media'
-import { formatProgressValue } from '../lib/media'
+import { formatExternalRatingValue, formatProgressValue } from '../lib/media'
 import AddToListButton, { type AddToListOption } from './lists/AddToListButton'
 
 type ShelfItemCardProps = {
@@ -160,11 +160,7 @@ function renderMetaLine(item: MediaItem) {
 }
 
 function formatExternalRating(label: string, value: number) {
-  if (label === 'AniList') {
-    return `${label}: ${Math.round(value * 10)}%`
-  }
-
-  return `${label}: ${value.toFixed(1)}`
+  return formatExternalRatingValue(label, value)
 }
 
 

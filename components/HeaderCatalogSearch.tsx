@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { dispatchOpenAddModal } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
+import { formatExternalRatingValue } from '../lib/media'
 import { type CatalogSearchType, catalogSearchTypes } from '../lib/search-safety'
 import { useLocale } from './LocaleProvider'
 import AppSelect from './ui/AppSelect'
@@ -26,11 +27,7 @@ function getRatingCopy(item: CatalogSearchCandidate) {
     return null
   }
 
-  if (item.externalRatingLabel === 'AniList') {
-    return `${item.externalRatingLabel}: ${Math.round(item.externalRatingValue * 10)}%`
-  }
-
-  return `${item.externalRatingLabel}: ${item.externalRatingValue.toFixed(1)}`
+  return formatExternalRatingValue(item.externalRatingLabel, item.externalRatingValue)
 }
 
 function getTypeLabel(type: CatalogSearchType) {

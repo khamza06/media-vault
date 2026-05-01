@@ -20,7 +20,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import EmptyVaultState from './EmptyVaultState'
 import { getGenreBadgeClass, translateGenre } from '../lib/genres'
-import { formatProgressValue, type MediaItem } from '../lib/media'
+import { formatExternalRatingValue, formatProgressValue, type MediaItem } from '../lib/media'
 import AppSelect from './ui/AppSelect'
 
 type DiscoveryHubViewProps = {
@@ -692,11 +692,7 @@ function setParam(params: URLSearchParams, key: string, value: string | null) {
 }
 
 function formatExternalRating(label: string, value: number) {
-  if (label === 'AniList') {
-    return `${label}: ${Math.round(value * 10)}%`
-  }
-
-  return `${label}: ${value.toFixed(1)}`
+  return formatExternalRatingValue(label, value)
 }
 
 

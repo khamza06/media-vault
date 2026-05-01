@@ -11,7 +11,7 @@ import { addItemToListsAction } from '../app/actions/lists'
 import { dispatchOpenAddModal } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
 import type { DiscoverRecommendation } from '../lib/home-signals'
-import type { MediaItem, MediaItemInput } from '../lib/media'
+import { formatExternalRatingValue, type MediaItem, type MediaItemInput } from '../lib/media'
 import AddToListButton, { type AddToListOption } from './lists/AddToListButton'
 import { useToast } from './ToastProvider'
 
@@ -68,7 +68,10 @@ function formatRating(recommendation: DiscoverRecommendation) {
     return null
   }
 
-  return `${recommendation.externalRatingLabel}: ${Math.round(recommendation.externalRatingValue * 10)}%`
+  return formatExternalRatingValue(
+    recommendation.externalRatingLabel,
+    recommendation.externalRatingValue
+  )
 }
 
 export default function DiscoverRecommendationCard({

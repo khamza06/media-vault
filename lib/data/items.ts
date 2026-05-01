@@ -9,8 +9,12 @@ import { createSupabaseServerClient } from '../supabase/server'
 
 const fullItemSelectFieldsWithSource =
   'id, user_id, title, type, status, progress, total_progress, last_progress_at, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, external_source, external_id, created_at'
+const metadataItemSelectFieldsWithSource =
+  'id, user_id, title, type, status, progress, total_progress, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, external_source, external_id, created_at'
 const fullItemSelectFields =
   'id, user_id, title, type, status, progress, total_progress, last_progress_at, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, created_at'
+const metadataItemSelectFields =
+  'id, user_id, title, type, status, progress, total_progress, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, created_at'
 const backupExportItemSelectFields =
   'id, user_id, title, type, status, progress, total_progress, last_progress_at, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, external_source, external_id, created_at'
 const compatibilityItemSelectFields =
@@ -18,6 +22,8 @@ const compatibilityItemSelectFields =
 const legacyItemSelectFields = 'id, title, type, status, progress, rating, image_url, created_at'
 const discoveryExtendedSelectFields =
   'id, user_id, title, type, status, progress, total_progress, last_progress_at, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, created_at'
+const discoveryMetadataSelectFields =
+  'id, user_id, title, type, status, progress, total_progress, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, created_at'
 const discoveryCompatibilitySelectFields =
   'id, user_id, title, type, status, progress, total_progress, rating, image_url, notes, started_at, completed_at, favorite, genres, created_at'
 
@@ -290,6 +296,25 @@ function toDatabasePayload(input: NormalizedMediaItemWriteInput) {
   }
 }
 
+function toMetadataInput(input: NormalizedMediaItemWriteInput) {
+  return {
+    completed_at: input.completed_at,
+    external_rating_label: input.external_rating_label,
+    external_rating_value: input.external_rating_value,
+    favorite: input.favorite,
+    genres: input.genres,
+    image_url: input.image_url,
+    notes: input.notes,
+    progress: input.progress,
+    rating: input.rating,
+    started_at: input.started_at,
+    status: input.status,
+    title: input.title,
+    total_progress: input.total_progress,
+    type: input.type,
+  }
+}
+
 function toLegacyInput(input: NormalizedMediaItemWriteInput) {
   return {
     image_url: input.image_url,
@@ -317,6 +342,13 @@ function toCompatibilityInput(input: NormalizedMediaItemWriteInput) {
     total_progress: input.total_progress,
     type: input.type,
   }
+}
+
+function isLegacyWriteFallbackError(message?: string | null) {
+  return Boolean(
+    message &&
+      (isMissingUserIdError(message) || isExtendedSchemaError(message) || isMetadataColumnError(message))
+  )
 }
 
 function orderFullQuery<T extends OrderableQuery<T>>(query: T): T {
@@ -401,6 +433,25 @@ export async function getItems() {
     return sourceResult
   }
 
+  if (sourceResult.error.message && isExtendedSchemaError(sourceResult.error.message)) {
+    const metadataSourceResult = await orderCompatibilityQuery(
+      supabase.from('items').select(metadataItemSelectFieldsWithSource).eq('user_id', user.id)
+    )
+
+    if (!metadataSourceResult.error) {
+      return metadataSourceResult
+    }
+
+    if (
+      metadataSourceResult.error.message &&
+      !isExternalSourceColumnError(metadataSourceResult.error.message) &&
+      !isMetadataColumnError(metadataSourceResult.error.message) &&
+      !isMissingUserIdError(metadataSourceResult.error.message)
+    ) {
+      return metadataSourceResult
+    }
+  }
+
   if (
     sourceResult.error.message &&
     !isExternalSourceColumnError(sourceResult.error.message)
@@ -424,6 +475,22 @@ export async function getItems() {
   }
 
   if (isExtendedSchemaError(fullResult.error.message)) {
+    const metadataResult = await orderCompatibilityQuery(
+      supabase.from('items').select(metadataItemSelectFields).eq('user_id', user.id)
+    )
+
+    if (!metadataResult.error) {
+      return metadataResult
+    }
+
+    if (
+      metadataResult.error.message &&
+      !isMetadataColumnError(metadataResult.error.message) &&
+      !isMissingUserIdError(metadataResult.error.message)
+    ) {
+      return metadataResult
+    }
+
     const compatibilityResult = await orderCompatibilityQuery(
       supabase.from('items').select(compatibilityItemSelectFields).eq('user_id', user.id)
     )
@@ -477,6 +544,25 @@ export async function getItemById(id: string) {
   }
 
   if (isExtendedSchemaError(fullResult.error.message)) {
+    const metadataResult = await supabase
+      .from('items')
+      .select(metadataItemSelectFields)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (!metadataResult.error) {
+      return metadataResult
+    }
+
+    if (
+      metadataResult.error.message &&
+      !isMetadataColumnError(metadataResult.error.message) &&
+      !isMissingUserIdError(metadataResult.error.message)
+    ) {
+      return metadataResult
+    }
+
     const compatibilityResult = await supabase
       .from('items')
       .select(compatibilityItemSelectFields)
@@ -517,11 +603,26 @@ export async function createItem(input: NormalizedMediaItemWriteInput) {
     return ownedInsert
   }
 
-  if (
-    isMissingUserIdError(ownedInsert.error.message) ||
-    isExtendedSchemaError(ownedInsert.error.message) ||
-    isMetadataColumnError(ownedInsert.error.message)
-  ) {
+  if (isExtendedSchemaError(ownedInsert.error.message)) {
+    const metadataInsert = await supabase
+      .from('items')
+      .insert({
+        ...toMetadataInput(input),
+        user_id: user.id,
+      })
+      .select('id')
+      .single()
+
+    if (!metadataInsert.error) {
+      return metadataInsert
+    }
+
+    if (!isLegacyWriteFallbackError(metadataInsert.error.message)) {
+      return metadataInsert
+    }
+  }
+
+  if (isLegacyWriteFallbackError(ownedInsert.error.message)) {
     const compatibilityInsert = await supabase
       .from('items')
       .insert({
@@ -533,9 +634,7 @@ export async function createItem(input: NormalizedMediaItemWriteInput) {
 
     if (
       !compatibilityInsert.error ||
-      (!isMissingUserIdError(compatibilityInsert.error?.message) &&
-        !isMetadataColumnError(compatibilityInsert.error?.message) &&
-        !isExtendedSchemaError(compatibilityInsert.error?.message))
+      !isLegacyWriteFallbackError(compatibilityInsert.error?.message)
     ) {
       return compatibilityInsert
     }
@@ -575,11 +674,28 @@ export async function updateItem(id: string, input: NormalizedMediaItemWriteInpu
     return ownedUpdate
   }
 
-  if (
-    isMissingUserIdError(ownedUpdate.error.message) ||
-    isExtendedSchemaError(ownedUpdate.error.message) ||
-    isMetadataColumnError(ownedUpdate.error.message)
-  ) {
+  if (isExtendedSchemaError(ownedUpdate.error.message)) {
+    const metadataPayload = {
+      ...toMetadataInput(input),
+    }
+    const metadataUpdate = await supabase
+      .from('items')
+      .update(metadataPayload)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select('id')
+      .maybeSingle()
+
+    if (!metadataUpdate.error) {
+      return metadataUpdate
+    }
+
+    if (!isLegacyWriteFallbackError(metadataUpdate.error.message)) {
+      return metadataUpdate
+    }
+  }
+
+  if (isLegacyWriteFallbackError(ownedUpdate.error.message)) {
     const compatibilityUpdate = await supabase
       .from('items')
       .update(toCompatibilityInput(input))
@@ -590,9 +706,7 @@ export async function updateItem(id: string, input: NormalizedMediaItemWriteInpu
 
     if (
       !compatibilityUpdate.error ||
-      (!isMissingUserIdError(compatibilityUpdate.error?.message) &&
-        !isMetadataColumnError(compatibilityUpdate.error?.message) &&
-        !isExtendedSchemaError(compatibilityUpdate.error?.message))
+      !isLegacyWriteFallbackError(compatibilityUpdate.error?.message)
     ) {
       return compatibilityUpdate
     }
@@ -763,6 +877,24 @@ export async function getPublicItemsByUserId(userId: string) {
   }
 
   if (isExtendedSchemaError(fullResult.error.message) || isMetadataColumnError(fullResult.error.message)) {
+    if (isExtendedSchemaError(fullResult.error.message)) {
+      const metadataResult = await orderCompatibilityQuery(
+        supabase.from('items').select(metadataItemSelectFields).eq('user_id', userId)
+      )
+
+      if (!metadataResult.error) {
+        return metadataResult
+      }
+
+      if (
+        metadataResult.error.message &&
+        !isMetadataColumnError(metadataResult.error.message) &&
+        !isMissingUserIdError(metadataResult.error.message)
+      ) {
+        return metadataResult
+      }
+    }
+
     const compatibilityResult = await orderCompatibilityQuery(
       supabase.from('items').select(compatibilityItemSelectFields).eq('user_id', userId)
     )
@@ -798,6 +930,22 @@ export async function getSharedItemsByUserId(userId: string) {
   }
 
   if (isExtendedSchemaError(fullResult.error.message)) {
+    const metadataResult = await orderCompatibilityQuery(
+      supabase.from('items').select(metadataItemSelectFields).eq('user_id', userId)
+    )
+
+    if (!metadataResult.error) {
+      return metadataResult
+    }
+
+    if (
+      metadataResult.error.message &&
+      !isMetadataColumnError(metadataResult.error.message) &&
+      !isMissingUserIdError(metadataResult.error.message)
+    ) {
+      return metadataResult
+    }
+
     const compatibilityResult = await orderCompatibilityQuery(
       supabase.from('items').select(compatibilityItemSelectFields).eq('user_id', userId)
     )
@@ -859,6 +1007,43 @@ export async function getDiscoveryHubItemsByUserId(
   }
 
   if (isExtendedSchemaError(fullResult.error.message)) {
+    const metadataQuery = applyDiscoveryFilters(
+      supabase
+        .from('items')
+        .select(discoveryMetadataSelectFields, { count: 'exact' })
+        .eq('user_id', userId),
+      filters,
+      {
+        supportsGenres: true,
+        supportsLastProgressAt: false,
+        supportsNotes: true,
+        supportsStartedAt: true,
+      }
+    )
+    const metadataResult = await metadataQuery
+
+    if (!metadataResult.error) {
+      return {
+        data: (metadataResult.data ?? []) as MediaItemRecord[],
+        error: null,
+        filteredCount: metadataResult.count ?? metadataResult.data?.length ?? 0,
+        totalCount,
+      }
+    }
+
+    if (
+      metadataResult.error.message &&
+      !isMetadataColumnError(metadataResult.error.message) &&
+      !isMissingUserIdError(metadataResult.error.message)
+    ) {
+      return {
+        data: null,
+        error: metadataResult.error,
+        filteredCount: 0,
+        totalCount,
+      }
+    }
+
     const compatibilityQuery = applyDiscoveryFilters(
       supabase
         .from('items')

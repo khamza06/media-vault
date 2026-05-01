@@ -1,4 +1,4 @@
-import type { MediaItem, MediaItemInput, MediaItemRecord } from './media'
+import { formatExternalRatingValue, type MediaItem, type MediaItemInput, type MediaItemRecord } from './media'
 
 const APP_NAME = 'Media Vault'
 
@@ -252,11 +252,7 @@ function formatExternalRating(label: string | null, value: number | null) {
     return ''
   }
 
-  if (label === 'AniList') {
-    return `${label} ${Math.round(value * 10)}%`
-  }
-
-  return `${label} ${value.toFixed(1)}`
+  return formatExternalRatingValue(label, value)
 }
 
 function escapeCsvCell(value: unknown) {

@@ -9,6 +9,7 @@ import {
   getAllowedStatuses,
   getCurrentProgressLabel,
   getDefaultStatus,
+  formatExternalRatingValue,
   getTotalProgressLabel,
   mediaTypes,
   type MediaItemInput,
@@ -69,11 +70,7 @@ export default function MediaItemForm({
       return null
     }
 
-    if (candidate.externalRatingLabel === 'AniList') {
-      return `${candidate.externalRatingLabel}: ${Math.round(candidate.externalRatingValue * 10)}%`
-    }
-
-    return `${candidate.externalRatingLabel}: ${candidate.externalRatingValue.toFixed(1)}`
+    return formatExternalRatingValue(candidate.externalRatingLabel, candidate.externalRatingValue)
   }
 
   function getOfficialScoreCopy() {
@@ -86,11 +83,7 @@ export default function MediaItemForm({
       return `${form.externalRatingLabel}: ${form.externalRatingValue}`
     }
 
-    if (form.externalRatingLabel === 'AniList') {
-      return `${form.externalRatingLabel}: ${Math.round(parsed * 10)}%`
-    }
-
-    return `${form.externalRatingLabel}: ${parsed.toFixed(1)}`
+    return formatExternalRatingValue(form.externalRatingLabel, parsed)
   }
 
   return (

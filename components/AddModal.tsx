@@ -8,7 +8,7 @@ import { createItemAction } from '../app/actions/items'
 import { uploadCoverAction } from '../app/actions/storage'
 import { OPEN_ADD_MODAL_EVENT, type OpenAddModalDetail } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
-import { normalizeMediaItemInput, type MediaItemInput } from '../lib/media'
+import { formatExternalRatingValue, normalizeMediaItemInput, type MediaItemInput } from '../lib/media'
 import { buildQuickImportDraft } from '../lib/quick-import-draft'
 import { mapMediaTypeToCatalogSearchType } from '../lib/search-safety'
 import { useLocale } from './LocaleProvider'
@@ -173,11 +173,7 @@ export default function AddModal({
       return null
     }
 
-    if (candidate.externalRatingLabel === 'AniList') {
-      return `${candidate.externalRatingLabel}: ${Math.round(candidate.externalRatingValue * 10)}%`
-    }
-
-    return `${candidate.externalRatingLabel}: ${candidate.externalRatingValue.toFixed(1)}`
+    return formatExternalRatingValue(candidate.externalRatingLabel, candidate.externalRatingValue)
   }
 
   const fetchCatalogSuggestions = useCallback(async (query: string, type: string, signal: AbortSignal) => {

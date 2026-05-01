@@ -854,6 +854,65 @@ function toCompatibilityImportRow(row: ImportRow) {
   }
 }
 
+function toMetadataImportRow(row: ImportRow) {
+  return {
+    completed_at: row.completed_at,
+    external_rating_label: row.external_rating_label,
+    external_rating_value: row.external_rating_value,
+    favorite: row.favorite,
+    genres: row.genres,
+    image_url: row.image_url,
+    notes: row.notes,
+    progress: row.progress,
+    rating: row.rating,
+    started_at: row.started_at,
+    status: row.status,
+    title: row.title,
+    total_progress: row.total_progress,
+    type: row.type,
+    user_id: row.user_id,
+  }
+}
+
+function buildMetadataImportRows(
+  rows: ImportRowWithExternalMetadata[],
+  usedExternalIdColumns: boolean
+) {
+  return rows.map((row) => {
+    const metadataRow = toMetadataImportRow(row)
+
+    if (!usedExternalIdColumns || !row.external_source) {
+      return metadataRow
+    }
+
+    return {
+      ...metadataRow,
+      external_id: row.external_id ?? null,
+      external_source: row.external_source,
+      external_url: row.external_url,
+    }
+  })
+}
+
+function buildCompatibilityImportRows(
+  rows: ImportRowWithExternalMetadata[],
+  usedExternalIdColumns: boolean
+) {
+  return rows.map((row) => {
+    const compatibilityRow = toCompatibilityImportRow(row)
+
+    if (!usedExternalIdColumns || !row.external_source) {
+      return compatibilityRow
+    }
+
+    return {
+      ...compatibilityRow,
+      external_id: row.external_id ?? null,
+      external_source: row.external_source,
+    }
+  })
+}
+
 function withExternalMetadata(row: ImportRow, item: ValidatedMalImportItem) {
   return {
     ...row,
@@ -1521,19 +1580,31 @@ export async function importAniListItems(
     }
   }
 
-  const compatibilityRows = rowsToInsert.map((row) => {
-    const compatibilityRow = toCompatibilityImportRow(row)
+  const metadataRows = buildMetadataImportRows(rowsToInsert, usedExternalIdColumns)
+  const metadataInsert = await supabase.from('items').insert(metadataRows).select('id')
 
-    if (!usedExternalIdColumns) {
-      return compatibilityRow
-    }
-
+  if (!metadataInsert.error) {
+    await revalidateImportPaths()
     return {
-      ...compatibilityRow,
-      external_id: row.external_id ?? null,
-      external_source: row.external_source,
+      error: null,
+      failed: 0,
+      imported: metadataInsert.data?.length ?? metadataRows.length,
+      skipped,
+      usedExternalIdColumns,
     }
-  })
+  }
+
+  if (!isMissingColumnError(metadataInsert.error.message)) {
+    return {
+      error: metadataInsert.error.message,
+      failed: rowsToInsert.length,
+      imported: 0,
+      skipped,
+      usedExternalIdColumns,
+    }
+  }
+
+  const compatibilityRows = buildCompatibilityImportRows(rowsToInsert, usedExternalIdColumns)
   const compatibilityInsert = await supabase.from('items').insert(compatibilityRows).select('id')
 
   if (compatibilityInsert.error) {
@@ -1731,19 +1802,33 @@ export async function importCsvItems(candidates: CsvImportCandidate[]): Promise<
     }
   }
 
-  const compatibilityRows = rowsToInsert.map((row) => {
-    const compatibilityRow = toCompatibilityImportRow(row)
+  const metadataRows = buildMetadataImportRows(rowsToInsert, usedExternalIdColumns)
+  const metadataInsert = await supabase.from('items').insert(metadataRows).select('id')
 
-    if (!usedExternalIdColumns || !row.external_source) {
-      return compatibilityRow
-    }
-
+  if (!metadataInsert.error) {
+    await revalidateImportPaths()
     return {
-      ...compatibilityRow,
-      external_id: row.external_id ?? null,
-      external_source: row.external_source,
+      error: null,
+      failed: 0,
+      imported: metadataInsert.data?.length ?? metadataRows.length,
+      invalid,
+      skipped,
+      usedExternalIdColumns,
     }
-  })
+  }
+
+  if (!isMissingColumnError(metadataInsert.error.message)) {
+    return {
+      error: metadataInsert.error.message,
+      failed: rowsToInsert.length,
+      imported: 0,
+      invalid,
+      skipped,
+      usedExternalIdColumns,
+    }
+  }
+
+  const compatibilityRows = buildCompatibilityImportRows(rowsToInsert, usedExternalIdColumns)
   const compatibilityInsert = await supabase.from('items').insert(compatibilityRows).select('id')
 
   if (compatibilityInsert.error) {
@@ -1944,19 +2029,33 @@ export async function importMyAnimeListItems(
     }
   }
 
-  const compatibilityRows = rowsToInsert.map((row) => {
-    const compatibilityRow = toCompatibilityImportRow(row)
+  const metadataRows = buildMetadataImportRows(rowsToInsert, usedExternalIdColumns)
+  const metadataInsert = await supabase.from('items').insert(metadataRows).select('id')
 
-    if (!usedExternalIdColumns) {
-      return compatibilityRow
-    }
-
+  if (!metadataInsert.error) {
+    await revalidateImportPaths()
     return {
-      ...compatibilityRow,
-      external_id: row.external_id ?? null,
-      external_source: row.external_source,
+      enriched,
+      error: null,
+      failed: 0,
+      imported: metadataInsert.data?.length ?? metadataRows.length,
+      skipped,
+      usedExternalIdColumns,
     }
-  })
+  }
+
+  if (!isMissingColumnError(metadataInsert.error.message)) {
+    return {
+      enriched,
+      error: metadataInsert.error.message,
+      failed: rowsToInsert.length,
+      imported: 0,
+      skipped,
+      usedExternalIdColumns,
+    }
+  }
+
+  const compatibilityRows = buildCompatibilityImportRows(rowsToInsert, usedExternalIdColumns)
   const compatibilityInsert = await supabase.from('items').insert(compatibilityRows).select('id')
 
   if (compatibilityInsert.error) {

@@ -3,7 +3,7 @@ import { Star } from 'lucide-react'
 
 import EmptyVaultState from './EmptyVaultState'
 import { getGenreBadgeClass, translateGenre } from '../lib/genres'
-import { formatProgressValue, type MediaItem } from '../lib/media'
+import { formatExternalRatingValue, formatProgressValue, type MediaItem } from '../lib/media'
 import { mediaCardGridClassName } from '../lib/media-card-grid'
 
 type PublicLibraryGridProps = {
@@ -96,9 +96,5 @@ export default function PublicLibraryGrid({
 }
 
 function formatExternalRating(label: string, value: number) {
-  if (label === 'AniList') {
-    return `${label}: ${Math.round(value * 10)}%`
-  }
-
-  return `${label}: ${value.toFixed(1)}`
+  return formatExternalRatingValue(label, value)
 }
