@@ -1,7 +1,8 @@
 'use client'
 
 import { Search, SlidersHorizontal, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import PublicLibraryGrid from '../PublicLibraryGrid'
 import type { MediaItem } from '../../lib/media'
@@ -34,14 +35,35 @@ const sortOptions: Array<{ label: string; value: SortMode }> = [
 ]
 
 export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps) {
-  const [query, setQuery] = useState('')
-  const [typeFilter, setTypeFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all')
-  const [sortMode, setSortMode] = useState<SortMode>('recent')
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   const typeOptions = useMemo(() => getUniqueOptions(items.map((item) => item.type)), [items])
   const statusOptions = useMemo(() => getUniqueOptions(items.map((item) => item.status)), [items])
+  const query = searchParams.get('q') ?? ''
+  const typeFilter = getOptionParam(searchParams.get('type'), typeOptions)
+  const statusFilter = getOptionParam(searchParams.get('status'), statusOptions)
+  const ratingFilter = getRatingParam(searchParams.get('rating'))
+  const sortMode = getSortParam(searchParams.get('sort'))
+
+  const updateUrl = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString())
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (!value) {
+          params.delete(key)
+        } else {
+          params.set(key, value)
+        }
+      }
+
+      const nextQuery = params.toString()
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
+    },
+    [pathname, router, searchParams]
+  )
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -79,11 +101,13 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
     sortMode !== 'recent'
 
   function clearFilters() {
-    setQuery('')
-    setTypeFilter('all')
-    setStatusFilter('all')
-    setRatingFilter('all')
-    setSortMode('recent')
+    updateUrl({
+      q: null,
+      rating: null,
+      sort: null,
+      status: null,
+      type: null,
+    })
   }
 
   return (
@@ -123,7 +147,9 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
               <input
                 type="search"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) =>
+                  updateUrl({ q: event.target.value.trim().length > 0 ? event.target.value : null })
+                }
                 placeholder="Search public titles, types, statuses, genres..."
                 className={`${controlClassName} pl-11`}
               />
@@ -137,7 +163,7 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
             <AppSelect
               ariaLabel="Type filter"
               value={typeFilter}
-              onValueChange={setTypeFilter}
+              onValueChange={(value) => updateUrl({ type: value === 'all' ? null : value })}
               options={[
                 { label: 'All types', value: 'all' },
                 ...typeOptions.map((type) => ({ label: type, value: type })),
@@ -153,7 +179,7 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
             <AppSelect
               ariaLabel="Status filter"
               value={statusFilter}
-              onValueChange={setStatusFilter}
+              onValueChange={(value) => updateUrl({ status: value === 'all' ? null : value })}
               options={[
                 { label: 'All statuses', value: 'all' },
                 ...statusOptions.map((status) => ({ label: status, value: status })),
@@ -169,7 +195,9 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
             <AppSelect
               ariaLabel="Rating filter"
               value={ratingFilter}
-              onValueChange={(value) => setRatingFilter(value as RatingFilter)}
+              onValueChange={(value) =>
+                updateUrl({ rating: value === 'all' ? null : value })
+              }
               options={ratingOptions}
               className={controlClassName}
             />
@@ -182,7 +210,7 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
             <AppSelect
               ariaLabel="Sort public vault"
               value={sortMode}
-              onValueChange={(value) => setSortMode(value as SortMode)}
+              onValueChange={(value) => updateUrl({ sort: value === 'recent' ? null : value })}
               options={sortOptions}
               className={controlClassName}
             />
@@ -204,6 +232,18 @@ function getUniqueOptions(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))].sort((left, right) =>
     left.localeCompare(right)
   )
+}
+
+function getOptionParam(value: string | null, options: string[]) {
+  return value && options.includes(value) ? value : 'all'
+}
+
+function getRatingParam(value: string | null): RatingFilter {
+  return ratingOptions.some((option) => option.value === value) ? (value as RatingFilter) : 'all'
+}
+
+function getSortParam(value: string | null): SortMode {
+  return sortOptions.some((option) => option.value === value) ? (value as SortMode) : 'recent'
 }
 
 function matchesRatingFilter(rating: number | null, filter: RatingFilter) {

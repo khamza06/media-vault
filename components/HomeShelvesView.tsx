@@ -2,17 +2,19 @@
 
 import Link from 'next/link'
 import { BookOpen, Clapperboard, Library, MonitorPlay, Sparkles, Tv } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import { deleteItemsBulkAction, incrementProgressAction } from '../app/actions/items'
 import type { DiscoverRecommendation } from '../lib/home-signals'
 import {
   defaultLibraryFilters,
   filterAndSortMediaItems,
+  getLibraryFiltersFromSearchParams,
   hasActiveLibraryFilters,
   hasSourceMetadata,
   type LibraryFilters,
+  writeLibraryFiltersToSearchParams,
 } from '../lib/library-filters'
 import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
 import { shelfDefinitions } from '../lib/shelves'
@@ -46,11 +48,12 @@ export default function HomeShelvesView({
   recommendations: DiscoverRecommendation[]
 }) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { showToast } = useToast()
   const [liveItems, setLiveItems] = useState(items)
   const [busyIds, setBusyIds] = useState<Record<string, boolean>>({})
   const [activeAccent, setActiveAccent] = useState<string | null>(null)
-  const [filters, setFilters] = useState<LibraryFilters>(defaultLibraryFilters)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
@@ -60,6 +63,9 @@ export default function HomeShelvesView({
     () => new Set()
   )
   const accentCacheRef = useRef(new Map<string, string>())
+  const filters = useMemo(() => getLibraryFiltersFromSearchParams(searchParams), [searchParams])
+  const currentQuery = searchParams.toString()
+  const currentReturnTo = currentQuery ? `${pathname}?${currentQuery}` : pathname
 
   useEffect(() => {
     setLiveItems(items)
@@ -82,11 +88,25 @@ export default function HomeShelvesView({
 
   const showSourceFilter = useMemo(() => hasSourceMetadata(liveItems), [liveItems])
 
+  const updateFilterUrl = useCallback(
+    (nextFilters: LibraryFilters) => {
+      const params = writeLibraryFiltersToSearchParams(
+        new URLSearchParams(searchParams.toString()),
+        nextFilters,
+        { includeSource: showSourceFilter }
+      )
+      const query = params.toString()
+
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    },
+    [pathname, router, searchParams, showSourceFilter]
+  )
+
   useEffect(() => {
     if (!showSourceFilter && filters.source !== 'all') {
-      setFilters((current) => ({ ...current, source: 'all' }))
+      updateFilterUrl({ ...filters, source: 'all' })
     }
-  }, [filters.source, showSourceFilter])
+  }, [filters, showSourceFilter, updateFilterUrl])
 
   useEffect(() => {
     if (selectionMode) {
@@ -398,7 +418,7 @@ export default function HomeShelvesView({
 
         <LibraryFilterControls
           filters={filters}
-          onChange={setFilters}
+          onChange={updateFilterUrl}
           showSourceFilter={showSourceFilter}
           totalCount={totalCount}
           visibleCount={visibleCount}
@@ -437,7 +457,7 @@ export default function HomeShelvesView({
           {hasActiveLibraryFilters(filters) ? (
             <button
               type="button"
-              onClick={() => setFilters(defaultLibraryFilters)}
+              onClick={() => updateFilterUrl(defaultLibraryFilters)}
               className="min-h-11 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
             >
               Clear filters
@@ -466,7 +486,7 @@ export default function HomeShelvesView({
                     </div>
                   </div>
                   <Link
-                    href={`/shelves/${shelf.slug}`}
+                    href={getShelfHref(shelf.slug, currentQuery)}
                     className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/30 hover:text-white sm:shrink-0"
                   >
                     See All
@@ -486,7 +506,7 @@ export default function HomeShelvesView({
                         onIncrement={handleIncrement}
                         onToggleSelection={toggleSelection}
                         progressBusy={Boolean(busyIds[item.id])}
-                        returnTo={`/shelves/${shelf.slug}`}
+                        returnTo={currentReturnTo}
                       />
                     ))
                   ) : (
@@ -557,6 +577,10 @@ export default function HomeShelvesView({
 
 function getRecommendationKey(recommendation: DiscoverRecommendation) {
   return `${recommendation.provider}:${recommendation.id}:${recommendation.title}`
+}
+
+function getShelfHref(slug: string, query: string) {
+  return query ? `/shelves/${slug}?${query}` : `/shelves/${slug}`
 }
 
 function getRecommendationTitleTypeKey(title: string, type: string) {

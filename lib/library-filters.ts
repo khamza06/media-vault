@@ -30,6 +30,10 @@ export const defaultLibraryFilters: LibraryFilters = {
   status: 'all',
 }
 
+type SearchParamsReader = {
+  get: (name: string) => string | null
+}
+
 export const libraryStatusOptions = [
   { label: 'All statuses', value: 'all' },
   ...mediaStatuses.map((status) => ({ label: status, value: status })),
@@ -68,8 +72,80 @@ export const librarySortOptions: Array<{ label: string; value: LibrarySortMode }
   { label: 'Status', value: 'status' },
 ]
 
+export function getLibraryFiltersFromSearchParams(searchParams: SearchParamsReader): LibraryFilters {
+  return {
+    cover: getCoverFilter(searchParams.get('cover')),
+    query: searchParams.get('q') ?? defaultLibraryFilters.query,
+    rating: getRatingFilter(searchParams.get('rating')),
+    sort: getSortMode(searchParams.get('sort')),
+    source: getSourceFilter(searchParams.get('source')),
+    status: getStatusFilter(searchParams.get('status')),
+  }
+}
+
+export function writeLibraryFiltersToSearchParams(
+  params: URLSearchParams,
+  filters: LibraryFilters,
+  options?: { includeSource?: boolean }
+) {
+  setCleanParam(params, 'q', filters.query.trim() || null)
+  setCleanParam(params, 'status', filters.status === defaultLibraryFilters.status ? null : filters.status)
+  setCleanParam(params, 'cover', filters.cover === defaultLibraryFilters.cover ? null : filters.cover)
+  setCleanParam(params, 'rating', filters.rating === defaultLibraryFilters.rating ? null : filters.rating)
+  setCleanParam(params, 'sort', filters.sort === defaultLibraryFilters.sort ? null : filters.sort)
+
+  if (options?.includeSource === false || filters.source === defaultLibraryFilters.source) {
+    params.delete('source')
+  } else {
+    params.set('source', filters.source)
+  }
+
+  return params
+}
+
 export function hasSourceMetadata(items: MediaItem[]) {
   return items.some((item) => Boolean(item.externalSource?.trim()))
+}
+
+function getCoverFilter(value: string | null): LibraryCoverFilter {
+  return libraryCoverOptions.some((option) => option.value === value)
+    ? (value as LibraryCoverFilter)
+    : defaultLibraryFilters.cover
+}
+
+function getRatingFilter(value: string | null): LibraryRatingFilter {
+  return libraryRatingOptions.some((option) => option.value === value)
+    ? (value as LibraryRatingFilter)
+    : defaultLibraryFilters.rating
+}
+
+function getSortMode(value: string | null): LibrarySortMode {
+  return librarySortOptions.some((option) => option.value === value)
+    ? (value as LibrarySortMode)
+    : defaultLibraryFilters.sort
+}
+
+function getSourceFilter(value: string | null): LibrarySourceFilter {
+  return librarySourceOptions.some((option) => option.value === value)
+    ? (value as LibrarySourceFilter)
+    : defaultLibraryFilters.source
+}
+
+function getStatusFilter(value: string | null): string {
+  if (value && mediaStatuses.includes(value as (typeof mediaStatuses)[number])) {
+    return value
+  }
+
+  return defaultLibraryFilters.status
+}
+
+function setCleanParam(params: URLSearchParams, key: string, value: string | null) {
+  if (!value) {
+    params.delete(key)
+    return
+  }
+
+  params.set(key, value)
 }
 
 export function hasActiveLibraryFilters(filters: LibraryFilters, options?: { includeSort?: boolean }) {

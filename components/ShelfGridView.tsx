@@ -1,15 +1,17 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import { deleteItemsBulkAction, incrementProgressAction } from '../app/actions/items'
 import {
   defaultLibraryFilters,
   filterAndSortMediaItems,
+  getLibraryFiltersFromSearchParams,
   hasActiveLibraryFilters,
   hasSourceMetadata,
   type LibraryFilters,
+  writeLibraryFiltersToSearchParams,
 } from '../lib/library-filters'
 import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
 import { mediaCardGridClassName } from '../lib/media-card-grid'
@@ -32,16 +34,19 @@ export default function ShelfGridView({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { showToast } = useToast()
   const [liveItems, setLiveItems] = useState(items)
   const [busyIds, setBusyIds] = useState<Record<string, boolean>>({})
-  const [filters, setFilters] = useState<LibraryFilters>(defaultLibraryFilters)
-  const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null)
+  const filters = useMemo(() => getLibraryFiltersFromSearchParams(searchParams), [searchParams])
+  const favoritesOnly = searchParams.get('favorites') === '1'
+  const currentQuery = searchParams.toString()
+  const currentReturnTo = currentQuery ? `${pathname}?${currentQuery}` : pathname
 
   useEffect(() => {
     setLiveItems(items)
@@ -49,11 +54,30 @@ export default function ShelfGridView({
 
   const showSourceFilter = useMemo(() => hasSourceMetadata(liveItems), [liveItems])
 
+  const updateFilterUrl = useCallback(
+    (nextFilters: LibraryFilters, options?: { favoritesOnly?: boolean }) => {
+      const params = new URLSearchParams(searchParams.toString())
+      const nextFavoritesOnly = options?.favoritesOnly ?? favoritesOnly
+
+      writeLibraryFiltersToSearchParams(params, nextFilters, { includeSource: showSourceFilter })
+
+      if (nextFavoritesOnly) {
+        params.set('favorites', '1')
+      } else {
+        params.delete('favorites')
+      }
+
+      const query = params.toString()
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    },
+    [favoritesOnly, pathname, router, searchParams, showSourceFilter]
+  )
+
   useEffect(() => {
     if (!showSourceFilter && filters.source !== 'all') {
-      setFilters((current) => ({ ...current, source: 'all' }))
+      updateFilterUrl({ ...filters, source: 'all' })
     }
-  }, [filters.source, showSourceFilter])
+  }, [filters, showSourceFilter, updateFilterUrl])
 
   useEffect(() => {
     if (selectionMode) {
@@ -193,7 +217,7 @@ export default function ShelfGridView({
       <section className="mb-8 min-w-0 space-y-4">
         <LibraryFilterControls
           filters={filters}
-          onChange={setFilters}
+          onChange={updateFilterUrl}
           showSourceFilter={showSourceFilter}
           totalCount={liveItems.length}
           visibleCount={filteredItems.length}
@@ -202,7 +226,7 @@ export default function ShelfGridView({
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
-            onClick={() => setFavoritesOnly((current) => !current)}
+            onClick={() => updateFilterUrl(filters, { favoritesOnly: !favoritesOnly })}
             className={`min-h-12 rounded-xl border px-4 py-3 text-sm font-medium transition ${
               favoritesOnly
                 ? 'border-blue-400/30 bg-blue-500/20 text-white'
@@ -244,8 +268,7 @@ export default function ShelfGridView({
             <button
               type="button"
               onClick={() => {
-                setFilters(defaultLibraryFilters)
-                setFavoritesOnly(false)
+                updateFilterUrl(defaultLibraryFilters, { favoritesOnly: false })
               }}
               className="min-h-11 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
             >
@@ -265,7 +288,7 @@ export default function ShelfGridView({
               onIncrement={handleIncrement}
               onToggleSelection={toggleSelection}
               progressBusy={Boolean(busyIds[item.id])}
-              returnTo={pathname}
+              returnTo={currentReturnTo}
             />
           ))}
         </section>

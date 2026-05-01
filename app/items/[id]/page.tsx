@@ -47,14 +47,20 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
       }).format(new Date(item.created_at))
     : 'Unknown'
   const mediaItem = toMediaItem(item as MediaItemRecord)
-  const backQuery =
-    typeof searchParams.back === 'string' && searchParams.back.length > 0
-      ? `/?${searchParams.back}`
-      : '/'
-  const editReturnTo =
-    typeof searchParams.back === 'string' && searchParams.back.length > 0
-      ? `/items/${item.id}?back=${searchParams.back}`
-      : `/items/${item.id}`
+  const safeReturnTo = getSafeReturnTo(searchParams.returnTo)
+  const backParam =
+    typeof searchParams.back === 'string' && searchParams.back.length > 0 ? searchParams.back : null
+  const backQuery = safeReturnTo ?? (backParam ? `/?${backParam}` : '/')
+  const detailParams = new URLSearchParams()
+
+  if (safeReturnTo) {
+    detailParams.set('returnTo', safeReturnTo)
+  } else if (backParam) {
+    detailParams.set('back', backParam)
+  }
+
+  const detailQuery = detailParams.toString()
+  const editReturnTo = detailQuery ? `/items/${item.id}?${detailQuery}` : `/items/${item.id}`
   const listOptions = listsResult.schemaReady ? listsResult.lists : []
 
   return (
@@ -176,6 +182,14 @@ function ItemSnapshot({ addedAt, item }: { addedAt: string; item: MediaItem }) {
       </dl>
     </section>
   )
+}
+
+function getSafeReturnTo(value: string | string[] | undefined) {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
+    return null
+  }
+
+  return value
 }
 
 function SnapshotRow({ label, value }: { label: string; value: string }) {
