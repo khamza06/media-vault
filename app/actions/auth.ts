@@ -69,7 +69,7 @@ function getSafeAuthError(errorMessage?: string | null) {
 }
 
 function getAuthNetworkHelpMessage() {
-  return 'Verify NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and Supabase Auth URL Configuration for https://media-vault.app.'
+  return 'Open /api/auth-health, then verify NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and Supabase Auth URL Configuration for https://media-vault.app.'
 }
 
 export async function loginAction(input: AuthInput): Promise<AuthActionResult> {
