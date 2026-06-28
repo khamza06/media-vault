@@ -157,13 +157,6 @@ http://localhost:3000/auth/callback
 http://localhost:3000/auth/reset-password
 ```
 
-Optional fallback Redirect URLs if you still use the Vercel deployment URL:
-
-```text
-https://media-vault-seven.vercel.app/auth/callback
-https://media-vault-seven.vercel.app/auth/reset-password
-```
-
 See [docs/auth-setup.md](docs/auth-setup.md) for email confirmation and password
 reset details.
 

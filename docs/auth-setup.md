@@ -12,7 +12,7 @@ configured correctly.
 Set this in Vercel for production:
 
 ```text
-NEXT_PUBLIC_SITE_URL=https://media-vault-seven.vercel.app
+NEXT_PUBLIC_SITE_URL=https://media-vault.app
 ```
 
 For local development, use this in `.env.local`:
@@ -21,7 +21,7 @@ For local development, use this in `.env.local`:
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-The app falls back to `https://media-vault-seven.vercel.app` in production if
+The app falls back to `https://media-vault.app` in production if
 `NEXT_PUBLIC_SITE_URL` is missing, but the explicit environment variable is still
 recommended so auth links are predictable.
 
@@ -36,23 +36,25 @@ Authentication -> URL Configuration
 Set **Site URL** to:
 
 ```text
-https://media-vault-seven.vercel.app
+https://media-vault.app
 ```
 
 Add these **Redirect URLs**:
 
 ```text
-https://media-vault-seven.vercel.app/auth/callback
-https://media-vault-seven.vercel.app/auth/reset-password
+https://media-vault.app/auth/callback
+https://media-vault.app/auth/reset-password
+https://media-vault.app/auth/confirm
 http://localhost:3000/auth/callback
 http://localhost:3000/auth/reset-password
+http://localhost:3000/auth/confirm
 ```
 
 The app also keeps `/auth/confirm` for older token-hash email templates. If your
 Supabase email templates still use `/auth/confirm`, also allow:
 
 ```text
-https://media-vault-seven.vercel.app/auth/confirm
+https://media-vault.app/auth/confirm
 http://localhost:3000/auth/confirm
 ```
 

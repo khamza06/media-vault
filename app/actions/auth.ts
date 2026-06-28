@@ -40,12 +40,36 @@ function isEmailConfirmationError(message?: string | null) {
   )
 }
 
+function isAuthNetworkError(message?: string | null) {
+  if (!message) {
+    return false
+  }
+
+  const normalizedMessage = message.toLowerCase()
+  return (
+    normalizedMessage.includes('fetch failed') ||
+    normalizedMessage.includes('failed to fetch') ||
+    normalizedMessage.includes('network') ||
+    normalizedMessage.includes('econn') ||
+    normalizedMessage.includes('enotfound') ||
+    normalizedMessage.includes('etimedout')
+  )
+}
+
 function getSafeAuthError(errorMessage?: string | null) {
   if (isEmailConfirmationError(errorMessage)) {
     return 'Please confirm your email before signing in. Check your inbox or resend the confirmation email.'
   }
 
+  if (isAuthNetworkError(errorMessage)) {
+    return 'Media Vault cannot reach Supabase Auth right now. Check the Vercel Supabase environment variables and make sure the Supabase project is active.'
+  }
+
   return errorMessage ?? 'Something went wrong. Please try again.'
+}
+
+function getAuthNetworkHelpMessage() {
+  return 'Verify NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and Supabase Auth URL Configuration for https://media-vault.app.'
 }
 
 export async function loginAction(input: AuthInput): Promise<AuthActionResult> {
@@ -76,8 +100,8 @@ export async function loginAction(input: AuthInput): Promise<AuthActionResult> {
     return { error: null, message: 'Signed in.', success: true, status: 'signed-in' }
   } catch {
     return {
-      error: 'Unable to sign in right now. Please try again.',
-      message: null,
+      error: 'Media Vault cannot reach Supabase Auth right now.',
+      message: getAuthNetworkHelpMessage(),
       success: false,
     }
   }
@@ -100,8 +124,8 @@ export async function signupAction(input: AuthInput): Promise<AuthActionResult> 
 
     if (result.error) {
       return {
-        error: result.error.message,
-        message: null,
+        error: getSafeAuthError(result.error.message),
+        message: isAuthNetworkError(result.error.message) ? getAuthNetworkHelpMessage() : null,
         success: false,
       }
     }
@@ -127,8 +151,8 @@ export async function signupAction(input: AuthInput): Promise<AuthActionResult> 
     }
   } catch {
     return {
-      error: 'Unable to create an account right now. Please try again.',
-      message: null,
+      error: 'Media Vault cannot reach Supabase Auth right now.',
+      message: getAuthNetworkHelpMessage(),
       success: false,
     }
   }
@@ -146,28 +170,36 @@ export async function resendSignupConfirmationAction(
     }
   }
 
-  const supabase = createSupabaseServerClient()
-  const result = await supabase.auth.resend({
-    email: validatedEmail.data,
-    type: 'signup',
-    options: {
-      emailRedirectTo: await getAuthCallbackUrl('/'),
-    },
-  })
+  try {
+    const supabase = createSupabaseServerClient()
+    const result = await supabase.auth.resend({
+      email: validatedEmail.data,
+      type: 'signup',
+      options: {
+        emailRedirectTo: await getAuthCallbackUrl('/'),
+      },
+    })
 
-  if (result.error) {
+    if (result.error) {
+      return {
+        error: getSafeAuthError(result.error.message),
+        message: isAuthNetworkError(result.error.message) ? getAuthNetworkHelpMessage() : null,
+        success: false,
+      }
+    }
+
     return {
-      error: result.error.message,
-      message: null,
+      error: null,
+      message: 'Confirmation email sent. Check your inbox and spam folder.',
+      success: true,
+      status: 'confirmation-required',
+    }
+  } catch {
+    return {
+      error: 'Media Vault cannot reach Supabase Auth right now.',
+      message: getAuthNetworkHelpMessage(),
       success: false,
     }
-  }
-
-  return {
-    error: null,
-    message: 'Confirmation email sent. Check your inbox and spam folder.',
-    success: true,
-    status: 'confirmation-required',
   }
 }
 
@@ -191,8 +223,8 @@ export async function requestPasswordResetAction(
 
     if (result.error) {
       return {
-        error: result.error.message,
-        message: null,
+        error: getSafeAuthError(result.error.message),
+        message: isAuthNetworkError(result.error.message) ? getAuthNetworkHelpMessage() : null,
         success: false,
       }
     }
@@ -205,8 +237,8 @@ export async function requestPasswordResetAction(
     }
   } catch {
     return {
-      error: 'Unable to send a password reset email right now. Please try again.',
-      message: null,
+      error: 'Media Vault cannot reach Supabase Auth right now.',
+      message: getAuthNetworkHelpMessage(),
       success: false,
     }
   }

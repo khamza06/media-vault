@@ -1,4 +1,4 @@
-const PRODUCTION_SITE_URL = 'https://media-vault-seven.vercel.app'
+const PRODUCTION_SITE_URL = 'https://media-vault.app'
 const LOCAL_SITE_URL = 'http://localhost:3000'
 
 function normalizeSiteUrl(url: string) {

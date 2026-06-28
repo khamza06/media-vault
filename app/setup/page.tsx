@@ -61,10 +61,11 @@ export default async function SetupPage() {
         <Card title="2. Add the auth callback URLs">
           <p className="text-sm text-slate-300">
             In Supabase Auth URL Configuration, set the Site URL to
-            `https://media-vault-seven.vercel.app` and add these redirect URLs:
+            `https://media-vault.app` and add these redirect URLs:
           </p>
-          <CodeBlock>{`https://media-vault-seven.vercel.app/auth/callback
-https://media-vault-seven.vercel.app/auth/reset-password`}</CodeBlock>
+          <CodeBlock>{`https://media-vault.app/auth/callback
+https://media-vault.app/auth/reset-password
+https://media-vault.app/auth/confirm`}</CodeBlock>
           <p className="mt-4 text-sm text-slate-400">
             For local development, also allow `http://localhost:3000/auth/callback`
             and `http://localhost:3000/auth/reset-password`.
@@ -75,7 +76,7 @@ https://media-vault-seven.vercel.app/auth/reset-password`}</CodeBlock>
           <p className="text-sm text-slate-300">
             In Vercel Environment Variables, add:
           </p>
-          <CodeBlock>NEXT_PUBLIC_SITE_URL=https://media-vault-seven.vercel.app</CodeBlock>
+          <CodeBlock>NEXT_PUBLIC_SITE_URL=https://media-vault.app</CodeBlock>
           <p className="mt-4 text-sm text-slate-400">
             This keeps email confirmation and password reset links pointed at production
             instead of a local development URL.

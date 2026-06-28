@@ -46,7 +46,7 @@ const geistMono = localFont({
 
 export const dynamic = 'force-dynamic'
 
-const siteUrl = getConfiguredSiteUrl() ?? 'https://media-vault-seven.vercel.app'
+const siteUrl = getConfiguredSiteUrl() ?? 'https://media-vault.app'
 const siteDescription =
   'Track anime, manga, movies, series, and books in one personal media vault.'
 

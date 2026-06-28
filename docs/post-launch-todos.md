@@ -5,7 +5,7 @@ the production polish sprint to avoid expanding scope.
 
 ## Product polish
 
-- Add a custom domain and update Supabase Auth URL Configuration after DNS is ready.
+- Keep Supabase Auth URL Configuration synced with the custom domain after DNS or domain changes.
 - Add a short screenshots/video demo section to the README for portfolio viewers.
 - Add richer public profile customization such as bio, accent color, and featured lists.
 - Add dynamic Open Graph metadata for individual public list pages.
