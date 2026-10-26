@@ -406,7 +406,7 @@ export default function DiscoveryHubView({
 
   return (
     <div className="grid min-w-0 gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-      <aside className="hidden lg:sticky lg:top-28 lg:block lg:h-[calc(100vh-8rem)] lg:self-start">
+      <aside className="hidden lg:sticky lg:top-[var(--vault-header-offset)] lg:block lg:h-[calc(100dvh-var(--vault-header-offset)-1rem)] lg:self-start">
         {sidebar}
       </aside>
 

@@ -436,7 +436,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
                 })
               }
               placeholder={t('library.searchPlaceholder')}
-              className="glass-panel-soft min-h-14 w-full rounded-[24px] px-4 py-3 text-white outline-none transition focus:border-blue-400/40"
+              className="glass-panel-soft min-h-12 w-full rounded-xl px-4 py-3 text-white outline-none transition focus:border-blue-400/40"
             />
           </label>
 
@@ -451,7 +451,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
                 })
               }
               options={sortOptions}
-              className="glass-panel-soft min-h-14 w-full rounded-[24px] px-4 py-3 text-white outline-none transition focus:border-blue-400/40"
+              className="glass-panel-soft min-h-12 w-full rounded-xl px-4 py-3 text-white outline-none transition focus:border-blue-400/40"
             />
           </label>
         </div>

@@ -12,20 +12,11 @@ import { getConfiguredSiteUrl } from '../lib/auth/site-url'
 import { getRequestLocale } from '../lib/i18n-server'
 import './globals.css'
 
-const geistSans = localFont({
-  src: [
-    {
-      path: '../node_modules/next/dist/next-devtools/server/font/geist-latin.woff2',
-      style: 'normal',
-      weight: '100 900',
-    },
-    {
-      path: '../node_modules/next/dist/next-devtools/server/font/geist-latin-ext.woff2',
-      style: 'normal',
-      weight: '100 900',
-    },
-  ],
-  variable: '--font-sans',
+const manrope = localFont({
+  src: './fonts/Manrope-Variable.ttf',
+  display: 'swap',
+  weight: '200 800',
+  variable: '--font-body',
 })
 
 const geistMono = localFont({
@@ -135,11 +126,11 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${manrope.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body
-        className="min-h-full bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_32%),linear-gradient(180deg,_#111827_0%,_#0f172a_24%,_#111827_100%)] pb-24 text-slate-50 md:pb-0"
+        className="min-h-full bg-slate-950 text-slate-100"
         suppressHydrationWarning
       >
         <LocaleProvider locale={locale}>

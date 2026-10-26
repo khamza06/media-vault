@@ -51,7 +51,7 @@ export default function PublicLibraryGrid({
           </div>
 
           <div className="mt-3 space-y-2">
-            <h2 className="line-clamp-2 text-sm font-semibold text-white" title={item.title}>
+            <h2 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-white" title={item.title}>
               {item.title}
             </h2>
             <p className="text-xs text-slate-400">{formatProgressValue(item)}</p>

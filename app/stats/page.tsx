@@ -56,11 +56,11 @@ export default async function StatsPage() {
     : null
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 pb-24 sm:px-6 md:py-6 md:pb-6 lg:px-8">
-      <header className="mb-8 mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between md:mt-6">
+    <main className="vault-page">
+      <header className="mb-8 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-3">
           <p className="text-sm uppercase tracking-[0.25em] text-slate-500">{t(locale, 'common.overview')}</p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-4xl">
+          <h1 className="vault-title mt-2">
             {t(locale, 'stats.title')}
           </h1>
         </div>

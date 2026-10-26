@@ -22,11 +22,11 @@ export default async function SummaryPage() {
   const copy = getCopy()
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 pb-24 sm:px-6 md:py-6 md:pb-6 lg:px-8">
-      <header className="mb-10 mt-6">
+    <main className="vault-page">
+      <header className="mb-8">
         <div className="max-w-3xl">
           <p className="text-sm uppercase tracking-[0.25em] text-slate-500">{copy.eyebrow}</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+          <h1 className="vault-title mt-3">
             {copy.title}
           </h1>
           <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg">

@@ -12,8 +12,8 @@ export default function RouteLoadingShell({
   titleWidth = 'w-72',
 }: RouteLoadingShellProps) {
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8">
-      <header className="mb-8 mt-4 max-w-3xl space-y-4">
+    <main className="vault-page">
+      <header className="mb-8 max-w-3xl space-y-4">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
           {eyebrow}
         </p>

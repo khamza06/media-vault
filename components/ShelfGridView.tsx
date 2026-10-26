@@ -207,10 +207,10 @@ export default function ShelfGridView({
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8">
-      <header className="mb-8 mt-6 max-w-3xl min-w-0">
+    <main className="vault-page">
+      <header className="mb-8 max-w-3xl min-w-0">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">Shelf Detail</p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">{title}</h1>
+        <h1 className="vault-title mt-3">{title}</h1>
         <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg">{description}</p>
       </header>
 
@@ -223,11 +223,11 @@ export default function ShelfGridView({
           visibleCount={filteredItems.length}
         />
 
-        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid min-w-0 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
           <button
             type="button"
             onClick={() => updateFilterUrl(filters, { favoritesOnly: !favoritesOnly })}
-            className={`min-h-12 rounded-xl border px-4 py-3 text-sm font-medium transition ${
+            className={`min-h-11 rounded-xl border px-4 py-2 text-sm font-medium transition ${
               favoritesOnly
                 ? 'border-blue-400/30 bg-blue-500/20 text-white'
                 : 'border-white/10 bg-white/5 text-slate-300 hover:text-white'
@@ -235,25 +235,24 @@ export default function ShelfGridView({
           >
             Favorites only
           </button>
+          <BulkSelectionToolbar
+            isDeleting={isBulkDeleting}
+            isSelectionMode={selectionMode}
+            onCancelSelection={cancelSelectionMode}
+            onClearSelection={() => setSelectedIds(new Set())}
+            onRequestDelete={() => {
+              setBulkDeleteError(null)
+              setIsBulkDeleteOpen(true)
+            }}
+            onSelectAllVisible={() => setSelectedIds(new Set(filteredItems.map((item) => item.id)))}
+            onStartSelection={() => {
+              setBulkDeleteError(null)
+              setSelectionMode(true)
+            }}
+            selectedCount={selectedIds.size}
+            visibleCount={filteredItems.length}
+          />
         </div>
-
-        <BulkSelectionToolbar
-          isDeleting={isBulkDeleting}
-          isSelectionMode={selectionMode}
-          onCancelSelection={cancelSelectionMode}
-          onClearSelection={() => setSelectedIds(new Set())}
-          onRequestDelete={() => {
-            setBulkDeleteError(null)
-            setIsBulkDeleteOpen(true)
-          }}
-          onSelectAllVisible={() => setSelectedIds(new Set(filteredItems.map((item) => item.id)))}
-          onStartSelection={() => {
-            setBulkDeleteError(null)
-            setSelectionMode(true)
-          }}
-          selectedCount={selectedIds.size}
-          visibleCount={filteredItems.length}
-        />
       </section>
 
       {filteredItems.length === 0 ? (

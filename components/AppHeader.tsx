@@ -57,8 +57,8 @@ export default function AppHeader({
 
   if (isPublicRoute) {
     return (
-      <header className="safe-top sticky top-0 z-40 px-4 pt-3 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 shadow-[0_20px_60px_rgba(2,6,23,0.5)] sm:px-5">
+      <header className="vault-container safe-top sticky top-0 z-40 pt-3">
+        <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/95 px-3 py-3 shadow-lg shadow-slate-950/20 backdrop-blur-xl sm:px-5">
           <Link
             href="/"
             className="inline-flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight text-white transition hover:text-blue-300 sm:gap-3 sm:text-2xl"
@@ -85,9 +85,9 @@ export default function AppHeader({
 
   return (
     <>
-      <header className="safe-top sticky top-0 z-40 px-4 pt-3 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 shadow-[0_20px_60px_rgba(2,6,23,0.5)] sm:px-5 md:gap-4 md:px-5 md:py-4">
-          <div className="relative z-20 flex items-center gap-2 md:flex-wrap md:gap-4">
+      <header className="vault-container safe-top sticky top-0 z-40 pt-3">
+        <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-800 bg-slate-950/95 px-3 py-3 shadow-lg shadow-slate-950/20 backdrop-blur-xl sm:px-5 md:py-4">
+          <div className="relative z-20 flex min-w-0 items-center gap-2 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-4">
             <Link
               href="/"
               className="inline-flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight text-white transition hover:text-blue-300 sm:gap-3 sm:text-2xl"
@@ -101,12 +101,12 @@ export default function AppHeader({
               </span>
             </Link>
 
-            <div className="ml-auto md:ml-0 md:flex-1">
+            <div className="ml-auto min-w-0 md:ml-0">
               <HeaderCatalogSearch />
             </div>
 
-            <div className="ml-auto hidden flex-wrap items-center justify-end gap-3 md:flex">
-              <span className="hidden rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-300 lg:inline">
+            <div className="hidden items-center justify-end gap-2 md:flex">
+              <span title={accountLabel} className="hidden max-w-36 truncate rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-300 lg:inline">
                 {accountLabel}
               </span>
               <AddModal
@@ -201,7 +201,7 @@ export default function AppHeader({
 
       {isMobileMenuOpen ? (
         <div className="fixed inset-0 z-[999] bg-slate-950/98 backdrop-blur-xl md:hidden">
-          <div className="safe-top safe-bottom flex h-[100dvh] min-h-0 flex-col px-5 pb-4 pt-5">
+          <div className="vault-mobile-menu flex h-[100dvh] min-h-0 flex-col px-5">
             <div className="flex shrink-0 items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
@@ -227,7 +227,7 @@ export default function AppHeader({
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                     Signed in
                   </p>
-                  <p className="mt-1 break-all text-sm text-slate-200">{accountLabel}</p>
+                  <p className="mt-1 break-words text-sm text-slate-200">{accountLabel}</p>
                 </div>
               ) : null}
 

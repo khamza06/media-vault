@@ -25,12 +25,12 @@ type ItemQuickEditPanelProps = {
 type SavingField = 'notes' | 'progress' | 'rating' | 'status'
 
 const metricCardClassName =
-  'flex min-h-[7.5rem] min-w-0 flex-col justify-between rounded-xl border border-slate-800 bg-slate-950 p-4'
+  'flex min-h-32 min-w-0 flex-col justify-between rounded-xl border border-slate-800 bg-slate-950 p-3 sm:p-4'
 const metricLabelClassName = 'text-sm text-slate-400'
 const centeredMetricValueClassName =
-  'mt-3 flex min-h-12 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-center text-sm font-semibold text-white'
+  'mt-3 flex h-14 min-h-14 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-center text-sm font-semibold text-white'
 const progressInputClassName =
-  'min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-center text-sm font-semibold tabular-nums text-white outline-none transition [appearance:textfield] focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+  'min-h-11 min-w-0 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-center text-sm font-semibold tabular-nums text-white outline-none transition [appearance:textfield] focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
 const ratingOptions = [
   { label: 'Not rated', value: '' },
   ...Array.from({ length: 10 }, (_, index) => {
@@ -161,8 +161,8 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
 
   return (
     <section className="space-y-4">
-      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-[minmax(0,0.95fr)_minmax(20rem,1.1fr)_minmax(0,1fr)]">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <div className="flex min-w-0 flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -187,11 +187,11 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           />
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="@container min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             Ratings
           </p>
-          <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 @min-[18rem]:grid-cols-2">
             <div className={metricCardClassName}>
               <p className={metricLabelClassName}>My Rating</p>
               <AppSelect
@@ -201,14 +201,14 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
                 disabled={savingField === 'rating'}
                 options={ratingOptions}
                 size="compact"
-                className="mt-3 h-12 min-h-12 w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
+                className="mt-3 h-14 min-h-14 w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
                 contentClassName="min-w-[8rem]"
               />
             </div>
             <div className={metricCardClassName}>
               <p className={metricLabelClassName}>Official Rating</p>
               <p className={centeredMetricValueClassName}>
-                <Star className="h-4 w-4 shrink-0 fill-yellow-400 text-yellow-400" />
+                <Star aria-hidden="true" className="h-4 w-4 shrink-0 fill-yellow-400 text-yellow-400" />
                 {officialRatingUnavailable ? (
                   <span className="flex min-w-[4.75rem] max-w-full flex-col items-center justify-center text-center leading-tight">
                     <span className="whitespace-nowrap break-normal">Not</span>
@@ -224,7 +224,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 xl:col-span-2 2xl:col-span-1">
+        <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 xl:col-span-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -241,12 +241,12 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             ) : null}
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr_auto] xl:grid-cols-3">
+          <div className="mt-4 grid min-w-0 grid-cols-[4rem_minmax(0,1fr)_4rem] items-center gap-3">
             <button
               type="button"
               onClick={() => void saveProgress(progress - 1)}
               disabled={savingField === 'progress' || progress <= 0}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Minus className="h-4 w-4" />
               -1
@@ -266,14 +266,14 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
               type="button"
               onClick={() => void saveProgress(progress + 1)}
               disabled={savingField === 'progress' || progressAtLimit}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/40 bg-blue-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
               +1
             </button>
           </div>
 
-          <div className="mt-3 flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-400">
               {totalProgress
                 ? `${getTotalProgressLabel(item.type)}: ${totalProgress}`

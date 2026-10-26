@@ -154,7 +154,7 @@ export default function ListDetailManager({
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
               Custom List
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-5xl">
+            <h1 className="vault-title mt-2">
               {list.name}
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-400">

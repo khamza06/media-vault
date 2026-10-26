@@ -123,7 +123,7 @@ export default function AuthForm({
         : 'Enter your email and we will send a secure password reset link.'
 
   return (
-    <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.45)] sm:p-7">
+    <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-[0_16px_48px_rgba(2,6,23,0.25)] sm:p-7">
       <div className="mb-6">
         <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
           Account

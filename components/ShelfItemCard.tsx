@@ -14,6 +14,7 @@ type ShelfItemCardProps = {
   isSelected?: boolean
   isSelectionMode?: boolean
   item: MediaItem
+  layout?: 'grid' | 'rail'
   listOptions?: AddToListOption[]
   onIncrement: (item: MediaItem) => void
   onToggleSelection?: (item: MediaItem) => void
@@ -26,6 +27,7 @@ export default function ShelfItemCard({
   isSelected = false,
   isSelectionMode = false,
   item,
+  layout = 'grid',
   listOptions = [],
   onIncrement,
   onToggleSelection,
@@ -38,7 +40,7 @@ export default function ShelfItemCard({
 
   return (
     <article
-      className="group min-w-0 w-full max-w-[188px] shrink-0"
+      className={`group flex min-w-0 shrink-0 flex-col ${layout === 'rail' ? 'w-[10.5rem] sm:w-[11.5rem]' : 'w-full'}`}
       onMouseEnter={() => accentHandler?.(item.imageUrl)}
       onMouseLeave={() => accentHandler?.(null)}
       onTouchStart={() => accentHandler?.(item.imageUrl)}
@@ -95,14 +97,14 @@ export default function ShelfItemCard({
           )}
 
           <div className="absolute bottom-2 left-2 z-20 flex gap-2">
-            <span className="rounded-md bg-slate-700/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+            <span className="rounded-xl bg-slate-900/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
               {item.status}
             </span>
           </div>
         </div>
 
         <h3
-          className="mt-3 line-clamp-2 text-[15px] font-bold tracking-tight text-slate-50 transition-colors group-hover:text-blue-300"
+          className="mt-3 line-clamp-2 min-h-11 text-sm font-bold leading-[1.4] tracking-tight text-slate-50 transition-colors group-hover:text-blue-300"
           title={item.title}
         >
           {item.title}
@@ -120,13 +122,13 @@ export default function ShelfItemCard({
           {item.genres.slice(0, 2).map((genre) => (
             <span
               key={genre}
-              className={`rounded-full border px-2 py-1 text-[10px] ${getGenreBadgeClass(genre)}`}
+              className={`rounded-xl border px-2 py-1 text-[10px] ${getGenreBadgeClass(genre)}`}
             >
               {genre}
             </span>
           ))}
           {item.genres.length > 2 ? (
-            <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2 py-1 text-[10px] text-slate-400">
+            <span className="rounded-xl border border-slate-700 bg-slate-900/80 px-2 py-1 text-[10px] text-slate-400">
               +{item.genres.length - 2}
             </span>
           ) : null}
@@ -134,7 +136,7 @@ export default function ShelfItemCard({
       ) : null}
 
       {!isSelectionMode ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
           <button
             type="button"
             onClick={() => onIncrement(item)}

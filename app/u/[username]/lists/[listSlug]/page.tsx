@@ -90,8 +90,8 @@ export default async function PublicListPage(props: PageProps) {
   const displayName = profile.displayName || profile.username
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 pb-32 text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl min-w-0">
+    <main className="vault-page">
+      <div className="min-w-0">
         <header className="mb-8 min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
           <Link
             href={`/u/${profile.username}`}
@@ -106,7 +106,7 @@ export default async function PublicListPage(props: PageProps) {
               <ListChecks className="h-4 w-4" />
               Public List
             </div>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+            <h1 className="vault-title mt-4">
               {publicList.name}
             </h1>
             <p className="mt-3 text-sm font-medium text-blue-200">

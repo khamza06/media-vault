@@ -59,7 +59,7 @@ export default function AppSelect({
       >
         <Select.Value className="min-w-0 flex-1 truncate whitespace-nowrap text-left" placeholder={placeholder} />
         <Select.Icon asChild>
-          <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-slate-400" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
         </Select.Icon>
       </Select.Trigger>
       <Select.Portal>

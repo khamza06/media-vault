@@ -66,13 +66,13 @@ export default async function ShareDiscoveryPage(props: PageProps) {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8">
-      <header className="mb-8 mt-6 max-w-4xl min-w-0">
+    <main className="vault-page">
+      <header className="mb-8 max-w-4xl min-w-0">
         <div className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
           <Compass className="h-4 w-4" />
           Discover
         </div>
-        <h1 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        <h1 className="vault-title mt-4">
           Advanced Library Search
         </h1>
         <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg">

@@ -82,18 +82,17 @@ export default async function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 pb-32 text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl min-w-0">
+    <main className="vault-page">
+      <div className="min-w-0">
         <header className="mb-8 max-w-3xl min-w-0">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-200">
             Account Controls
           </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+          <h1 className="vault-title mt-3">
             Settings
           </h1>
           <p className="mt-4 text-base leading-7 text-slate-400">
-            Manage the safe foundation for your profile, sharing links, and vault tools.
-            Configure your public identity, vault visibility, and safe backup/import tools.
+            Manage your profile, public sharing, and backup and import tools.
           </p>
         </header>
 

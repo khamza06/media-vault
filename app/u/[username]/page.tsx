@@ -141,8 +141,8 @@ export default async function PublicUserProfilePage(props: PageProps) {
   const ratedCount = items.filter((item) => typeof item.rating === 'number').length
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 pb-32 text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl min-w-0">
+    <main className="vault-page">
+      <div className="min-w-0">
         <header className="mb-8 min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl shadow-slate-950/30 sm:p-7">
           <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
             <div className="min-w-0">
@@ -150,14 +150,13 @@ export default async function PublicUserProfilePage(props: PageProps) {
                 <Compass className="h-4 w-4" />
                 Public Vault
               </div>
-              <h1 className="mt-5 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+              <h1 className="vault-title mt-5">
                 {displayName}
               </h1>
               <p className="mt-3 text-sm font-medium text-blue-200">@{profile.username}</p>
               <p className="mt-5 max-w-3xl text-base leading-7 text-slate-400">
-                Browse this Media Vault in read-only mode. Public visitors can explore visible
-                titles and shared lists, while editing, deleting, importing, backups, and account
-                controls stay private.
+                Browse this Media Vault in read-only mode. Explore titles, ratings, and
+                shared collections.
               </p>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -174,7 +173,7 @@ export default async function PublicUserProfilePage(props: PageProps) {
               </div>
             </div>
 
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="grid min-w-0 grid-cols-2 gap-3">
               <SummaryCard label="Public items" value={String(items.length)} />
               <SummaryCard label="Completed" value={String(completedCount)} />
               <SummaryCard label="Rated" value={String(ratedCount)} />
@@ -218,7 +217,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-950 p-4">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">{label}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{value}</p>
+      <p className="vault-metric mt-3 text-3xl font-semibold text-white">{value}</p>
     </div>
   )
 }

@@ -386,7 +386,7 @@ export default function HomeShelvesView({
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
             Completion KPIs
           </p>
-          <h2 className="mt-2 text-xl font-bold tracking-tight text-white sm:text-3xl">Completion Progress</h2>
+          <h2 className="vault-section-title mt-2">Completion Progress</h2>
           <p className="mt-2 text-sm leading-6 text-slate-300">
             Track how much of each media family you have completed.
           </p>
@@ -403,7 +403,7 @@ export default function HomeShelvesView({
             <article key={group.label} className="glass-panel surface-highlight min-w-0 rounded-xl px-4 py-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{group.label}</p>
               <div className="mt-3 space-y-2">
-                <p className="text-2xl font-bold tracking-tight text-white">
+                <p className="vault-metric text-2xl font-bold text-white">
                   {group.completionRate === null ? '0 items' : `${group.completionRate}%`}
                 </p>
                 <p className="text-sm text-slate-400">
@@ -502,6 +502,7 @@ export default function HomeShelvesView({
                         isSelected={selectedIds.has(item.id)}
                         isSelectionMode={selectionMode}
                         item={item}
+                        layout="rail"
                         listOptions={listOptions}
                         onIncrement={handleIncrement}
                         onToggleSelection={toggleSelection}
@@ -605,7 +606,7 @@ function InsightCard({ label, value }: { label: string; value: string }) {
   return (
     <article className="glass-panel surface-highlight min-w-0 rounded-xl px-4 py-4 sm:px-5 sm:py-5">
       <p className="text-xs text-slate-300 sm:text-sm">{label}</p>
-      <p className="mt-2 text-2xl font-bold tracking-tight text-white sm:mt-3 sm:text-3xl">{value}</p>
+      <p className="vault-metric mt-2 text-2xl font-bold text-white sm:mt-3 sm:text-3xl">{value}</p>
     </article>
   )
 }

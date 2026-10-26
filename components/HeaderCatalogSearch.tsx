@@ -332,7 +332,7 @@ export default function HeaderCatalogSearch() {
 
   return (
     <>
-      <div ref={containerRef} className="relative z-[120] md:min-w-[320px] md:max-w-[680px] md:flex-1">
+      <div ref={containerRef} className="relative z-[120] min-w-0 md:w-full">
         <button
           type="button"
           onClick={() => setIsMobileOverlayOpen(true)}
@@ -343,7 +343,7 @@ export default function HeaderCatalogSearch() {
         </button>
 
         <div className="hidden items-center gap-3 md:flex">
-          <div className="flex min-w-[156px] items-center">
+          <div className="flex w-32 min-w-0 shrink-0 items-center xl:w-36">
             <AppSelect
               ariaLabel="Search media type"
               value={searchType}
@@ -353,7 +353,7 @@ export default function HeaderCatalogSearch() {
             />
           </div>
 
-          <div className="flex h-12 flex-1 items-center rounded-xl border border-slate-700 bg-slate-950 pl-4 pr-3 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/40">
+          <div className="flex h-12 min-w-0 flex-1 items-center rounded-xl border border-slate-700 bg-slate-950 pl-3 pr-2 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/40">
             <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
             <input
               ref={desktopInputRef}
@@ -379,7 +379,7 @@ export default function HeaderCatalogSearch() {
                 }, 0)
               }}
               placeholder={searchType ? 'Search global databases...' : 'Select type first...'}
-              className="w-full bg-transparent pl-3 text-sm font-medium text-white outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-500"
+              className="min-w-0 w-full bg-transparent pl-3 text-sm font-medium text-white outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-500"
               disabled={!searchType}
             />
             {query ? (

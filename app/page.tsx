@@ -38,12 +38,12 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 pb-24 sm:px-6 md:py-6 md:pb-6 lg:px-8">
-      <header className="mb-6 mt-2 flex max-w-3xl flex-col gap-4 md:mb-8 md:mt-6">
+    <main className="vault-page">
+      <header className="mb-8 flex max-w-3xl min-w-0 flex-col gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
           Focus Shelves
         </p>
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-5xl">
+        <h1 className="vault-title">
           Your Library, reorganized.
         </h1>
         <p className="text-sm leading-6 text-slate-300 sm:text-lg sm:leading-7">

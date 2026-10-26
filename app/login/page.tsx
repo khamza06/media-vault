@@ -20,9 +20,9 @@ export default async function LoginPage(props: PageProps<'/login'>) {
         : null
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl items-center px-4 py-10 pb-32 sm:px-6 lg:px-8">
-      <div className="grid w-full min-w-0 gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-        <section className="min-w-0 space-y-6">
+    <main className="vault-container flex min-h-[100svh] items-center py-8 sm:py-12">
+      <div className="grid w-full min-w-0 gap-8 lg:grid-cols-2 lg:items-center lg:gap-16">
+        <section className="min-w-0 space-y-5">
           <div className="inline-flex items-center gap-3 text-2xl font-bold tracking-tight text-white">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/20 text-sm font-semibold text-blue-200 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
               MV
@@ -34,7 +34,7 @@ export default async function LoginPage(props: PageProps<'/login'>) {
           <p className="text-xs font-medium uppercase tracking-[0.35em] text-blue-300/70">
             {t(locale, 'auth.privateVault')}
           </p>
-          <h1 className="max-w-xl text-5xl font-bold tracking-tight text-white sm:text-6xl">
+          <h1 className="max-w-xl text-[clamp(2rem,4.2vw,3.75rem)] font-bold leading-[1.08] tracking-[-0.045em] text-balance text-white">
             {t(locale, 'auth.loginHeading')}
           </h1>
           <p className="max-w-xl text-lg leading-8 text-slate-300">
@@ -42,17 +42,19 @@ export default async function LoginPage(props: PageProps<'/login'>) {
           </p>
         </section>
 
-        <AuthForm
-          initialEmail={typeof searchParams.email === 'string' ? searchParams.email : ''}
-          initialMessage={
-            confirmed
-              ? t(locale, 'auth.emailConfirmed')
-              : passwordReset
-                ? 'Password updated. Please sign in with your new password.'
-                : authError ?? ''
-          }
-          initialMessageTone={confirmed || passwordReset ? 'success' : authError ? 'error' : null}
-        />
+        <div className="flex min-w-0 justify-center lg:justify-end">
+          <AuthForm
+            initialEmail={typeof searchParams.email === 'string' ? searchParams.email : ''}
+            initialMessage={
+              confirmed
+                ? t(locale, 'auth.emailConfirmed')
+                : passwordReset
+                  ? 'Password updated. Please sign in with your new password.'
+                  : authError ?? ''
+            }
+            initialMessageTone={confirmed || passwordReset ? 'success' : authError ? 'error' : null}
+          />
+        </div>
       </div>
     </main>
   )

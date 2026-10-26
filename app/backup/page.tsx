@@ -30,12 +30,12 @@ export default async function BackupPage() {
   const exportItems = ((data ?? []) as MediaItemRecord[]).map(recordToVaultExportItem)
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 pb-32 sm:px-6 lg:px-8">
-      <header className="mt-6 mb-10">
+    <main className="vault-page">
+      <header className="mb-8">
         <p className="text-xs font-medium uppercase tracking-[0.35em] text-blue-300/70">
           Safety
         </p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        <h1 className="vault-title mt-3">
           Backup Center
         </h1>
         <p className="mt-3 max-w-2xl text-base text-slate-300">
@@ -65,7 +65,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="glass-panel-soft rounded-xl px-5 py-5">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">{label}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{value}</p>
+      <p className="mt-3 break-words text-2xl font-semibold leading-tight tracking-tight text-white">{value}</p>
     </div>
   )
 }

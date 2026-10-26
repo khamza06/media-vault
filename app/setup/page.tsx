@@ -16,10 +16,10 @@ export default async function SetupPage() {
   const isReady = ownershipMode === 'enforced'
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-4 py-6 pb-32 sm:px-6 lg:px-8">
-      <header className="mt-4 mb-10 min-w-0 space-y-3">
+    <main className="vault-page">
+      <header className="mb-8 min-w-0 space-y-3">
         <p className="text-sm uppercase tracking-[0.25em] text-slate-500">Project Setup</p>
-        <h1 className="text-4xl font-extrabold tracking-tight text-white">Supabase checklist</h1>
+        <h1 className="vault-title">Supabase checklist</h1>
         <p className="max-w-3xl text-sm text-slate-400">
           This page helps finish the last manual setup that cannot be applied from the app
           itself.

@@ -64,7 +64,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
   const listOptions = listsResult.schemaReady ? listsResult.lists : []
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 pb-32 sm:px-6 lg:px-8">
+    <main className="vault-page">
       <div className="mb-5">
         <Link
           href={backQuery}
@@ -74,16 +74,16 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
         </Link>
       </div>
 
-      <section className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start xl:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
-          <div className="glass-panel surface-highlight relative aspect-[2/3] overflow-hidden rounded-xl">
+      <section className="grid min-w-0 gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start xl:grid-cols-[280px_minmax(0,1fr)] xl:gap-6">
+        <aside className="grid min-w-0 gap-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-start lg:sticky lg:top-[var(--vault-header-offset)] lg:block lg:space-y-4 lg:self-start">
+          <div className="glass-panel surface-highlight relative mx-auto aspect-[2/3] w-full max-w-60 overflow-hidden rounded-xl sm:max-w-none">
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-white/5" />
             {item.image_url ? (
               <Image
                 src={item.image_url}
                 alt={item.title}
                 fill
-                sizes="(max-width: 1024px) 100vw, 320px"
+                sizes="(max-width: 640px) 240px, (max-width: 1024px) 180px, 280px"
                 className="object-cover"
               />
             ) : (
@@ -105,7 +105,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
             </div>
 
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{item.title}</h1>
+              <h1 className="vault-title">{item.title}</h1>
               <p className="mt-3 max-w-2xl text-slate-400">
                 A focused view for this entry with its current status, progress, and saved
                 metadata.
