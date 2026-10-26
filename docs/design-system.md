@@ -27,6 +27,8 @@ Builds and browsers do not need a font CDN connection.
 - `vault-page`: the same container, with consistent top and bottom spacing.
 - Horizontal padding: 16px mobile, 24px tablet, 32px desktop.
 - The header uses the same container as page content, without a second max-width.
+- Keep filters, transforms, and backdrop filters off the header's inner wrapper:
+  its mobile search overlay uses fixed viewport positioning. Add New uses a body portal.
 - Desktop sticky panels use `--vault-header-offset` to clear the two-row header.
 - Mobile content reserves bottom space for navigation and the device safe area.
 - Small editor forms may remain narrower inside the page container.
@@ -64,3 +66,6 @@ The rating controls also passed at 320px. Values `6 / 10`, `10 / 10`, and
 Public title search and shelf status filtering/selection were exercised without
 database writes. Authenticated save/import/restore operations were not exercised
 in this visual pass. The temporary preview route is not part of the deployment.
+The real Import Center was also checked locally: its mobile search overlay filled
+the 390x844 viewport and Add New filled the 1440x900 viewport. No console errors
+were reported in these checks.

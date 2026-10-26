@@ -58,7 +58,7 @@ export default function AppHeader({
   if (isPublicRoute) {
     return (
       <header className="vault-container safe-top sticky top-0 z-40 pt-3">
-        <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/95 px-3 py-3 shadow-lg shadow-slate-950/20 backdrop-blur-xl sm:px-5">
+        <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/95 px-3 py-3 shadow-lg shadow-slate-950/20 sm:px-5">
           <Link
             href="/"
             className="inline-flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight text-white transition hover:text-blue-300 sm:gap-3 sm:text-2xl"
@@ -86,7 +86,7 @@ export default function AppHeader({
   return (
     <>
       <header className="vault-container safe-top sticky top-0 z-40 pt-3">
-        <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-800 bg-slate-950/95 px-3 py-3 shadow-lg shadow-slate-950/20 backdrop-blur-xl sm:px-5 md:py-4">
+        <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-800 bg-slate-950/95 px-3 py-3 shadow-lg shadow-slate-950/20 sm:px-5 md:py-4">
           <div className="relative z-20 flex min-w-0 items-center gap-2 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-4">
             <Link
               href="/"
