@@ -16,6 +16,7 @@ import {
 } from '../lib/media'
 import { useLocale } from './LocaleProvider'
 import AppSelect from './ui/AppSelect'
+import ActionFeedback from './ui/ActionFeedback'
 
 type MediaItemFormProps = {
   coverFileName?: string
@@ -348,16 +349,16 @@ export default function MediaItemForm({
         </div>
       ) : null}
 
-      {errorMessage ? (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+      {isSubmitting ? <ActionFeedback tone="pending">{t('common.saving')}</ActionFeedback> : errorMessage ? (
+        <ActionFeedback tone="error">
           {errorMessage}
-        </p>
+        </ActionFeedback>
       ) : null}
 
       <div className="safe-bottom sticky bottom-0 -mx-5 flex justify-end gap-3 border-t border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0),rgba(15,23,42,0.92)_28%,rgba(15,23,42,0.98)_100%)] px-5 pt-4 pb-1 backdrop-blur sm:-mx-6 sm:px-6">
         <button
           type="submit"
-          className="min-h-14 w-full rounded-2xl bg-blue-500 px-5 py-3 text-base font-semibold text-white shadow-[0_18px_40px_rgba(59,130,246,0.32)] transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+          className="min-h-14 w-full rounded-xl bg-blue-500 px-5 py-3 text-base font-semibold text-white shadow-[0_18px_40px_rgba(59,130,246,0.32)] transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
           disabled={isSubmitting}
         >
           {isSubmitting ? t('common.saving') : submitLabel}

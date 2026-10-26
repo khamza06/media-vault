@@ -1,4 +1,4 @@
-import { mediaStatuses, type MediaItem } from './media'
+import { mediaStatuses, mediaTypes, type MediaItem } from './media'
 
 export type LibraryCoverFilter = 'all' | 'has-cover' | 'no-cover'
 export type LibraryRatingFilter = 'all' | 'rated' | 'unrated' | '9-plus' | '8-plus' | '7-plus'
@@ -13,6 +13,7 @@ export type LibrarySortMode =
 export type LibrarySourceFilter = 'all' | 'anilist' | 'manual' | 'myanimelist' | 'tmdb'
 
 export type LibraryFilters = {
+  type: string
   cover: LibraryCoverFilter
   query: string
   rating: LibraryRatingFilter
@@ -22,6 +23,7 @@ export type LibraryFilters = {
 }
 
 export const defaultLibraryFilters: LibraryFilters = {
+  type: 'all',
   cover: 'all',
   query: '',
   rating: 'all',
@@ -37,6 +39,11 @@ type SearchParamsReader = {
 export const libraryStatusOptions = [
   { label: 'All statuses', value: 'all' },
   ...mediaStatuses.map((status) => ({ label: status, value: status })),
+]
+
+export const libraryTypeOptions = [
+  { label: 'All types', value: 'all' },
+  ...mediaTypes.map((type) => ({ label: type, value: type })),
 ]
 
 export const libraryCoverOptions: Array<{ label: string; value: LibraryCoverFilter }> = [
@@ -74,6 +81,7 @@ export const librarySortOptions: Array<{ label: string; value: LibrarySortMode }
 
 export function getLibraryFiltersFromSearchParams(searchParams: SearchParamsReader): LibraryFilters {
   return {
+    type: libraryTypeOptions.find((option) => option.value === searchParams.get('type'))?.value ?? 'all',
     cover: getCoverFilter(searchParams.get('cover')),
     query: searchParams.get('q') ?? defaultLibraryFilters.query,
     rating: getRatingFilter(searchParams.get('rating')),
@@ -89,6 +97,7 @@ export function writeLibraryFiltersToSearchParams(
   options?: { includeSource?: boolean }
 ) {
   setCleanParam(params, 'q', filters.query.trim() || null)
+  setCleanParam(params, 'type', filters.type === 'all' ? null : filters.type)
   setCleanParam(params, 'status', filters.status === defaultLibraryFilters.status ? null : filters.status)
   setCleanParam(params, 'cover', filters.cover === defaultLibraryFilters.cover ? null : filters.cover)
   setCleanParam(params, 'rating', filters.rating === defaultLibraryFilters.rating ? null : filters.rating)
@@ -152,6 +161,7 @@ export function hasActiveLibraryFilters(filters: LibraryFilters, options?: { inc
   const includeSort = options?.includeSort ?? true
 
   return (
+    filters.type !== defaultLibraryFilters.type ||
     filters.cover !== defaultLibraryFilters.cover ||
     filters.query.trim().length > 0 ||
     filters.rating !== defaultLibraryFilters.rating ||
@@ -182,6 +192,10 @@ export function filterAndSortMediaItems(
         (item.notes ?? '').toLocaleLowerCase('en-US').includes(normalizedQuery)
 
       if (!matchesQuery) {
+        return false
+      }
+
+      if (filters.type !== 'all' && item.type !== filters.type) {
         return false
       }
 

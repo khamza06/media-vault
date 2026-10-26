@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import DeleteItemButton from '../../../components/DeleteItemButton'
+import CoverPlaceholder from '../../../components/CoverPlaceholder'
 import FavoriteToggleButton from '../../../components/FavoriteToggleButton'
 import ItemQuickEditPanel from '../../../components/ItemQuickEditPanel'
 import AddToListButton from '../../../components/lists/AddToListButton'
@@ -87,9 +88,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
                 className="object-cover"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-slate-500">
-                No Cover
-              </div>
+              <CoverPlaceholder title={item.title} type={item.type} />
             )}
           </div>
 

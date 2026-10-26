@@ -8,6 +8,7 @@ import { getGenreBadgeClass } from '../lib/genres'
 import type { MediaItem } from '../lib/media'
 import { formatExternalRatingValue, formatProgressValue } from '../lib/media'
 import AddToListButton, { type AddToListOption } from './lists/AddToListButton'
+import CoverPlaceholder from './CoverPlaceholder'
 
 type ShelfItemCardProps = {
   accentHandler?: (imageUrl: string | null) => void
@@ -90,10 +91,7 @@ export default function ShelfItemCard({
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center p-4 text-center text-slate-500">
-              <span className="mb-2 text-xl">No Cover</span>
-              <span className="text-xs">Add an image URL</span>
-            </div>
+            <CoverPlaceholder title={item.title} type={item.type} />
           )}
 
           <div className="absolute bottom-2 left-2 z-20 flex gap-2">

@@ -2,6 +2,7 @@ import Image from 'next/image'
 import { Star } from 'lucide-react'
 
 import EmptyVaultState from './EmptyVaultState'
+import CoverPlaceholder from './CoverPlaceholder'
 import { getGenreBadgeClass, translateGenre } from '../lib/genres'
 import { formatExternalRatingValue, formatProgressValue, type MediaItem } from '../lib/media'
 import { mediaCardGridClassName } from '../lib/media-card-grid'
@@ -33,9 +34,7 @@ export default function PublicLibraryGrid({
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
-                No Cover
-              </div>
+              <CoverPlaceholder title={item.title} type={item.type} />
             )}
 
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-transparent p-3">

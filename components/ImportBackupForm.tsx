@@ -9,6 +9,7 @@ import { restoreBackupItemsAction } from '../app/actions/backup'
 import { isBackupPayload, type VaultExportItem } from '../lib/backup'
 import { mediaStatuses, mediaTypes } from '../lib/media'
 import { useToast } from './ToastProvider'
+import ActionFeedback from './ui/ActionFeedback'
 
 type PreviewCandidate = {
   item: VaultExportItem
@@ -124,24 +125,29 @@ export default function ImportBackupForm() {
     setMessageTone(null)
     setRestoreResult(null)
 
-    const result = await restoreBackupItemsAction(selectedItems)
+    try {
+      const result = await restoreBackupItemsAction(selectedItems)
+      setRestoreResult(result)
 
-    setIsRestoring(false)
-    setRestoreResult(result)
+      if (!result.success) {
+        const error = result.error ?? 'Restore failed. Please try again.'
+        setMessage(error)
+        setMessageTone('error')
+        showToast(error, 'error')
+        return
+      }
 
-    if (!result.success) {
-      const error = result.error ?? 'Restore failed. Please try again.'
-      setMessage(error)
+      const summary = `Restored ${result.restored} items. Skipped ${result.skipped} duplicates. Failed ${result.failed}.`
+      setMessage(summary)
+      setMessageTone('success')
+      showToast(summary)
+      router.refresh()
+    } catch {
+      setMessage('Could not finish restoring. Check your connection and try again. Matching items will be skipped safely.')
       setMessageTone('error')
-      showToast(error, 'error')
-      return
+    } finally {
+      setIsRestoring(false)
     }
-
-    const summary = `Restored ${result.restored} items. Skipped ${result.skipped} duplicates. Failed ${result.failed}.`
-    setMessage(summary)
-    setMessageTone('success')
-    showToast(summary)
-    router.refresh()
   }
 
   return (
@@ -180,17 +186,9 @@ export default function ImportBackupForm() {
           </p>
         )}
 
-        {message ? (
-          <p
-            className={`rounded-xl px-4 py-3 text-sm ${
-              messageTone === 'success'
-                ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
-                : 'border border-red-500/30 bg-red-500/10 text-red-200'
-            }`}
-          >
-            {message}
-          </p>
-        ) : null}
+        {isRestoring || isParsing ? (
+          <ActionFeedback tone="pending">{isRestoring ? 'Restoring selected items...' : 'Reading backup...'}</ActionFeedback>
+        ) : message ? <ActionFeedback tone={messageTone ?? 'success'}>{message}</ActionFeedback> : null}
 
         {previewItems.length > 0 ? (
           <div className="min-w-0 space-y-4 rounded-xl border border-slate-800 bg-slate-950 p-4">

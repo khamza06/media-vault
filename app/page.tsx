@@ -39,16 +39,15 @@ export default async function HomePage() {
 
   return (
     <main className="vault-page">
-      <header className="mb-8 flex max-w-3xl min-w-0 flex-col gap-3">
+      <header className="mb-6 flex max-w-3xl min-w-0 flex-col gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
-          Focus Shelves
+          Your collection
         </p>
         <h1 className="vault-title">
-          Your Library, reorganized.
+          Library
         </h1>
         <p className="text-sm leading-6 text-slate-300 sm:text-lg sm:leading-7">
-          Jump between media families, keep active titles close, and browse your completed universe
-          without scrolling through one endless grid.
+          Track your titles, pick up where you left off, and find your next favorite.
         </p>
       </header>
 

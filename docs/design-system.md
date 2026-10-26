@@ -69,3 +69,30 @@ in this visual pass. The temporary preview route is not part of the deployment.
 The real Import Center was also checked locally: its mobile search overlay filled
 the 390x844 viewport and Add New filled the 1440x900 viewport. No console errors
 were reported in these checks.
+
+## Library Browsing
+
+The Library opens with three compact metrics for the current filtered view.
+Detailed completion counts live in a collapsed section below the shelves.
+Search, type, and status stay visible; cover, source, rating, and sorting live in
+an accessible Advanced filters disclosure. Active chips clear one filter at a
+time. Defaults are removed from the URL, and unrelated query parameters survive.
+
+Missing artwork uses `CoverPlaceholder`: title initials, a media-type icon, and
+a restrained navy/blue background. It does not create an image URL or change
+missing-cover filters. Public cards use the same placeholder without controls.
+
+`ActionFeedback` provides pending, success, and error messages with accessible
+status/alert roles. Quick edits, full editing, imports, and backup restore reuse
+it. Quick edits and restore always release their pending state after transport
+errors; cover-upload failures also release the full edit form. No new write
+fields or schema changes are involved.
+
+The follow-up local browser pass checked 320/390/768/1280/1440px with no document
+overflow. Type/status/search combinations, individual filter removal, bulk
+selection/cancel, and Markdown edit/preview were exercised. Synthetic JSON,
+CSV (including escaped quotes and multiline notes), and MAL files all produced
+previews without importing. Public fixture grids had no mutation controls and
+the browser reported no console errors. Successful authenticated saves, imports,
+and restores still require a separate account-level test; this pass deliberately
+did not modify the live vault. All temporary fixtures were removed before build.

@@ -1,5 +1,7 @@
 'use client'
 
+import CoverPlaceholder from './CoverPlaceholder'
+
 import {
   BookOpenText,
   Clapperboard,
@@ -530,7 +532,7 @@ function DiscoveryGridCard({ item }: { item: MediaItem }) {
             className="object-cover"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-slate-500">No Cover</div>
+          <CoverPlaceholder title={item.title} type={item.type} />
         )}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-3">
           <div className="flex items-center justify-between gap-2">
@@ -578,7 +580,7 @@ function DiscoveryListCard({ item }: { item: MediaItem }) {
         {item.imageUrl ? (
           <Image src={item.imageUrl} alt={item.title} fill sizes="80px" className="object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-[11px] text-slate-500">No Cover</div>
+          <CoverPlaceholder title={item.title} type={item.type} compact />
         )}
       </div>
 

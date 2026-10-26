@@ -1,5 +1,7 @@
 'use client'
 
+import CoverPlaceholder from './CoverPlaceholder'
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -209,7 +211,7 @@ export default function DiscoverRecommendationCard({
               className="object-cover transition duration-300 group-hover:scale-[1.03]"
             />
           ) : (
-            <span className="flex h-full items-center justify-center text-slate-500">No Cover</span>
+            <CoverPlaceholder title={recommendation.title} type={recommendation.type} />
           )}
           <span className="absolute left-3 top-3 rounded-xl border border-violet-300/30 bg-violet-500/20 px-2.5 py-1 text-[11px] font-semibold text-violet-100">
             Preview
@@ -265,9 +267,7 @@ export default function DiscoverRecommendationCard({
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                      No cover
-                    </div>
+                    <CoverPlaceholder title={recommendation.title} type={recommendation.type} />
                   )}
                 </div>
               </div>

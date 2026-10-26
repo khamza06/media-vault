@@ -1,5 +1,7 @@
 'use client'
 
+import CoverPlaceholder from '../CoverPlaceholder'
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -345,10 +347,7 @@ function ListItemCard({
               className="object-cover transition duration-300 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full flex-col items-center justify-center p-4 text-center text-slate-500">
-              <span>No Cover</span>
-              <span className="mt-2 text-xs">Add an image URL</span>
-            </div>
+            <CoverPlaceholder title={item.title} type={item.type} />
           )}
           <span className="absolute bottom-2 left-2 z-20 rounded-xl bg-slate-800/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
             {item.status}

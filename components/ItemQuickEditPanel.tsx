@@ -3,7 +3,7 @@
 import { Minus, Plus, Save, Star } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { quickUpdateItemAction } from '../app/actions/items'
 import {
@@ -17,6 +17,7 @@ import {
 } from '../lib/media'
 import { useToast } from './ToastProvider'
 import AppSelect from './ui/AppSelect'
+import ActionFeedback from './ui/ActionFeedback'
 
 type ItemQuickEditPanelProps = {
   item: MediaItem
@@ -55,6 +56,9 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   const [showPreview, setShowPreview] = useState(Boolean(item.notes))
   const [savingField, setSavingField] = useState<SavingField | null>(null)
   const [inlineError, setInlineError] = useState<string | null>(null)
+  const [savedMessage, setSavedMessage] = useState<string | null>(null)
+  const [feedbackField, setFeedbackField] = useState<SavingField | null>(null)
+  const savingRef = useRef(false)
 
   const allowedStatuses = getAllowedStatuses(item.type)
   const totalProgress = item.totalProgress
@@ -67,26 +71,34 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
     input: Parameters<typeof quickUpdateItemAction>[1],
     successMessage: string
   ) {
+    if (savingRef.current) return false
+    savingRef.current = true
     setSavingField(field)
+    setFeedbackField(field)
     setInlineError(null)
+    setSavedMessage(null)
 
-    const result = await quickUpdateItemAction(item.id, input)
+    try {
+      const result = await quickUpdateItemAction(item.id, input)
+      if (!result.success) {
+        setInlineError(result.error ?? 'Could not save this change.')
+        return false
+      }
 
-    setSavingField(null)
-
-    if (!result.success) {
-      const nextError = result.error ?? 'Could not save this change.'
-      setInlineError(nextError)
-      showToast(nextError, 'error')
+      setSavedMessage(successMessage)
+      router.refresh()
+      return true
+    } catch {
+      setInlineError('Could not save this change. Check your connection and try again. Your draft is still here.')
       return false
+    } finally {
+      savingRef.current = false
+      setSavingField(null)
     }
-
-    showToast(successMessage)
-    router.refresh()
-    return true
   }
 
   async function handleStatusChange(nextStatus: string) {
+    if (savingRef.current) return
     const previousStatus = status
     setStatus(nextStatus)
 
@@ -98,6 +110,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   }
 
   async function handleRatingChange(value: string) {
+    if (savingRef.current) return
     const previousRating = rating
     const nextRating = value ? Number(value) : null
 
@@ -115,6 +128,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   }
 
   async function saveProgress(nextProgress: number) {
+    if (savingRef.current) return
     const previousProgress = progress
     const previousDraft = progressDraft
     const clampedProgress = clampProgress(nextProgress, totalProgress)
@@ -142,6 +156,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
 
     if (!Number.isInteger(parsedProgress) || parsedProgress < 0) {
       const message = 'Progress must be a whole number of 0 or more.'
+      setFeedbackField('progress')
       setInlineError(message)
       showToast(message, 'error')
       return
@@ -159,8 +174,17 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
     }
   }
 
+  const feedback = savingField ? (
+    <ActionFeedback tone="pending">Saving {savingField}...</ActionFeedback>
+  ) : inlineError ? (
+    <ActionFeedback tone="error">{inlineError}</ActionFeedback>
+  ) : savedMessage ? (
+    <ActionFeedback tone="success">{savedMessage}</ActionFeedback>
+  ) : null
+
   return (
     <section className="space-y-4">
+      {feedbackField !== 'notes' ? feedback : null}
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <div className="flex min-w-0 flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-4">
           <div className="flex items-start justify-between gap-4">
@@ -180,7 +204,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             ariaLabel="Status"
             value={status}
             onValueChange={(value) => void handleStatusChange(value)}
-            disabled={savingField === 'status'}
+            disabled={savingField !== null}
             options={allowedStatuses.map((option) => ({ label: option, value: option }))}
             size="compact"
             className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
@@ -198,7 +222,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
                 ariaLabel="My rating"
                 value={rating == null ? '' : String(rating)}
                 onValueChange={(value) => void handleRatingChange(value)}
-                disabled={savingField === 'rating'}
+                disabled={savingField !== null}
                 options={ratingOptions}
                 size="compact"
                 className="mt-3 h-14 min-h-14 w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
@@ -245,7 +269,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             <button
               type="button"
               onClick={() => void saveProgress(progress - 1)}
-              disabled={savingField === 'progress' || progress <= 0}
+              disabled={savingField !== null || progress <= 0}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Minus className="h-4 w-4" />
@@ -258,14 +282,18 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
                 min={0}
                 max={totalProgress ?? undefined}
                 value={progressDraft}
-                onChange={(event) => setProgressDraft(event.target.value)}
+                onChange={(event) => {
+                  setProgressDraft(event.target.value)
+                  setSavedMessage(null)
+                }}
+                disabled={savingField !== null}
                 className={progressInputClassName}
               />
             </label>
             <button
               type="button"
               onClick={() => void saveProgress(progress + 1)}
-              disabled={savingField === 'progress' || progressAtLimit}
+              disabled={savingField !== null || progressAtLimit}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/40 bg-blue-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
@@ -282,11 +310,11 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             <button
               type="button"
               onClick={() => void handleProgressDraftSave()}
-              disabled={savingField === 'progress'}
+              disabled={savingField !== null}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
-              Save progress
+              {savingField === 'progress' ? 'Saving...' : 'Save progress'}
             </button>
           </div>
         </div>
@@ -322,7 +350,10 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
         ) : (
           <textarea
             value={notes}
-            onChange={(event) => setNotes(event.target.value)}
+            onChange={(event) => {
+              setNotes(event.target.value)
+              setSavedMessage(null)
+            }}
             className="mt-4 min-h-40 w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm leading-6 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
             placeholder="Write notes, theories, favorite arcs, or watch reminders..."
           />
@@ -335,7 +366,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           <button
             type="button"
             onClick={() => void handleNotesSave()}
-            disabled={savingField === 'notes' || notes === savedNotes}
+            disabled={savingField !== null || notes === savedNotes}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
@@ -343,11 +374,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           </button>
         </div>
 
-        {inlineError ? (
-          <p className="mt-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-            {inlineError}
-          </p>
-        ) : null}
+        {feedbackField === 'notes' ? <div className="mt-4">{feedback}</div> : null}
       </div>
     </section>
   )

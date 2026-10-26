@@ -71,24 +71,23 @@ export default function EditItemPageForm({
     setIsSubmitting(true)
     setErrorMessage('')
 
-    let imageUrl = form.imageUrl
+    try {
+      let imageUrl = form.imageUrl
 
-    if (coverFile) {
-      const uploadFormData = new FormData()
-      uploadFormData.set('cover', coverFile)
-      const uploadResult = await uploadCoverAction(uploadFormData)
+      if (coverFile) {
+        const uploadFormData = new FormData()
+        uploadFormData.set('cover', coverFile)
+        const uploadResult = await uploadCoverAction(uploadFormData)
 
-      if (!uploadResult.success || !uploadResult.url) {
-        setIsSubmitting(false)
-        setErrorMessage(uploadResult.error ?? t('error.uploadCover'))
-        showToast(uploadResult.error ?? t('error.uploadCover'), 'error')
-        return
+        if (!uploadResult.success || !uploadResult.url) {
+          setErrorMessage(uploadResult.error ?? t('error.uploadCover'))
+          showToast(uploadResult.error ?? t('error.uploadCover'), 'error')
+          return
+        }
+
+        imageUrl = uploadResult.url
       }
 
-      imageUrl = uploadResult.url
-    }
-
-    try {
       const result = await updateItemAction(
         item.id,
         {
@@ -116,7 +115,7 @@ export default function EditItemPageForm({
   }
 
   return (
-    <section className="glass-panel rounded-[32px] shadow-[0_30px_80px_rgba(15,23,42,0.45)]">
+    <section className="glass-panel rounded-xl shadow-[0_30px_80px_rgba(15,23,42,0.45)]">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-6 py-5 sm:px-7">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t('edit.title')}</p>
@@ -124,7 +123,7 @@ export default function EditItemPageForm({
         </div>
         <Link
           href={returnTo}
-          className="glass-panel-soft rounded-full px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
+          className="glass-panel-soft rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
         >
           {t('common.cancel')}
         </Link>

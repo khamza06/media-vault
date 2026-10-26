@@ -1,5 +1,7 @@
 'use client'
 
+import ActionFeedback from '../ui/ActionFeedback'
+
 import {
   deleteMyAnimeListImports,
   enrichMissingAnimeMangaCovers,
@@ -592,15 +594,15 @@ export default function MalXmlImporter({
       </div>
 
       {errorMessage ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-100">
+        <ActionFeedback tone="error">
           {errorMessage}
-        </div>
+        </ActionFeedback>
       ) : null}
 
       {isParsing ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-300">
+        <ActionFeedback tone="pending">
           Parsing XML preview...
-        </div>
+        </ActionFeedback>
       ) : null}
 
       {!fileName && !isParsing ? (
@@ -721,14 +723,9 @@ export default function MalXmlImporter({
             </div>
           </div>
 
+          {isImporting ? <ActionFeedback tone="pending">Importing selected items...</ActionFeedback> : null}
           {importResult ? (
-            <div
-              className={`rounded-xl border p-4 text-sm ${
-                importResult.error
-                  ? 'border-red-500/30 bg-red-500/10 text-red-100'
-                  : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
-              }`}
-            >
+            <ActionFeedback tone={importResult.error ? 'error' : 'success'}>
               <p className="font-semibold">{formatImportResult(importResult)}</p>
               {!importResult.error && importResult.imported > 0 ? (
                 <Link
@@ -738,7 +735,7 @@ export default function MalXmlImporter({
                   Go to Library
                 </Link>
               ) : null}
-            </div>
+            </ActionFeedback>
           ) : null}
 
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">

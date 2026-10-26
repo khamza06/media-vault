@@ -379,52 +379,8 @@ export default function HomeShelvesView({
     router.refresh()
   }
 
-  return (
-    <div className="min-w-0 space-y-10">
-      <section className="min-w-0 space-y-5">
-        <div className="max-w-3xl min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
-            Completion KPIs
-          </p>
-          <h2 className="vault-section-title mt-2">Completion Progress</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-300">
-            Track how much of each media family you have completed.
-          </p>
-        </div>
-
-        <div className="grid min-w-0 gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-4">
-          <InsightCard label="Total Items" value={String(totalCount)} />
-          <InsightCard label="In Progress" value={String(inProgressCount)} />
-          <InsightCard label="Completed" value={String(completedCount)} />
-        </div>
-
-        <div className="grid min-w-0 gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-4 xl:grid-cols-5">
-          {completedUniverse.map((group) => (
-            <article key={group.label} className="glass-panel surface-highlight min-w-0 rounded-xl px-4 py-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{group.label}</p>
-              <div className="mt-3 space-y-2">
-                <p className="vault-metric text-2xl font-bold text-white">
-                  {group.completionRate === null ? '0 items' : `${group.completionRate}%`}
-                </p>
-                <p className="text-sm text-slate-400">
-                  {group.total > 0
-                    ? `${group.completed} completed / ${group.total} total`
-                    : 'Nothing in this family yet'}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        <LibraryFilterControls
-          filters={filters}
-          onChange={updateFilterUrl}
-          showSourceFilter={showSourceFilter}
-          totalCount={totalCount}
-          visibleCount={visibleCount}
-        />
-
-        <BulkSelectionToolbar
+  const selectionToolbar = (
+    <BulkSelectionToolbar
           isDeleting={isBulkDeleting}
           isSelectionMode={selectionMode}
           onCancelSelection={cancelSelectionMode}
@@ -440,7 +396,28 @@ export default function HomeShelvesView({
           }}
           selectedCount={selectedIds.size}
           visibleCount={visibleShelfItems.length}
+    />
+  )
+
+  return (
+    <div className="min-w-0 space-y-8">
+      <section className="min-w-0 space-y-4">
+        <div className="grid min-w-0 grid-cols-3 gap-2 sm:gap-4">
+          <InsightCard label={hasActiveLibraryFilters(filters, { includeSort: false }) ? 'Matching items' : 'Total items'} value={String(visibleCount)} />
+          <InsightCard label="In progress" value={String(inProgressCount)} />
+          <InsightCard label="Completed" value={String(completedCount)} />
+        </div>
+
+        <LibraryFilterControls
+          actions={!selectionMode ? selectionToolbar : null}
+          filters={filters}
+          onChange={updateFilterUrl}
+          showSourceFilter={showSourceFilter}
+          totalCount={totalCount}
+          visibleCount={visibleCount}
         />
+
+        {selectionMode ? selectionToolbar : null}
       </section>
 
       {totalCount === 0 ? (
@@ -512,7 +489,9 @@ export default function HomeShelvesView({
                     ))
                   ) : (
                     <article className="glass-panel-soft flex min-h-[220px] min-w-[260px] items-center justify-center rounded-xl border border-dashed border-white/10 px-6 text-center text-sm text-slate-400">
-                      Nothing here yet. Add the first title to start this shelf.
+                      {hasActiveLibraryFilters(filters, { includeSort: false })
+                        ? 'No items on this shelf match your filters.'
+                        : 'Nothing here yet. Add a title to start this shelf.'}
                     </article>
                   )}
                 </div>
@@ -522,13 +501,33 @@ export default function HomeShelvesView({
         </>
       )}
 
+      <details className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <summary className="cursor-pointer rounded-xl text-sm font-semibold text-slate-100 focus-visible:outline-2 focus-visible:outline-blue-400">
+          Completion by media type
+        </summary>
+        <p className="mt-3 text-sm text-slate-400">Completed titles out of the items matching your current filters.</p>
+        <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+          {completedUniverse.map((group) => (
+            <article key={group.label} className="min-w-0 rounded-xl border border-slate-800 bg-slate-950 p-4">
+              <h3 className="text-sm font-semibold text-slate-100">{group.label}</h3>
+              <p className="vault-metric mt-3 text-2xl font-bold text-white">
+                {group.completionRate === null ? '0 items' : `${group.completionRate}%`}
+              </p>
+              <p className="mt-2 text-sm text-slate-400">
+                {group.total > 0 ? `${group.completed} completed / ${group.total} total` : 'No items yet'}
+              </p>
+            </article>
+          ))}
+        </div>
+      </details>
+
       <section className="min-w-0 space-y-4">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/15 text-violet-200">
             <Sparkles className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-bold tracking-tight text-white sm:text-2xl">AI Discover</h2>
+            <h2 className="text-lg font-bold tracking-tight text-white sm:text-2xl">Recommended for you</h2>
             <p className="text-sm text-slate-400">
               Recommendations based on your highest-rated titles, excluding media already in your vault.
             </p>
@@ -604,8 +603,8 @@ function normalizeRecommendationTitle(value: string) {
 
 function InsightCard({ label, value }: { label: string; value: string }) {
   return (
-    <article className="glass-panel surface-highlight min-w-0 rounded-xl px-4 py-4 sm:px-5 sm:py-5">
-      <p className="text-xs text-slate-300 sm:text-sm">{label}</p>
+    <article className="glass-panel surface-highlight min-w-0 rounded-xl p-3 sm:p-5">
+      <p className="min-h-8 text-xs text-slate-300 sm:min-h-0 sm:text-sm">{label}</p>
       <p className="vault-metric mt-2 text-2xl font-bold text-white sm:mt-3 sm:text-3xl">{value}</p>
     </article>
   )
