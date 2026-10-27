@@ -11,11 +11,11 @@
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
-    "@sentry/nextjs": "^10.50.0",
+    "@sentry/nextjs": "10.75.2",
     "@supabase/supabase-js": "^2.100.0",
     "@tailwindcss/typography": "^0.5.19",
     "lucide-react": "^1.7.0",
-    "next": "16.2.1",
+    "next": "16.4.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
@@ -31,5 +31,13 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "4.1.12"
+  },
+  "overrides": {
+    "eslint-config-next": {
+      "eslint-plugin-react-hooks": "7.0.1"
+    },
+    "@tailwindcss/typography": {
+      "postcss-selector-parser": "6.1.5"
+    }
   }
 }
