@@ -1,23 +1,15 @@
-import { type EmailOtpType } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
+import { getEmailOtpType, getSafeAuthNextPath } from '../../../lib/auth/redirects'
 import { persistSession } from '../../../lib/auth/session'
 import { createSupabaseServerClient } from '../../../lib/supabase/server'
-
-function getSafeNextPath(nextPath: string | null) {
-  if (!nextPath || !nextPath.startsWith('/') || nextPath.startsWith('//')) {
-    return '/'
-  }
-
-  return nextPath
-}
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
   const tokenHash = url.searchParams.get('token_hash')
-  const type = url.searchParams.get('type') as EmailOtpType | null
-  const nextPath = getSafeNextPath(url.searchParams.get('next'))
+  const type = getEmailOtpType(url.searchParams.get('type'))
+  const nextPath = getSafeAuthNextPath(url.searchParams.get('next'))
   const supabase = createSupabaseServerClient()
 
   if (code) {

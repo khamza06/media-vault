@@ -50,13 +50,7 @@ http://localhost:3000/auth/reset-password
 http://localhost:3000/auth/confirm
 ```
 
-The app also keeps `/auth/confirm` for older token-hash email templates. If your
-Supabase email templates still use `/auth/confirm`, also allow:
-
-```text
-https://media-vault.app/auth/confirm
-http://localhost:3000/auth/confirm
-```
+Both `/auth/callback` and `/auth/confirm` accept token-hash confirmation links.
 
 ## Email Provider Settings
 
@@ -82,11 +76,11 @@ Check these templates:
 - Confirm signup
 - Recovery / Reset password
 
-For the current production callback flow, make sure the templates use Supabase's
-confirmation/recovery URL variables and that the redirect URLs above are allowed.
-
-If you prefer token-hash templates, these also work because the app keeps
-`/auth/confirm`:
+The app stores its server session in HttpOnly cookies, separately from the browser
+Supabase client. Use the following token-hash templates so the server can verify
+the link and set those cookies, including when opened on another device.
+This is dashboard configuration; sending an email successfully does not prove
+that the template or the eventual session is correct.
 
 Confirm signup:
 
@@ -99,6 +93,23 @@ Recovery:
 ```text
 {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/auth/reset-password
 ```
+
+Do not assume an implicit-flow URL with `#access_token=...` will establish the
+server cookie session at `/auth/callback`: URL fragments are not sent to Route
+Handlers. Code-based PKCE callbacks additionally need the matching verifier;
+the token-hash templates above do not depend on a verifier stored on the original
+device. Keep template tokens private and never copy a real link into logs.
+
+See the [Supabase server-side email flow](https://supabase.com/docs/guides/auth/server-side/nextjs)
+and [email templates](https://supabase.com/docs/guides/auth/auth-email-templates).
+
+## Automated vs Live Checks
+
+`npm test` checks action results, redirects, password preservation and recovery
+session initialization with synthetic data. It does not send email, validate a
+real password, or verify the deployed dashboard configuration. Complete the Auth
+section of [the QA checklist](final-qa-checklist.md) with a test account before
+claiming the live email flow has been verified.
 
 ## Email Delivery Notes
 

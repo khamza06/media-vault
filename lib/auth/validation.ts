@@ -14,7 +14,8 @@ export function validateEmailInput(emailInput: string) {
 }
 
 export function validatePasswordInput(passwordInput: string) {
-  const password = passwordInput.trim()
+  // Whitespace is part of the credential, not formatting to normalize.
+  const password = passwordInput
 
   if (password.length < 6) {
     return { data: null, error: 'Password must be at least 6 characters.' }

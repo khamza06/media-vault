@@ -264,7 +264,22 @@ export async function updatePasswordAction(passwordInput: string): Promise<AuthA
       }
     }
 
-    const supabase = createSupabaseServerClient(session.accessToken)
+    const supabase = createSupabaseServerClient()
+    const restored = await supabase.auth.setSession({
+      access_token: session.accessToken,
+      refresh_token: session.refreshToken,
+    })
+
+    if (restored.error || !restored.data.session) {
+      return {
+        error: 'Open the password reset link from your email, then try again.',
+        message: null,
+        success: false,
+      }
+    }
+
+    // updateUser requires an Auth session; a REST Authorization header is not enough.
+    await persistSession(restored.data.session)
     const result = await supabase.auth.updateUser({
       password: validatedPassword.data,
     })
@@ -296,9 +311,24 @@ export async function updatePasswordAction(passwordInput: string): Promise<AuthA
 }
 
 export async function logoutAction() {
-  const supabase = createSupabaseServerClient()
-  await supabase.auth.signOut()
-  await clearSession()
+  try {
+    const session = await getAuthSession()
+    if (session) {
+      const supabase = createSupabaseServerClient()
+      const restored = await supabase.auth.setSession({
+        access_token: session.accessToken,
+        refresh_token: session.refreshToken,
+      })
+      if (!restored.error) {
+        await supabase.auth.signOut({ scope: 'local' })
+      }
+    }
+  } catch {
+    // A network failure must not prevent clearing this device's session.
+  } finally {
+    // Signing out on this device must still work during a provider outage.
+    await clearSession()
+  }
   revalidatePath('/')
   return { error: null, message: 'Signed out.', success: true, status: 'signed-out' }
 }

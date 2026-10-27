@@ -50,14 +50,23 @@ export default function AuthForm({
     setMessageTone(null)
     setCanResendConfirmation(false)
 
-    const result =
-      mode === 'reset'
-        ? await requestPasswordResetAction(email)
-        : mode === 'login'
-          ? await loginAction({ email, password })
-          : await signupAction({ email, password })
-
-    setIsSubmitting(false)
+    let result: Awaited<ReturnType<typeof loginAction>>
+    try {
+      result =
+        mode === 'reset'
+          ? await requestPasswordResetAction(email)
+          : mode === 'login'
+            ? await loginAction({ email, password })
+            : await signupAction({ email, password })
+    } catch {
+      const nextMessage = 'Unable to reach Media Vault. Check your connection and try again.'
+      setMessage(nextMessage)
+      setMessageTone('error')
+      showToast(nextMessage, 'error')
+      return
+    } finally {
+      setIsSubmitting(false)
+    }
 
     if (!result.success) {
       const nextMessage = result.error ?? 'Something went wrong.'
@@ -94,9 +103,18 @@ export default function AuthForm({
     setMessage('')
     setMessageTone(null)
 
-    const result = await resendSignupConfirmationAction(email)
-
-    setIsResending(false)
+    let result: Awaited<ReturnType<typeof resendSignupConfirmationAction>>
+    try {
+      result = await resendSignupConfirmationAction(email)
+    } catch {
+      const nextMessage = 'Unable to send the email right now. Check your connection and try again.'
+      setMessage(nextMessage)
+      setMessageTone('error')
+      showToast(nextMessage, 'error')
+      return
+    } finally {
+      setIsResending(false)
+    }
 
     if (!result.success) {
       const nextMessage = result.error ?? 'Unable to resend confirmation email.'
@@ -136,11 +154,13 @@ export default function AuthForm({
         <ModeButton
           isActive={mode === 'login'}
           label="Sign in"
+          disabled={isSubmitting || isResending}
           onClick={() => switchMode('login')}
         />
         <ModeButton
           isActive={mode === 'signup'}
           label="Sign up"
+          disabled={isSubmitting || isResending}
           onClick={() => switchMode('signup')}
         />
       </div>
@@ -178,6 +198,7 @@ export default function AuthForm({
           <button
             type="button"
             onClick={() => switchMode('reset')}
+            disabled={isSubmitting || isResending}
             className="text-sm font-medium text-blue-300 transition hover:text-blue-200"
           >
             Forgot password?
@@ -186,6 +207,7 @@ export default function AuthForm({
 
         {message ? (
           <p
+            role={messageTone === 'error' ? 'alert' : 'status'}
             className={`rounded-xl px-4 py-3 text-sm ${
               messageTone === 'success'
                 ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
@@ -244,15 +266,18 @@ function ModeButton({
   isActive,
   label,
   onClick,
+  disabled,
 }: {
   isActive: boolean
   label: string
   onClick: () => void
+  disabled: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={`relative z-10 flex-1 touch-manipulation rounded-xl px-4 py-3 text-sm font-medium transition ${
         isActive
           ? 'bg-blue-500 text-white shadow-[0_10px_24px_rgba(59,130,246,0.28)]'

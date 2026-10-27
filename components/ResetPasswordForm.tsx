@@ -28,14 +28,20 @@ export default function ResetPasswordForm() {
         currentUrl.hash.includes('type=recovery') ||
         currentUrl.hash.includes('access_token=')
 
-      const sessionResult = await supabaseBrowserClient.auth.getSession()
-
-      if (!isMounted) {
-        return
+      try {
+        const sessionResult = await supabaseBrowserClient.auth.getSession()
+        if (isMounted) {
+          setIsReady(Boolean(hasRecoveryHint || sessionResult.data.session))
+        }
+      } catch {
+        if (isMounted) {
+          setIsReady(hasRecoveryHint)
+          setMessage('Unable to check the recovery link. Check your connection and reload.')
+          setMessageTone('error')
+        }
+      } finally {
+        if (isMounted) setIsCheckingLink(false)
       }
-
-      setIsReady(Boolean(hasRecoveryHint || sessionResult.data.session))
-      setIsCheckingLink(false)
     }
 
     const {
@@ -74,47 +80,54 @@ export default function ResetPasswordForm() {
 
     setIsSubmitting(true)
 
-    const serverResult = await updatePasswordAction(password)
-    if (serverResult.success) {
-      showToast(serverResult.message ?? 'Password updated.')
-      window.location.replace('/')
-      return
-    }
-
-    const browserResult = await supabaseBrowserClient.auth.updateUser({ password })
-
-    if (browserResult.error) {
-      const nextMessage =
-        serverResult.error === 'Open the password reset link from your email, then try again.'
-          ? browserResult.error.message
-          : serverResult.error ?? browserResult.error.message
-
-      setIsSubmitting(false)
-      setMessage(nextMessage)
-      setMessageTone('error')
-      showToast(nextMessage, 'error')
-      return
-    }
-
-    const userResult = await supabaseBrowserClient.auth.getUser()
-    if (userResult.data.user?.email) {
-      const loginResult = await loginAction({
-        email: userResult.data.user.email,
-        password,
-      })
-
-      if (loginResult.success) {
-        showToast('Password updated. You are signed in.')
+    try {
+      const serverResult = await updatePasswordAction(password)
+      if (serverResult.success) {
+        showToast(serverResult.message ?? 'Password updated.')
         window.location.replace('/')
         return
       }
-    }
 
-    setIsSubmitting(false)
-    setMessage('Password updated. Please sign in with your new password.')
-    setMessageTone('success')
-    showToast('Password updated. Please sign in with your new password.')
-    window.location.replace('/login?reset=1')
+      const browserResult = await supabaseBrowserClient.auth.updateUser({ password })
+
+      if (browserResult.error) {
+        const nextMessage =
+          serverResult.error === 'Open the password reset link from your email, then try again.'
+            ? browserResult.error.message
+            : serverResult.error ?? browserResult.error.message
+
+        setMessage(nextMessage)
+        setMessageTone('error')
+        showToast(nextMessage, 'error')
+        return
+      }
+
+      const userResult = await supabaseBrowserClient.auth.getUser()
+      if (userResult.data.user?.email) {
+        const loginResult = await loginAction({
+          email: userResult.data.user.email,
+          password,
+        })
+
+        if (loginResult.success) {
+          showToast('Password updated. You are signed in.')
+          window.location.replace('/')
+          return
+        }
+      }
+
+      setMessage('Password updated. Please sign in with your new password.')
+      setMessageTone('success')
+      showToast('Password updated. Please sign in with your new password.')
+      window.location.replace('/login?reset=1')
+    } catch {
+      const nextMessage = 'Unable to update your password right now. Check your connection and try again.'
+      setMessage(nextMessage)
+      setMessageTone('error')
+      showToast(nextMessage, 'error')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -172,6 +185,7 @@ export default function ResetPasswordForm() {
 
         {message ? (
           <p
+            role={messageTone === 'error' ? 'alert' : 'status'}
             className={`rounded-xl px-4 py-3 text-sm ${
               messageTone === 'success'
                 ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-100'

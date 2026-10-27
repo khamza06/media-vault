@@ -170,7 +170,10 @@ Production: https://media-vault.app
 
 ## CI
 
-GitHub Actions runs lint and production build checks on every push and pull
+Run `npm test` for isolated regression checks. See [Testing](docs/testing.md) for
+coverage and the separate manual auth/RLS checks. CI uses Node.js 24.
+
+GitHub Actions runs regression tests, lint and production build checks on every push and pull
 request to `main`.
 
 The workflow requires these GitHub repository secrets:
