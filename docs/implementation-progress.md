@@ -20,8 +20,9 @@ Live confirmation/recovery and two-account RLS checks remain unverified.
 
 ## Next Increments
 
-1. Expand catalog search and add a dedicated Discover route.
-2. Continue with the card-density, detail and collection improvements.
+1. Add a compact Continue shelf and account-scoped card-density/view preferences.
+2. Continue detail-page and collection improvements, saved views and backup v2.
+3. Keep the schema-heavy activity/calendar/seasons stages separate and reviewed.
 
 Later roadmap stages (density, detail-page polish, lists, saved views, backup v2,
 activity history, calendar and seasons/repeats) are not implemented by this entry.
@@ -59,3 +60,37 @@ with a read-only public introspection request. No real import/refresh writes or
 logged-in UI checks were performed; those remain manual test-account checks.
 Read-only live provider probes also returned HTTP 200 and matching IDs for
 AniList anime 20, TMDB movie 27205 and TMDB series 1396. Keys were not logged.
+
+## Stages 2-3: Catalog Discovery and Navigation Foundation
+
+- Added a private `/discover` page for external catalogs; retained `/share/me`
+  as Advanced Library Search. Updated header, mobile Discover tab and onboarding
+  links. Summary and all existing routes remain accessible.
+- Kept five quick header suggestions; added View all results and a 400 ms debounce.
+- Added explicit full-search paging (up to 20) for existing providers, with source
+  selection for AniList/Jikan/Kitsu/Shikimori. Sources are chosen, not aggregated.
+- Kept quick-import resolver defaults small. TMDB details load only on preview,
+  avoiding a detail request for every result on a 20-card page.
+- Added a keyboard-accessible, responsive native preview dialog, existing Add New
+  flow integration, owned-item recognition and the existing Add to list action
+  for recognized saved items. Catalog/recommendation descriptions no longer
+  become notes; the older URL-import resolver is unchanged in this increment.
+- URL query/type/source survive navigation. Source/query changes reset paging;
+  stale responses cannot replace newer results. Real provider errors are shown.
+- Added component tests for typing without blur, response races, back/source
+  paging and Strict Mode dialog lifecycle, plus optional live provider checks.
+
+Verification: 137 offline tests and four opt-in live catalog searches passed.
+Browser fixture checks at 1440/1280/768/390/320 px confirmed consistent columns,
+no horizontal overflow, 20-to-40 pagination, type/source/back changes, race
+handling, preview Escape/focus return and the existing add form opening.
+The temporary route was removed before final build. No real item/list writes,
+authenticated UI tests, confirmation emails or two-account RLS tests were run.
+
+Remaining from the broader search/navigation plan: provider cache tuning,
+cross-provider alias aggregation and a full EN/RU navigation/copy pass. A new
+desktop sidebar, MangaDex and schema-heavy features were not added here.
+
+See [catalog search](catalog-search.md) and [testing](testing.md) for repeatable
+commands and verification boundaries. No SQL migration or production data change
+was needed for these increments.

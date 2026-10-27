@@ -125,7 +125,7 @@ export default function SetupChecklist({
           <OnboardingLink href="/import" icon={<Import className="h-4 w-4" />}>
             Import a library
           </OnboardingLink>
-          <OnboardingLink href="/share/me" icon={<Compass className="h-4 w-4" />}>
+          <OnboardingLink href="/discover" icon={<Compass className="h-4 w-4" />}>
             Explore Discover
           </OnboardingLink>
           <OnboardingLink href="/lists" icon={<ListPlus className="h-4 w-4" />}>

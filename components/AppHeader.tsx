@@ -23,7 +23,7 @@ export default function AppHeader({
   const isPublicRoute = pathname.startsWith('/public/') || pathname.startsWith('/u/')
   const isAuthRoute =
     pathname === '/login' || pathname === '/register' || pathname === '/welcome'
-  const profileHref = userId ? '/share/me' : '/summary'
+  const profileHref = '/discover'
 
   useEffect(() => {
     if (!isMobileMenuOpen && !isUtilityMenuOpen) {
@@ -186,7 +186,7 @@ export default function AppHeader({
             <NavLink href="/summary" isActive={pathname === '/summary'}>
               Summary
             </NavLink>
-            <NavLink href={profileHref} isActive={pathname.startsWith('/share/')}>
+            <NavLink href={profileHref} isActive={pathname === '/discover'}>
               Discover
             </NavLink>
             <NavLink href="/lists" isActive={pathname === '/lists'}>
@@ -252,7 +252,7 @@ export default function AppHeader({
                 </MobileMenuLink>
                 <MobileMenuLink
                   href={profileHref}
-                  isActive={pathname.startsWith('/share/')}
+                  isActive={pathname === '/discover'}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
                   Discover

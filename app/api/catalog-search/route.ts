@@ -2,7 +2,9 @@ import { getCurrentUser } from '../../../lib/auth/dal'
 import {
   isCatalogSearchProviderError,
   searchCatalogByMediaType,
+  searchCatalogPage,
 } from '../../../lib/catalog-search'
+import type { CatalogSearchSource } from '../../../lib/catalog-types'
 import { getRequestLocale } from '../../../lib/i18n-server'
 import { resolveLocale } from '../../../lib/i18n'
 import { buildQuickImportSearchTerms } from '../../../lib/quick-import-parser'
@@ -35,17 +37,24 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let payload: { locale?: string; query?: string; type?: string }
+  let payload: Record<string, unknown>
 
   try {
-    payload = (await request.json()) as { query?: string; type?: string }
+    const body: unknown = await request.json()
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return Response.json({ error: 'Invalid request body.' }, { status: 400 })
+    }
+    payload = body as Record<string, unknown>
   } catch {
     return Response.json({ error: 'Invalid request body.' }, { status: 400 })
   }
 
-  const query = payload.query?.trim()
-  const locale = resolveLocale(payload.locale ?? (await getRequestLocale()))
-  const searchType = payload.type?.trim().toLowerCase()
+  const query = typeof payload.query === 'string' ? payload.query.trim() : ''
+  const locale = resolveLocale(typeof payload.locale === 'string' ? payload.locale : await getRequestLocale())
+  const searchType = typeof payload.type === 'string' ? payload.type.trim().toLowerCase() : ''
+  if (query.length > 200) {
+    return Response.json({ error: 'Search titles must be 200 characters or fewer.' }, { status: 400 })
+  }
 
   if (!query || query.length < 3) {
     return Response.json({
@@ -62,24 +71,38 @@ export async function POST(request: Request) {
     return Response.json({ error: getBlockedSearchMessage() }, { status: 400 })
   }
 
+  const fullSearch = payload.mode === 'full'
+  const source = payload.source ?? 'primary'
+  const page = payload.page ?? 1
+  if (fullSearch && (
+    typeof page !== 'number' || !Number.isInteger(page) || page < 1 || page > 500 ||
+    typeof source !== 'string' || !['primary', 'jikan', 'kitsu', 'shikimori'].includes(source) ||
+    (source !== 'primary' && searchType !== 'anime' && searchType !== 'manga')
+  )) {
+    return Response.json({ error: 'Invalid search source or page.' }, { status: 400 })
+  }
+
   const searchTerms = buildQuickImportSearchTerms(query)
 
-  if (searchTerms.length === 0) {
+  if (!fullSearch && searchTerms.length === 0) {
     return Response.json({ data: [] })
   }
 
   console.info('[catalog-search] request', {
     providers: getCatalogProviderPlan(searchType),
-    query,
+    queryLength: query.length,
     searchTermCount: searchTerms.length,
     type: searchType,
   })
 
   try {
+    if (fullSearch) {
+      return Response.json(await searchCatalogPage(query, searchType, locale, source as CatalogSearchSource, page as number))
+    }
     const candidates = await searchCatalogByMediaType(searchTerms, searchType, locale)
 
     console.info('[catalog-search] response', {
-      query,
+      queryLength: query.length,
       resultCount: candidates.length,
       type: searchType,
     })
@@ -90,7 +113,7 @@ export async function POST(request: Request) {
       console.warn('[catalog-search] provider error', {
         message: error.message,
         provider: error.provider,
-        query,
+        queryLength: query.length,
         status: error.status,
         type: searchType,
       })
@@ -100,7 +123,7 @@ export async function POST(request: Request) {
 
     console.error('[catalog-search] unexpected error', {
       message: error instanceof Error ? error.message : 'Unknown catalog search error.',
-      query,
+      queryLength: query.length,
       type: searchType,
     })
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { LoaderCircle, Search, Sparkles, Star, X } from 'lucide-react'
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
 import { dispatchOpenAddModal } from '../lib/add-modal-events'
@@ -97,7 +98,7 @@ export default function HeaderCatalogSearch() {
   useEffect(() => {
     const trimmedQuery = query.trim()
 
-    if (!searchType || trimmedQuery.length < 2) {
+    if (!searchType || trimmedQuery.length < 3) {
       searchRequestIdRef.current += 1
       setResults(null)
       setHasSearched(false)
@@ -157,7 +158,7 @@ export default function HeaderCatalogSearch() {
         setHasSearched(true)
         setIsLoading(false)
       }
-    }, 220)
+    }, 400)
 
     return () => {
       window.clearTimeout(timeoutId)
@@ -326,6 +327,13 @@ export default function HeaderCatalogSearch() {
             </div>
           </button>
         ))}
+        <Link
+          href={`/discover?${new URLSearchParams({ q: trimmedQuery, type: searchType }).toString()}`}
+          onClick={() => clearSearch({ blur: true, closeMobile: true })}
+          className="mt-2 flex min-h-11 items-center justify-center rounded-xl border border-blue-400/30 bg-blue-500/15 px-3 text-sm font-semibold text-blue-100 transition hover:bg-blue-500/25"
+        >
+          View all results
+        </Link>
       </div>
     )
   }

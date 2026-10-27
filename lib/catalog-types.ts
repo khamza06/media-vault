@@ -1,5 +1,14 @@
 export type CatalogProvider = 'AniList' | 'Jikan' | 'Kitsu' | 'OpenLibrary' | 'Shikimori' | 'TMDB'
 
+export type CatalogSearchSource = 'primary' | 'jikan' | 'kitsu' | 'shikimori'
+
+export type CatalogSearchPage = {
+  data: CatalogSearchCandidate[]
+  hasMore: boolean
+  page: number
+  provider: CatalogProvider
+}
+
 export type CatalogSearchCandidate = {
   description: string
   externalRatingLabel?: string | null

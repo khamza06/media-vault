@@ -1,6 +1,6 @@
 import 'server-only'
 
-import type { CatalogProvider, CatalogSearchCandidate } from './catalog-types'
+import type { CatalogProvider, CatalogSearchCandidate, CatalogSearchPage, CatalogSearchSource } from './catalog-types'
 import { normalizeGenreList } from './genres'
 import type { Locale } from './i18n'
 import type { QuickImportTypeHint } from './quick-import-parser'
@@ -15,6 +15,24 @@ const ANILIST_ANIME_FORMATS = new Set([
   'TV',
   'TV_SHORT',
 ])
+
+type CatalogSearchOptions = {
+  page?: number
+  pageSize?: number
+  includeDetails?: boolean
+  strict?: boolean
+  onPageInfo?: (hasMore: boolean) => void
+}
+
+function getPageSize(options: CatalogSearchOptions) {
+  return Math.max(1, Math.min(20, Math.floor(options.pageSize ?? 5)))
+}
+
+function rankSearchResults(candidates: CatalogSearchCandidate[], options: CatalogSearchOptions) {
+  if (!options.onPageInfo) return rankCandidates(candidates)
+  const unique = new Map(candidates.map((candidate) => [candidate.id, candidate]))
+  return [...unique.values()].sort((a, b) => b.score - a.score)
+}
 
 export class CatalogSearchProviderError extends Error {
   provider: CatalogProvider
@@ -256,7 +274,7 @@ function getShikimoriImageUrl(image?: {
 
 async function safeFetchJson<T>(input: string, init?: RequestInit) {
   try {
-    const response = await fetch(input, init)
+    const response = await fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(10000) })
 
     if (!response.ok) {
       return null as T | null
@@ -343,7 +361,7 @@ async function fetchProviderJson<T>(
   init?: RequestInit
 ) {
   try {
-    const response = await fetch(input, init)
+    const response = await fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(10000) })
     const rawBody = await response.text()
     let payload: unknown = null
 
@@ -370,16 +388,17 @@ async function fetchProviderJson<T>(
       throw new CatalogSearchProviderError(provider, message, response.status)
     }
 
+    if (!payload || typeof payload !== 'object') {
+      throw new CatalogSearchProviderError(provider, `${provider} returned an invalid response. Please try again.`, response.status)
+    }
+
     return payload as T
   } catch (error) {
     if (isCatalogSearchProviderError(error)) {
       throw error
     }
 
-    const message = error instanceof Error ? error.message : 'Network request failed.'
-
     console.warn('[catalog-search] provider request failed', {
-      message,
       provider,
       status: null,
     })
@@ -390,6 +409,13 @@ async function fetchProviderJson<T>(
       null
     )
   }
+}
+
+function fetchCatalogJson<T>(provider: CatalogProvider, input: string, init: RequestInit, options: CatalogSearchOptions) {
+  return options.strict ? fetchProviderJson<T>(provider, input, init).then((payload) => {
+    throwProviderGraphQLError(provider, payload)
+    return payload
+  }) : safeFetchJson<T>(input, init)
 }
 
 function throwProviderGraphQLError(provider: CatalogProvider, payload: unknown) {
@@ -415,7 +441,8 @@ function logProviderResult(provider: CatalogProvider, resultCount: number) {
 
 export async function searchShikimoriCandidates(
   searchTerms: string[],
-  typeHint: QuickImportTypeHint
+  typeHint: QuickImportTypeHint,
+  options: CatalogSearchOptions = {}
 ) {
   const endpoints =
     typeHint === 'ANIME'
@@ -427,7 +454,7 @@ export async function searchShikimoriCandidates(
   const results = await Promise.all(
     searchTerms.flatMap((searchTerm) =>
       endpoints.map(async (endpoint) => {
-        const payload = await safeFetchJson<
+        const payload = await fetchCatalogJson<
           Array<{
             chapters?: number | null
             episodes?: number | null
@@ -447,19 +474,23 @@ export async function searchShikimoriCandidates(
               score?: number | string | null
           }>
         >(
-          `https://shikimori.one/api/${endpoint}?search=${encodeURIComponent(searchTerm)}&limit=5&censored=true`,
+          'Shikimori',
+          `https://shikimori.one/api/${endpoint}?search=${encodeURIComponent(searchTerm)}&limit=${getPageSize(options)}&page=${options.page ?? 1}&censored=true`,
           {
             cache: 'no-store',
             headers: {
               Accept: 'application/json',
               'User-Agent': 'MediaVault/1.0',
             },
-          }
+          },
+          options
         )
 
         if (!payload) {
           return [] as CatalogSearchCandidate[]
         }
+
+        options.onPageInfo?.(payload.length >= getPageSize(options))
 
         return payload
           .map((item) => {
@@ -508,7 +539,7 @@ export async function searchShikimoriCandidates(
     )
   )
 
-  return rankCandidates(results.flat())
+  return rankSearchResults(results.flat(), options)
 }
 
 type TmdbGenre = { id: number; name: string }
@@ -587,7 +618,8 @@ export async function getTmdbCandidateById(id: number, mediaType: 'movie' | 'tv'
 
 export async function searchTmdbCandidatesByType(
   searchTerms: string[],
-  mediaType: 'movie' | 'tv'
+  mediaType: 'movie' | 'tv',
+  options: CatalogSearchOptions = {}
 ) {
   const apiKey = getTmdbApiKey()
 
@@ -599,6 +631,8 @@ export async function searchTmdbCandidatesByType(
   const results = await Promise.all(
     searchTerms.map(async (searchTerm) => {
       const payload = await fetchProviderJson<{
+        page?: number
+        total_pages?: number
         results?: Array<{
           adult?: boolean | null
           first_air_date?: string | null
@@ -611,11 +645,12 @@ export async function searchTmdbCandidatesByType(
           release_date?: string | null
           title?: string | null
           vote_average?: number | null
+          overview?: string | null
         }>
         status_message?: string
       }>(
         'TMDB',
-        `https://api.themoviedb.org/3/search/${mediaType}?api_key=${apiKey}&language=${getTmdbLanguage()}&include_adult=false&query=${encodeURIComponent(searchTerm)}`,
+        `https://api.themoviedb.org/3/search/${mediaType}?api_key=${apiKey}&language=${getTmdbLanguage()}&include_adult=false&page=${options.page ?? 1}&query=${encodeURIComponent(searchTerm)}`,
         {
           cache: 'no-store',
           headers: {
@@ -624,8 +659,10 @@ export async function searchTmdbCandidatesByType(
         }
       )
 
+      options.onPageInfo?.((payload.page ?? options.page ?? 1) < (payload.total_pages ?? 1))
+
       const candidates = await Promise.all(
-        (payload.results ?? []).slice(0, 5).map(async (item) => {
+        (payload.results ?? []).slice(0, getPageSize(options)).map(async (item) => {
           const title =
             item.title?.trim() ||
             item.name?.trim() ||
@@ -637,7 +674,7 @@ export async function searchTmdbCandidatesByType(
             return null
           }
 
-          const details = await getTmdbDetails(apiKey, item.id, mediaType)
+          const details = options.includeDetails === false ? null : await getTmdbDetails(apiKey, item.id, mediaType)
           const genres =
             details?.genres?.map((genre) => genre.name).filter(Boolean) ??
             (item.genre_ids ?? []).map((id) => genreMap.get(id) ?? '').filter(Boolean)
@@ -649,7 +686,7 @@ export async function searchTmdbCandidatesByType(
 
           return buildCandidate(
             {
-              description: '',
+              description: item.overview ?? '',
               externalRatingLabel: 'TMDB',
               externalRatingValue: normalizeExternalRating(
                 details?.vote_average ?? item.vote_average ?? null
@@ -683,19 +720,22 @@ export async function searchTmdbCandidatesByType(
     })
   )
 
-  return rankCandidates(results.flat())
+  return rankSearchResults(results.flat(), options)
 }
 
 export async function searchAniListCandidates(
   searchTerms: string[],
-  typeHint: QuickImportTypeHint
+  typeHint: QuickImportTypeHint,
+  options: CatalogSearchOptions = {}
 ) {
   const results = await Promise.all(
     searchTerms.map(async (searchTerm) => {
       const payload = await fetchProviderJson<{
         data?: {
           Page?: {
+            pageInfo?: { hasNextPage?: boolean }
             media?: Array<{
+              description?: string | null
               chapters?: number | null
               countryOfOrigin?: string | null
               coverImage?: {
@@ -731,9 +771,11 @@ export async function searchAniListCandidates(
         },
         body: JSON.stringify({
           query: `
-            query QuickImportCandidates($search: String!, $type: MediaType) {
-              Page(perPage: 5) {
+            query QuickImportCandidates($search: String!, $type: MediaType, $page: Int!, $perPage: Int!) {
+              Page(page: $page, perPage: $perPage) {
+                pageInfo { hasNextPage }
                 media(search: $search, type: $type, isAdult: false, sort: SEARCH_MATCH) {
+                  description(asHtml: false)
                   chapters
                   countryOfOrigin
                   coverImage {
@@ -763,11 +805,14 @@ export async function searchAniListCandidates(
           variables: {
             search: searchTerm,
             type: typeHint,
+            page: options.page ?? 1,
+            perPage: getPageSize(options),
           },
         }),
       })
 
       throwProviderGraphQLError('AniList', payload)
+      options.onPageInfo?.(payload.data?.Page?.pageInfo?.hasNextPage ?? false)
 
       const candidates = (payload.data?.Page?.media ?? [])
         .map((media) => {
@@ -785,7 +830,7 @@ export async function searchAniListCandidates(
 
           return buildCandidate(
             {
-              description: '',
+              description: media.description ?? '',
               externalRatingLabel: media.averageScore ? 'AniList' : null,
               externalRatingValue:
                 typeof media.averageScore === 'number'
@@ -813,13 +858,14 @@ export async function searchAniListCandidates(
     })
   )
 
-  return rankCandidates(results.flat())
+  return rankSearchResults(results.flat(), options)
 }
 
 export async function searchJikanCandidates(
   searchTerms: string[],
   typeHint: QuickImportTypeHint,
-  locale: 'en' | 'ru' = 'en'
+  locale: 'en' | 'ru' = 'en',
+  options: CatalogSearchOptions = {}
 ) {
   const endpoints =
     typeHint === 'ANIME'
@@ -831,7 +877,8 @@ export async function searchJikanCandidates(
   const results = await Promise.all(
     searchTerms.flatMap((searchTerm) =>
       endpoints.map(async (endpoint) => {
-        const payload = await safeFetchJson<{
+        const payload = await fetchCatalogJson<{
+          pagination?: { has_next_page?: boolean }
           data?: Array<{
             chapters?: number | null
             demographics?: Array<{ name?: string | null }>
@@ -849,6 +896,7 @@ export async function searchJikanCandidates(
             } | null
             mal_id: number
             score?: number | null
+            synopsis?: string | null
             themes?: Array<{ name?: string | null }>
             title?: string | null
             title_english?: string | null
@@ -858,18 +906,21 @@ export async function searchJikanCandidates(
             year?: number | null
           }>
         }>(
-          `https://api.jikan.moe/v4/${endpoint}?q=${encodeURIComponent(searchTerm)}&limit=5&sfw=true`,
+          'Jikan',
+          `https://api.jikan.moe/v4/${endpoint}?q=${encodeURIComponent(searchTerm)}&limit=${getPageSize(options)}&page=${options.page ?? 1}&sfw=true`,
           {
             cache: 'no-store',
             headers: {
               Accept: 'application/json',
             },
-          }
+          },
+          options
         )
 
         if (!payload) {
           return [] as CatalogSearchCandidate[]
         }
+        options.onPageInfo?.(payload.pagination?.has_next_page ?? false)
 
         return (payload.data ?? [])
           .map((item) => {
@@ -900,7 +951,7 @@ export async function searchJikanCandidates(
 
             return buildCandidate(
               {
-              description: '',
+              description: item.synopsis ?? '',
               externalRatingLabel: item.score ? 'MyAnimeList' : null,
               externalRatingValue: normalizeExternalRating(item.score),
               genres: sanitizeGenres(genres),
@@ -927,13 +978,14 @@ export async function searchJikanCandidates(
     )
   )
 
-  return rankCandidates(results.flat())
+  return rankSearchResults(results.flat(), options)
 }
 
 export async function searchKitsuCandidates(
   searchTerms: string[],
   typeHint: QuickImportTypeHint,
-  locale: 'en' | 'ru' = 'en'
+  locale: 'en' | 'ru' = 'en',
+  options: CatalogSearchOptions = {}
 ) {
   const endpoints =
     typeHint === 'ANIME'
@@ -945,7 +997,8 @@ export async function searchKitsuCandidates(
   const results = await Promise.all(
     searchTerms.flatMap((searchTerm) =>
       endpoints.map(async (endpoint) => {
-        const payload = await safeFetchJson<{
+        const payload = await fetchCatalogJson<{
+          links?: { next?: string | null }
           data?: Array<{
             attributes?: {
               averageRating?: string | null
@@ -960,23 +1013,28 @@ export async function searchKitsuCandidates(
               } | null
               startDate?: string | null
               subtype?: string | null
+              nsfw?: boolean
+              synopsis?: string | null
               titles?: Record<string, string | null> | null
             } | null
             id: string
           }>
         }>(
-          `https://kitsu.io/api/edge/${endpoint}?filter[text]=${encodeURIComponent(searchTerm)}&page[limit]=5`,
+          'Kitsu',
+          `https://kitsu.io/api/edge/${endpoint}?filter[text]=${encodeURIComponent(searchTerm)}&page[limit]=${getPageSize(options)}&page[offset]=${((options.page ?? 1) - 1) * getPageSize(options)}`,
           {
             cache: 'no-store',
             headers: {
               Accept: 'application/vnd.api+json',
             },
-          }
+          },
+          options
         )
 
         if (!payload) {
           return [] as CatalogSearchCandidate[]
         }
+        options.onPageInfo?.(Boolean(payload.links?.next))
 
         return (payload.data ?? [])
           .map((item) => {
@@ -1013,7 +1071,8 @@ export async function searchKitsuCandidates(
 
             return buildCandidate(
               {
-                description: '',
+                description: attributes?.synopsis ?? '',
+                isAdult: attributes?.nsfw ?? false,
                 genres: '',
                 id: `kitsu:${endpoint}:${item.id}`,
                 imageUrl:
@@ -1037,7 +1096,7 @@ export async function searchKitsuCandidates(
     )
   )
 
-  return rankCandidates(results.flat())
+  return rankSearchResults(results.flat(), options)
 }
 
 export async function searchUniversalCatalog(
@@ -1058,10 +1117,12 @@ export async function searchUniversalCatalog(
   return rankCandidates(ordered).slice(0, 8)
 }
 
-export async function searchOpenLibraryCandidates(searchTerms: string[]) {
+export async function searchOpenLibraryCandidates(searchTerms: string[], options: CatalogSearchOptions = {}) {
   const results = await Promise.all(
     searchTerms.map(async (searchTerm) => {
-      const payload = await safeFetchJson<{
+      const payload = await fetchCatalogJson<{
+        numFound?: number
+        start?: number
         docs?: Array<{
           cover_i?: number | null
           first_publish_year?: number | null
@@ -1069,18 +1130,21 @@ export async function searchOpenLibraryCandidates(searchTerms: string[]) {
           title?: string | null
         }>
       }>(
-        `https://openlibrary.org/search.json?title=${encodeURIComponent(searchTerm)}&limit=5`,
+        'OpenLibrary',
+        `https://openlibrary.org/search.json?title=${encodeURIComponent(searchTerm)}&limit=${getPageSize(options)}&page=${options.page ?? 1}`,
         {
           cache: 'no-store',
           headers: {
             Accept: 'application/json',
           },
-        }
+        },
+        options
       )
 
       if (!payload) {
         return [] as CatalogSearchCandidate[]
       }
+      options.onPageInfo?.((payload.start ?? ((options.page ?? 1) - 1) * getPageSize(options)) + (payload.docs?.length ?? 0) < (payload.numFound ?? 0))
 
       return (payload.docs ?? [])
         .map((item) => {
@@ -1115,7 +1179,38 @@ export async function searchOpenLibraryCandidates(searchTerms: string[]) {
     })
   )
 
-  return rankCandidates(results.flat())
+  return rankSearchResults(results.flat(), options)
+}
+
+export async function searchCatalogPage(query: string, type: CatalogSearchType, locale: Locale, source: CatalogSearchSource = 'primary', page = 1): Promise<CatalogSearchPage> {
+  let hasMore = false
+  const options: CatalogSearchOptions = { page, pageSize: 20, includeDetails: false, strict: true, onPageInfo: (next) => { hasMore = next } }
+  const terms = [query]
+  const hint = type === 'anime' ? 'ANIME' : 'MANGA'
+  let provider: CatalogProvider
+  let data: CatalogSearchCandidate[]
+  if ((type === 'anime' || type === 'manga') && source !== 'primary') {
+    if (source === 'jikan') {
+      provider = 'Jikan'
+      data = await searchJikanCandidates(terms, hint, locale, options)
+    } else if (source === 'kitsu') {
+      provider = 'Kitsu'
+      data = await searchKitsuCandidates(terms, hint, locale, options)
+    } else {
+      provider = 'Shikimori'
+      data = await searchShikimoriCandidates(terms, hint, options)
+    }
+  } else if (type === 'anime' || type === 'manga') {
+    provider = 'AniList'
+    data = await searchAniListCandidates(terms, hint, options)
+  } else if (type === 'movie' || type === 'series') {
+    provider = 'TMDB'
+    data = await searchTmdbCandidatesByType(terms, type === 'movie' ? 'movie' : 'tv', options)
+  } else {
+    provider = 'OpenLibrary'
+    data = await searchOpenLibraryCandidates(terms, options)
+  }
+  return { data: data.filter((candidate) => !candidate.isAdult), hasMore, page, provider }
 }
 
 function lockCandidateType(candidates: CatalogSearchCandidate[], selectedType: CatalogSearchType) {

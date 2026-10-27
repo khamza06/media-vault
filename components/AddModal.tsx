@@ -8,6 +8,7 @@ import { createItemAction } from '../app/actions/items'
 import { uploadCoverAction } from '../app/actions/storage'
 import { OPEN_ADD_MODAL_EVENT, type OpenAddModalDetail } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
+import { catalogCandidateToInput } from '../lib/catalog-view'
 import { formatExternalRatingValue, normalizeMediaItemInput, type MediaItemInput } from '../lib/media'
 import { buildQuickImportDraft } from '../lib/quick-import-draft'
 import { mapMediaTypeToCatalogSearchType } from '../lib/search-safety'
@@ -143,21 +144,7 @@ export default function AddModal({
   function applyCatalogCandidate(candidate: CatalogSearchCandidate) {
     titleSearchSkipRef.current = true
     titleSearchRequestIdRef.current += 1
-    setForm({
-      ...initialFormState,
-      externalRatingLabel: candidate.externalRatingLabel ?? '',
-      externalRatingValue:
-        typeof candidate.externalRatingValue === 'number'
-          ? String(candidate.externalRatingValue)
-          : '',
-      genres: candidate.genres,
-      imageUrl: candidate.imageUrl,
-      notes: candidate.description || '',
-      status: candidate.status,
-      title: candidate.title,
-      totalProgress: candidate.totalProgress,
-      type: candidate.type,
-    })
+    setForm((current) => catalogCandidateToInput(candidate, current.notes))
     setTitleSuggestions([])
     setTitleSearchError('')
     setIsTitleSearchLoading(false)
@@ -231,7 +218,7 @@ export default function AddModal({
     const query = form.title.trim()
     const searchType = mapMediaTypeToCatalogSearchType(form.type)
 
-    if (!searchType || query.length < 2) {
+    if (!searchType || query.length < 3) {
       titleSearchRequestIdRef.current += 1
       setTitleSuggestions([])
       setIsTitleSearchLoading(false)

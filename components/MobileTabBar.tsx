@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { BarChart3, House, Settings as SettingsIcon, Sparkles } from 'lucide-react'
+import { BarChart3, Compass, House, Settings as SettingsIcon, Sparkles } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
 import { dispatchOpenAddModal } from '../lib/add-modal-events'
@@ -27,7 +27,7 @@ export default function MobileTabBar({
     <nav className="safe-bottom fixed inset-x-0 bottom-4 z-[100] px-4 pb-2 md:hidden">
       <div className="mx-auto grid w-[min(22rem,calc(100vw-2rem))] grid-cols-5 items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-900/90 px-2 py-2.5 shadow-[0_16px_40px_rgba(2,6,23,0.4)] backdrop-blur-xl">
         <TabLink href="/" icon={<House className="h-5 w-5" />} isActive={pathname === '/'} label={t('nav.library')} />
-        <TabLink href="/summary" icon={<BarChart3 className="h-5 w-5" />} isActive={pathname === '/summary'} label={t('nav.summary')} />
+        <TabLink href="/discover" icon={<Compass className="h-5 w-5" />} isActive={pathname === '/discover'} label="Discover" />
 
         <button
           type="button"

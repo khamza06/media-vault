@@ -80,6 +80,7 @@ Sentry captures production errors.
 - Private media library with shelves for anime, manga, movies, series, and books
 - Advanced library filters, sorting, cover filters, source filters, and bulk delete
 - Discover/search flows for adding new titles
+- Paginated catalog discovery with provider selection and title previews at `/discover`
 - MyAnimeList XML import with preview, duplicate protection, and cover enrichment
 - AniList username import and Generic CSV import when enabled in the Import Center
 - Fill Missing Covers utility for imported anime/manga
@@ -172,6 +173,7 @@ Production: https://media-vault.app
 
 Run `npm test` for isolated regression checks. See [Testing](docs/testing.md) for
 coverage and the separate manual auth/RLS checks. CI uses Node.js 24.
+Optional read-only live API checks are available with `npm run test:providers`.
 
 GitHub Actions runs regression tests, lint and production build checks on every push and pull
 request to `main`.

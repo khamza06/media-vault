@@ -12,6 +12,7 @@ import { createItemAction } from '../app/actions/items'
 import { addItemToListsAction } from '../app/actions/lists'
 import { dispatchOpenAddModal } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
+import { catalogCandidateToInput } from '../lib/catalog-view'
 import type { DiscoverRecommendation } from '../lib/home-signals'
 import { formatExternalRatingValue, type MediaItem, type MediaItemInput } from '../lib/media'
 import AddToListButton, { type AddToListOption } from './lists/AddToListButton'
@@ -44,25 +45,7 @@ function toCatalogCandidate(recommendation: DiscoverRecommendation): CatalogSear
 }
 
 function toMediaInput(recommendation: DiscoverRecommendation): MediaItemInput {
-  return {
-    completedAt: '',
-    externalRatingLabel: recommendation.externalRatingLabel ?? '',
-    externalRatingValue:
-      typeof recommendation.externalRatingValue === 'number'
-        ? String(recommendation.externalRatingValue)
-        : '',
-    favorite: false,
-    genres: recommendation.genres.join(', '),
-    imageUrl: recommendation.imageUrl,
-    notes: recommendation.description,
-    progress: '',
-    rating: '',
-    startedAt: '',
-    status: recommendation.status,
-    title: recommendation.title,
-    totalProgress: recommendation.totalProgress,
-    type: recommendation.type,
-  }
+  return catalogCandidateToInput(toCatalogCandidate(recommendation))
 }
 
 function formatRating(recommendation: DiscoverRecommendation) {
