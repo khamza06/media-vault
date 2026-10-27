@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import { deleteItemsBulkAction, incrementProgressAction } from '../app/actions/items'
+import { isInProgressItem } from '../lib/continue-items'
 import type { DiscoverRecommendation } from '../lib/home-signals'
 import {
   defaultLibraryFilters,
@@ -19,6 +20,7 @@ import {
 import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
 import { shelfDefinitions } from '../lib/shelves'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
+import ContinueShelf from './ContinueShelf'
 import DiscoverRecommendationCard from './DiscoverRecommendationCard'
 import LibraryFilterControls from './LibraryFilterControls'
 import SetupChecklist, { type SetupChecklistState } from './onboarding/SetupChecklist'
@@ -136,9 +138,7 @@ export default function HomeShelvesView({
   const totalCount = liveItems.length
   const visibleCount = filteredItems.length
   const completedCount = filteredItems.filter(isCompletedItem).length
-  const inProgressCount = filteredItems.filter((item) =>
-    ['Watching', 'Reading', 'Re-Watching'].includes(item.status)
-  ).length
+  const inProgressCount = filteredItems.filter(isInProgressItem).length
 
   const completedUniverse = useMemo(() => {
     const groups = [
@@ -446,6 +446,16 @@ export default function HomeShelvesView({
           {totalCount < 3 ? (
             <SetupChecklist state={onboardingState} variant="compact" />
           ) : null}
+
+          <ContinueShelf
+            items={filteredItems}
+            listOptions={listOptions}
+            busyIds={busyIds}
+            isSelectionMode={selectionMode}
+            onIncrement={handleIncrement}
+            accentHandler={resolveAccent}
+            returnTo={currentReturnTo}
+          />
 
           {sortedShelves.map((shelf) => {
             const ShelfIcon = shelfIcons[shelf.key]

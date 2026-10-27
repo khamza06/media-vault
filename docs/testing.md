@@ -26,6 +26,10 @@ Discover component tests cover debounce with input focus retained, stale respons
 cancellation, source-switch/back pagination reset and Strict Mode dialog lifecycle.
 JSDOM tests do not replace responsive layout checks in a real browser.
 
+Continue shelf tests cover active statuses, last-progress ordering and safe date
+fallbacks, the six-card limit, current Library filters, notes immutability, card
+action/return URL reuse, progress/busy rerenders and hiding during bulk selection.
+
 ## Optional Provider Smoke Tests
 
 ```sh

@@ -20,7 +20,7 @@ Live confirmation/recovery and two-account RLS checks remain unverified.
 
 ## Next Increments
 
-1. Add a compact Continue shelf and account-scoped card-density/view preferences.
+1. Add account-scoped card-density/view preferences; the compact Continue shelf is complete.
 2. Continue detail-page and collection improvements, saved views and backup v2.
 3. Keep the schema-heavy activity/calendar/seasons stages separate and reviewed.
 
@@ -94,3 +94,24 @@ desktop sidebar, MangaDex and schema-heavy features were not added here.
 See [catalog search](catalog-search.md) and [testing](testing.md) for repeatable
 commands and verification boundaries. No SQL migration or production data change
 was needed for these increments.
+
+## Stage 4A: Continue Shelf
+
+- Added a compact Continue rail above the Library's media-family shelves, with
+  up to six Watching, Reading or Re-Watching items from the current filtered view.
+- Sorts by the saved progress-update date, falling back to activity/creation dates
+  when unavailable. Invalid dates are ignored; ties use item ID for stable order.
+  No consumption history or percentage is invented for unknown totals.
+- Reuses the existing owner card, progress action, busy state, list picker and
+  filter-preserving detail return URL. Items stay on their ordinary shelves too.
+- Hides the extra rail in bulk-selection mode and when no matching active items
+  exist. No new fetching, persistence, provider calls or schema changes.
+
+Verification: 146 isolated tests, lint and the production build passed, including nine new selection
+and component tests. These cover filtering, dates, unknown totals, exact notes
+preservation, existing action props, parent progress/busy updates and bulk-mode
+visibility. No authenticated browser session or live vault writes were used;
+visual validation with a signed-in account remains a manual check.
+
+Next checkpoint: account-scoped density/view preferences. Not implemented in this
+increment, to keep this stage bounded before the usage limit.
