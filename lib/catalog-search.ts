@@ -543,15 +543,46 @@ async function getTmdbDetails(
     release_date?: string | null
     first_air_date?: string | null
     vote_average?: number | null
+    adult?: boolean | null
+    title?: string | null
+    name?: string | null
+    overview?: string | null
   }>(
     `https://api.themoviedb.org/3/${mediaType}/${id}?api_key=${apiKey}&language=${getTmdbLanguage()}`,
     {
       cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
       headers: {
         Accept: 'application/json',
       },
     }
   )
+}
+
+export async function getTmdbCandidateById(id: number, mediaType: 'movie' | 'tv') {
+  if (!Number.isSafeInteger(id) || id < 1) return null
+  const apiKey = getTmdbApiKey()
+  if (!apiKey) return null
+  const details = await getTmdbDetails(apiKey, id, mediaType)
+  const title = details?.title?.trim() || details?.name?.trim()
+  if (!details || !title || details.adult) return null
+
+  return buildCandidate({
+    description: details.overview ?? '',
+    externalRatingLabel: 'TMDB',
+    externalRatingValue: normalizeExternalRating(details.vote_average),
+    genres: sanitizeGenres((details.genres ?? []).map((genre) => genre.name)),
+    id: `tmdb:${mediaType}:${id}`,
+    imageUrl: details.poster_path ? `https://image.tmdb.org/t/p/w780${details.poster_path}` : '',
+    isAdult: false,
+    provider: 'TMDB',
+    status: 'Planning',
+    subtitle: mediaType === 'tv' ? 'TV Series' : 'Movie',
+    title,
+    totalProgress: mediaType === 'movie' ? '1' : String(details.number_of_episodes ?? ''),
+    type: mediaType === 'tv' ? 'TV Series' : 'Movie',
+    year: (details.release_date ?? details.first_air_date)?.slice(0, 4) ?? null,
+  }, [title])
 }
 
 export async function searchTmdbCandidatesByType(

@@ -7,12 +7,14 @@ import {
   type AnimeMangaImportMetadata,
 } from '../../lib/anilist-import-enrichment'
 import {
+  getTmdbCandidateById,
   isCatalogSearchProviderError,
   searchTmdbCandidatesByType,
 } from '../../lib/catalog-search'
 import type { CatalogSearchCandidate } from '../../lib/catalog-types'
 import { getCurrentUser } from '../../lib/auth/dal'
 import { normalizeGenreList } from '../../lib/genres'
+import { parseProviderMediaId } from '../../lib/provider-ids'
 import { shelfDefinitions } from '../../lib/shelves'
 import { createSupabaseServerClient } from '../../lib/supabase/server'
 
@@ -196,7 +198,9 @@ async function fetchProviderMetadata(item: RefreshableItem): Promise<ProviderMet
   if (aniListType) {
     return fromAniListMetadata(
       await findAniListImportMetadata(title, aniListType, {
+        anilistId: item.external_source?.toLowerCase() === 'anilist' ? item.external_id : null,
         malId: getMyAnimeListId(item),
+        strictTitleMatch: true,
       })
     )
   }
@@ -208,10 +212,18 @@ async function fetchProviderMetadata(item: RefreshableItem): Promise<ProviderMet
   }
 
   try {
+    const tmdbId = item.external_source?.toLowerCase() === 'tmdb'
+      ? parseProviderMediaId(item.external_id, 'tmdb', tmdbType)
+      : null
+    if (tmdbId !== null) {
+      return fromTmdbCandidate(await getTmdbCandidateById(tmdbId, tmdbType), tmdbType)
+    }
     const candidates = await searchTmdbCandidatesByType([title], tmdbType)
     const providerType = tmdbType === 'tv' ? 'TV Series' : 'Movie'
-    const candidate =
-      candidates.find((entry) => entry.type === providerType && entry.score >= 0.7) ?? null
+    const matching =
+      candidates.filter((entry) => entry.type === providerType &&
+        entry.title.trim().toLocaleLowerCase('en-US') === title.toLocaleLowerCase('en-US'))
+    const candidate = matching.length === 1 ? matching[0] : null
 
     return fromTmdbCandidate(candidate, tmdbType)
   } catch (error) {

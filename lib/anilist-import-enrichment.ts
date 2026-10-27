@@ -1,6 +1,8 @@
 import 'server-only'
 
 import { normalizeGenreList } from './genres'
+import { normalizeAniListAverageScore } from './anilist-values'
+import { parseProviderMediaId } from './provider-ids'
 
 type AniListMediaType = 'ANIME' | 'MANGA'
 
@@ -44,7 +46,7 @@ type ScoredMedia = {
   score: number
 }
 
-export type AnimeMangaImportMetadataSource = 'anilist-mal-id' | 'jikan-mal-id' | 'title'
+export type AnimeMangaImportMetadataSource = 'anilist-id' | 'anilist-mal-id' | 'jikan-mal-id' | 'title'
 
 export type AnimeMangaImportMetadata = {
   externalRatingLabel: string | null
@@ -56,7 +58,9 @@ export type AnimeMangaImportMetadata = {
 }
 
 export type AnimeMangaImportLookupOptions = {
+  anilistId?: string | null
   malId?: string | null
+  strictTitleMatch?: boolean
 }
 
 const ANILIST_IMPORT_QUERY = `
@@ -108,6 +112,11 @@ const ANILIST_IMPORT_BY_MAL_ID_QUERY = `
     }
   }
 `
+
+const ANILIST_IMPORT_BY_ID_QUERY = ANILIST_IMPORT_BY_MAL_ID_QUERY
+  .replace('ImportEnrichmentByMalId', 'ImportEnrichmentById')
+  .replaceAll('$idMal', '$id')
+  .replace('Media(idMal:', 'Media(id:')
 
 function normalizeComparableTitle(value: string) {
   return value
@@ -336,6 +345,7 @@ async function searchAniListMedia(search: string, type: AniListMediaType) {
   try {
     const response = await fetch('https://graphql.anilist.co', {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
@@ -358,18 +368,19 @@ async function searchAniListMedia(search: string, type: AniListMediaType) {
   }
 }
 
-async function searchAniListMediaByMalId(idMal: number, type: AniListMediaType) {
+async function searchAniListMediaById(id: number, type: AniListMediaType, isMalId: boolean) {
   try {
     const response = await fetch('https://graphql.anilist.co', {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: ANILIST_IMPORT_BY_MAL_ID_QUERY,
-        variables: { idMal, type },
+        query: isMalId ? ANILIST_IMPORT_BY_MAL_ID_QUERY : ANILIST_IMPORT_BY_ID_QUERY,
+        variables: isMalId ? { idMal: id, type } : { id, type },
       }),
     })
 
@@ -382,14 +393,6 @@ async function searchAniListMediaByMalId(idMal: number, type: AniListMediaType) 
   } catch {
     return null
   }
-}
-
-function toExternalRatingValue(averageScore: number | null | undefined) {
-  if (typeof averageScore !== 'number' || averageScore <= 0) {
-    return null
-  }
-
-  return Math.round((averageScore / 10) * 10) / 10
 }
 
 function toTotalProgress(media: AniListMedia, type: 'Anime' | 'Manga') {
@@ -407,7 +410,7 @@ function toImportMetadata(
   type: 'Anime' | 'Manga',
   source: AnimeMangaImportMetadataSource
 ): AnimeMangaImportMetadata {
-  const externalRatingValue = toExternalRatingValue(media.averageScore)
+  const externalRatingValue = normalizeAniListAverageScore(media.averageScore)
 
   return {
     externalRatingLabel: externalRatingValue === null ? null : 'AniList',
@@ -519,24 +522,43 @@ export async function findAniListImportMetadata(
   options: AnimeMangaImportLookupOptions = {}
 ): Promise<AnimeMangaImportMetadata | null> {
   const anilistType: AniListMediaType = type === 'Anime' ? 'ANIME' : 'MANGA'
+  const anilistId = parseProviderMediaId(options.anilistId, 'anilist', type === 'Anime' ? 'anime' : 'manga')
   const malId = parseMalId(options.malId)
 
+  if (anilistId !== null) {
+    const media = await searchAniListMediaById(anilistId, anilistType, false)
+    // A known ID must not be replaced by a similarly named sequel on a provider outage.
+    return media?.id === anilistId && (!media.type || media.type === anilistType)
+      ? toImportMetadata(media, type, 'anilist-id')
+      : null
+  }
+
   if (malId !== null) {
-    const mediaByMalId = await searchAniListMediaByMalId(malId, anilistType)
+    const mediaByMalId = await searchAniListMediaById(malId, anilistType, true)
 
     if (mediaByMalId) {
       const metadata = toImportMetadata(mediaByMalId, type, 'anilist-mal-id')
 
-      if (metadata.imageUrl) {
+      if (metadata.imageUrl || options.strictTitleMatch) {
         return metadata
       }
     }
 
     const jikanMetadata = await fetchJikanMetadataByMalId(malId, type)
 
-    if (jikanMetadata?.imageUrl) {
+    if (jikanMetadata && (jikanMetadata.imageUrl || options.strictTitleMatch)) {
       return jikanMetadata
     }
+    if (options.strictTitleMatch) return null
+  }
+
+  if (options.strictTitleMatch) {
+    const candidates = await searchAniListMedia(title.trim(), anilistType)
+    const normalizedTitle = normalizeComparableTitle(title)
+    const exact = candidates.filter((media) => getMediaTitles(media).some(
+      (candidateTitle) => normalizeComparableTitle(candidateTitle) === normalizedTitle
+    ))
+    return exact.length === 1 ? toImportMetadata(exact[0], type, 'title') : null
   }
 
   const variants = buildSearchVariants(title)

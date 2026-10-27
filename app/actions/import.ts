@@ -4,6 +4,13 @@ import { revalidatePath } from 'next/cache'
 
 import { getCurrentUser } from '../../lib/auth/dal'
 import { findAniListImportMetadata } from '../../lib/anilist-import-enrichment'
+import {
+  normalizeAniListAverageScore,
+  normalizeAniListPersonalScore,
+  normalizeImportDate,
+  normalizeTenPointScore,
+  toCompleteAniListDate,
+} from '../../lib/anilist-values'
 import { deleteOwnedCoverByPublicUrl } from '../../lib/data/storage'
 import { normalizeGenreList } from '../../lib/genres'
 import {
@@ -28,6 +35,7 @@ export type MalImportCandidate = {
 }
 
 export type AniListImportCandidate = {
+  completed_at?: string | null
   description?: string | null
   external_id?: string | null
   external_score?: number | null
@@ -38,6 +46,7 @@ export type AniListImportCandidate = {
   progress?: number | null
   rating?: number | null
   status?: string
+  started_at?: string | null
   title: string
   total_progress?: number | null
   type: 'anime' | 'manga' | 'manhwa' | 'manhua'
@@ -68,6 +77,7 @@ type ValidatedMalImportItem = {
 }
 
 type ValidatedAniListImportItem = {
+  completedAt: string | null
   externalId: string | null
   externalRatingValue: number | null
   genres: string[]
@@ -76,6 +86,7 @@ type ValidatedAniListImportItem = {
   progress: number
   rating: number | null
   status: string
+  startedAt: string | null
   title: string
   totalProgress: number | null
   type: 'Anime' | 'Manga' | 'Manhwa' | 'Manhua'
@@ -94,7 +105,7 @@ type ValidatedCsvImportItem = {
 }
 
 type ImportRow = {
-  completed_at: null
+  completed_at: string | null
   external_rating_label: string | null
   external_rating_value: number | null
   favorite: false
@@ -104,7 +115,7 @@ type ImportRow = {
   notes: string
   progress: number
   rating: number | null
-  started_at: null
+  started_at: string | null
   status: string
   title: string
   total_progress: number | null
@@ -212,8 +223,11 @@ const ANILIST_LIST_QUERY = `
         name
         entries {
           status
-          score
+          score(format: POINT_10_DECIMAL)
           progress
+          notes
+          startedAt { year month day }
+          completedAt { year month day }
           media {
             id
             idMal
@@ -253,6 +267,9 @@ type AniListMediaListStatus =
   | string
 
 type AniListListEntry = {
+  completedAt?: { year?: number | null; month?: number | null; day?: number | null } | null
+  startedAt?: { year?: number | null; month?: number | null; day?: number | null } | null
+  notes?: string | null
   media?: {
     averageScore?: number | null
     chapters?: number | null
@@ -389,53 +406,13 @@ function normalizeAniListStatus(
     case 'DROPPED':
       return 'Dropped'
     case 'REPEATING':
+    case 'RE-WATCHING':
       return isPaged ? 'Reading' : 'Re-Watching'
     case 'PAUSED':
     case 'PLANNING':
     default:
       return 'Planning'
   }
-}
-
-function normalizeAniListUserRating(value: unknown) {
-  if (value === null || value === undefined || value === '') {
-    return null
-  }
-
-  const rating = typeof value === 'number' ? value : Number(value)
-
-  if (!Number.isFinite(rating) || rating <= 0) {
-    return null
-  }
-
-  const normalized = rating > 10 ? rating / 10 : rating
-  const rounded = Math.round(normalized)
-
-  if (rounded < 1 || rounded > 10) {
-    return null
-  }
-
-  return rounded
-}
-
-function normalizeAniListExternalScore(value: unknown) {
-  if (value === null || value === undefined || value === '') {
-    return null
-  }
-
-  const score = typeof value === 'number' ? value : Number(value)
-
-  if (!Number.isFinite(score) || score <= 0) {
-    return null
-  }
-
-  const normalized = score > 10 ? score / 10 : score
-
-  if (normalized < 0 || normalized > 10) {
-    return null
-  }
-
-  return Math.round(normalized * 10) / 10
 }
 
 function normalizeNullableProgress(value: unknown) {
@@ -500,6 +477,7 @@ function getAppTypeFromAniListCandidateType(
 }
 
 function toAniListImportCandidate(entry: AniListListEntry): AniListImportCandidate | null {
+  if (!entry || typeof entry !== 'object') return null
   const title = getAniListTitle(entry)
   const type = getAniListAppType(entry)
 
@@ -513,15 +491,17 @@ function toAniListImportCandidate(entry: AniListListEntry): AniListImportCandida
       : normalizeNullableProgress(entry.media.chapters)
 
   return {
+    completed_at: toCompleteAniListDate(entry.completedAt),
     description: entry.media.description ?? null,
     external_id: String(entry.media.id),
-    external_score: normalizeAniListExternalScore(entry.media.averageScore),
+    external_score: normalizeAniListAverageScore(entry.media.averageScore),
     external_source: 'anilist',
     genres: normalizeGenreList(entry.media.genres ?? []),
     image_url: getAniListCover(entry),
-    notes: '',
+    notes: typeof entry.notes === 'string' ? entry.notes : '',
     progress: normalizeNullableProgress(entry.progress),
-    rating: normalizeAniListUserRating(entry.score),
+    rating: normalizeAniListPersonalScore(entry.score),
+    started_at: toCompleteAniListDate(entry.startedAt),
     status: normalizeAniListStatus(
       entry.status,
       getAppTypeFromAniListCandidateType(type) ?? 'Manga'
@@ -615,7 +595,7 @@ function normalizeMyAnimeListUrl(
 function validateAniListCandidate(
   candidate: AniListImportCandidate
 ): ValidatedAniListImportItem | null {
-  if (candidate.external_source !== 'anilist') {
+  if (!candidate || typeof candidate !== 'object' || candidate.external_source !== 'anilist') {
     return null
   }
 
@@ -639,9 +619,12 @@ function validateAniListCandidate(
   const totalProgress = normalizeNullableProgress(candidate.total_progress)
 
   return {
+    completedAt: normalizeImportDate(candidate.completed_at),
     externalId,
-    externalRatingValue: normalizeAniListExternalScore(candidate.external_score),
-    genres: normalizeGenreList(candidate.genres ?? []),
+    externalRatingValue: normalizeTenPointScore(candidate.external_score),
+    genres: normalizeGenreList(Array.isArray(candidate.genres)
+      ? candidate.genres.filter((genre): genre is string => typeof genre === 'string')
+      : []),
     image_url:
       typeof candidate.image_url === 'string' && candidate.image_url.trim()
         ? candidate.image_url.trim()
@@ -650,7 +633,8 @@ function validateAniListCandidate(
     progress:
       totalProgress !== null && progress > totalProgress ? totalProgress : progress,
     rating: normalizeRating(candidate.rating),
-    status: normalizeAniListStatus(candidate.status, type),
+    status: normalizeAniListStatus(typeof candidate.status === 'string' ? candidate.status : undefined, type),
+    startedAt: normalizeImportDate(candidate.started_at),
     title,
     totalProgress,
     type,
@@ -792,7 +776,7 @@ function toFullImportRow(item: ValidatedMalImportItem, userId: string): ImportRo
 
 function toFullAniListImportRow(item: ValidatedAniListImportItem, userId: string): ImportRow {
   return {
-    completed_at: null,
+    completed_at: item.completedAt,
     external_rating_label: item.externalRatingValue === null ? null : 'AniList',
     external_rating_value: item.externalRatingValue,
     favorite: false,
@@ -802,7 +786,7 @@ function toFullAniListImportRow(item: ValidatedAniListImportItem, userId: string
     notes: item.notes,
     progress: item.progress,
     rating: item.rating,
-    started_at: null,
+    started_at: item.startedAt,
     status: item.status,
     title: item.title,
     total_progress: item.totalProgress,
@@ -1009,6 +993,7 @@ async function fetchAniListCollection(
   try {
     const response = await fetch('https://graphql.anilist.co', {
       method: 'POST',
+      signal: AbortSignal.timeout(15000),
       cache: 'no-store',
       headers: {
         Accept: 'application/json',

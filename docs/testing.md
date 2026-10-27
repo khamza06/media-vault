@@ -17,6 +17,10 @@ Covered initially: credential handling, auth action outcomes and recovery sessio
 setup, confirmation return-path validation, production redirect configuration,
 filter URL round-tripping, progress units and exact Markdown backup preservation.
 
+Import/metadata tests also cover AniList score scales, exact source notes,
+complete/incomplete dates, repeated status normalization, duplicate skipping,
+MAL/CSV source separation, stable provider IDs and metadata-only owner writes.
+
 Passing mocked tests does not prove email delivery, dashboard configuration or
 live RLS policies. Follow [the manual checklist](final-qa-checklist.md) with a
 separate test account for these checks. Do not delete real vault data during QA.

@@ -9,6 +9,7 @@ import {
   type MetadataRefreshResult,
 } from '../app/actions/metadata'
 import { useToast } from './ToastProvider'
+import ActionFeedback from './ui/ActionFeedback'
 
 function formatResultMessage(result: MetadataRefreshResult) {
   if (result.error) {
@@ -16,7 +17,7 @@ function formatResultMessage(result: MetadataRefreshResult) {
   }
 
   if (result.updated === 0) {
-    return `Checked ${result.checked} items. No metadata updates were needed.`
+    return `Checked ${result.checked} items. No metadata was changed. Unavailable or ambiguous matches are skipped.`
   }
 
   return `Checked ${result.checked} items and updated ${result.updated}.`
@@ -38,19 +39,27 @@ export default function MetadataRefreshButton() {
   const { showToast } = useToast()
   const [isPending, startTransition] = useTransition()
   const [result, setResult] = useState<MetadataRefreshResult | null>(null)
+  const [requestError, setRequestError] = useState('')
 
   function handleRefresh() {
     setResult(null)
+    setRequestError('')
 
     startTransition(async () => {
-      const nextResult = await refreshCurrentUserItemMetadata()
-      setResult(nextResult)
+      try {
+        const nextResult = await refreshCurrentUserItemMetadata()
+        setResult(nextResult)
 
-      const message = formatResultMessage(nextResult)
-      showToast(message, nextResult.error ? 'error' : 'success')
+        const message = formatResultMessage(nextResult)
+        showToast(message, nextResult.error ? 'error' : 'success')
 
-      if (!nextResult.error) {
-        router.refresh()
+        if (!nextResult.error) {
+          router.refresh()
+        }
+      } catch {
+        const message = 'Could not finish refreshing metadata. Check your connection and try again.'
+        setRequestError(message)
+        showToast(message, 'error')
       }
     })
   }
@@ -63,6 +72,7 @@ export default function MetadataRefreshButton() {
           <p className="mt-2 text-sm leading-6 text-slate-400">
             Fill official ratings, missing covers, genres, and missing totals from AniList
             or TMDB without changing your notes, status, progress, rating, favorites, or lists.
+            Saved provider IDs are preferred; ambiguous title matches are skipped.
           </p>
         </div>
         <button
@@ -76,6 +86,7 @@ export default function MetadataRefreshButton() {
         </button>
       </div>
 
+      {requestError ? <div className="mt-4"><ActionFeedback tone="error">{requestError}</ActionFeedback></div> : null}
       {result ? (
         <div
           className={`mt-4 rounded-xl border p-4 ${

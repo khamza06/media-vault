@@ -374,6 +374,15 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
                           value={formatExternalScore(candidate.external_score)}
                         />
                       </dl>
+                      {candidate.notes || candidate.started_at || candidate.completed_at ? (
+                        <p className="mt-3 text-xs leading-5 text-slate-400">
+                          {[
+                            candidate.notes ? 'Includes notes' : null,
+                            candidate.started_at ? `Started ${candidate.started_at}` : null,
+                            candidate.completed_at ? `Completed ${candidate.completed_at}` : null,
+                          ].filter(Boolean).join(' / ')}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </article>
@@ -406,8 +415,10 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
               {isImporting ? 'Importing...' : 'Import selected AniList items'}
             </button>
             <p className="mt-3 text-center text-sm text-slate-400">
-              Imported entries keep your AniList progress and score, while using AniList covers,
-              genres, and official rating when available.
+              Imported entries keep your progress, notes and complete start/finish dates.
+              Personal scores are rounded to the vault&apos;s 1-10 scale. Repeat counts and
+              incomplete dates are not imported. Covers, genres and official ratings are kept
+              when available.
             </p>
           </div>
         </section>
