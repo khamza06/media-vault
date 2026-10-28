@@ -21,6 +21,8 @@ import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
 import { shelfDefinitions } from '../lib/shelves'
 import { getMediaCardGridClassName } from '../lib/media-card-grid'
 import { applyBulkItemChange } from '../lib/bulk-item-changes'
+import { getShelfDisplay } from '../lib/library-display'
+import { useLocale } from './LocaleProvider'
 import BulkItemActions from './BulkItemActions'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
 import ContinueShelf from './ContinueShelf'
@@ -54,6 +56,7 @@ export default function HomeShelvesView({
   onboardingState: SetupChecklistState
   recommendations: DiscoverRecommendation[]
 }) {
+  const { locale, t } = useLocale()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -148,12 +151,12 @@ export default function HomeShelvesView({
 
   const completedUniverse = useMemo(() => {
     const groups = [
-      { label: 'Manga', match: (item: MediaItem) => ['Manga', 'Manhwa', 'Manhua'].includes(item.type) },
-      { label: 'Anime', match: (item: MediaItem) => item.type === 'Anime' },
-      { label: 'Movies', match: (item: MediaItem) => item.type === 'Movie' },
-      { label: 'Series', match: (item: MediaItem) => item.type === 'TV Series' },
-      { label: 'Books', match: (item: MediaItem) => item.type === 'Book' },
-    ]
+      { label: 'manga-family', match: (item: MediaItem) => ['Manga', 'Manhwa', 'Manhua'].includes(item.type) },
+      { label: 'anime', match: (item: MediaItem) => item.type === 'Anime' },
+      { label: 'movies', match: (item: MediaItem) => item.type === 'Movie' },
+      { label: 'series', match: (item: MediaItem) => item.type === 'TV Series' },
+      { label: 'books', match: (item: MediaItem) => item.type === 'Book' },
+    ] as const
 
     return groups.map((group) => {
       const groupItems = filteredItems.filter(group.match)
@@ -413,9 +416,9 @@ export default function HomeShelvesView({
     <div className="min-w-0 space-y-8">
       <section className="min-w-0 space-y-4">
         <div className="grid min-w-0 grid-cols-3 gap-2 sm:gap-4">
-          <InsightCard label={hasActiveLibraryFilters(filters, { includeSort: false }) ? 'Matching items' : 'Total items'} value={String(visibleCount)} />
-          <InsightCard label="In progress" value={String(inProgressCount)} />
-          <InsightCard label="Completed" value={String(completedCount)} />
+          <InsightCard label={t(hasActiveLibraryFilters(filters, { includeSort: false }) ? 'library.matchingItems' : 'library.totalItems')} value={String(visibleCount)} />
+          <InsightCard label={t('library.inProgress')} value={String(inProgressCount)} />
+          <InsightCard label={t('library.completed')} value={String(completedCount)} />
         </div>
 
         <LibraryFilterControls
@@ -440,9 +443,9 @@ export default function HomeShelvesView({
         <section className="glass-panel-soft flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-white/10 px-6 text-center">
           <Sparkles className="h-8 w-8 text-slate-500" />
           <div>
-            <h3 className="text-xl font-semibold text-white">No items match these filters.</h3>
+            <h3 className="text-xl font-semibold text-white">{t('library.noMatches')}</h3>
             <p className="mt-2 max-w-md text-sm text-slate-400">
-              Try a different status, cover, source, rating, or search term.
+              {t('library.tryFilters')}
             </p>
           </div>
           {hasActiveLibraryFilters(filters) ? (
@@ -451,7 +454,7 @@ export default function HomeShelvesView({
               onClick={() => updateFilterUrl(defaultLibraryFilters)}
               className="min-h-11 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
             >
-              Clear filters
+              {t('library.clearFilters')}
             </button>
           ) : null}
         </section>
@@ -473,7 +476,7 @@ export default function HomeShelvesView({
           /> : null}
 
           {view === 'table' ? (
-            <section aria-label="Library items" className={getMediaCardGridClassName(view)}>
+            <section aria-label={t('library.itemsRegion')} className={getMediaCardGridClassName(view)}>
               {filteredItems.map((item) => (
                 <ShelfItemCard key={item.id} item={item} layout="row" listOptions={listOptions}
                   onIncrement={handleIncrement} progressBusy={Boolean(busyIds[item.id])}
@@ -492,15 +495,15 @@ export default function HomeShelvesView({
                       <ShelfIcon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-lg font-bold tracking-tight text-white sm:text-2xl">{shelf.label}</h2>
-                      <p className="text-sm text-slate-400">{shelf.description}</p>
+                      <h2 className="text-lg font-bold tracking-tight text-white sm:text-2xl">{getShelfDisplay(locale, shelf.key).label}</h2>
+                      <p className="text-sm text-slate-400">{getShelfDisplay(locale, shelf.key).description}</p>
                     </div>
                   </div>
                   <Link
                     href={getShelfHref(shelf.slug, currentQuery)}
                     className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/30 hover:text-white sm:shrink-0"
                   >
-                    See All
+                    {t('library.seeAll')}
                   </Link>
                 </div>
 
@@ -525,8 +528,8 @@ export default function HomeShelvesView({
                   ) : (
                     <article className="glass-panel-soft flex min-h-[220px] min-w-[260px] items-center justify-center rounded-xl border border-dashed border-white/10 px-6 text-center text-sm text-slate-400">
                       {hasActiveLibraryFilters(filters, { includeSort: false })
-                        ? 'No items on this shelf match your filters.'
-                        : 'Nothing here yet. Add a title to start this shelf.'}
+                        ? t('library.shelfEmptyFiltered')
+                        : t('library.shelfEmpty')}
                     </article>
                   )}
                 </div>
@@ -538,18 +541,18 @@ export default function HomeShelvesView({
 
       <details className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4">
         <summary className="cursor-pointer rounded-xl text-sm font-semibold text-slate-100 focus-visible:outline-2 focus-visible:outline-blue-400">
-          Completion by media type
+          {t('library.completionByType')}
         </summary>
-        <p className="mt-3 text-sm text-slate-400">Completed titles out of the items matching your current filters.</p>
+        <p className="mt-3 text-sm text-slate-400">{t('library.completionHint')}</p>
         <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {completedUniverse.map((group) => (
             <article key={group.label} className="min-w-0 rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <h3 className="text-sm font-semibold text-slate-100">{group.label}</h3>
+              <h3 className="text-sm font-semibold text-slate-100">{getShelfDisplay(locale, group.label).label}</h3>
               <p className="vault-metric mt-3 text-2xl font-bold text-white">
-                {group.completionRate === null ? '0 items' : `${group.completionRate}%`}
+                {group.completionRate === null ? t('library.zeroItems') : `${group.completionRate}%`}
               </p>
               <p className="mt-2 text-sm text-slate-400">
-                {group.total > 0 ? `${group.completed} completed / ${group.total} total` : 'No items yet'}
+                {group.total > 0 ? t('library.completedTotal', { completed: group.completed, total: group.total }) : t('library.noItemsYet')}
               </p>
             </article>
           ))}
@@ -562,9 +565,9 @@ export default function HomeShelvesView({
             <Sparkles className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-bold tracking-tight text-white sm:text-2xl">Recommended for you</h2>
+            <h2 className="text-lg font-bold tracking-tight text-white sm:text-2xl">{t('library.recommended')}</h2>
             <p className="text-sm text-slate-400">
-              Recommendations based on your highest-rated titles, excluding media already in your vault.
+              {t('library.recommendationHint')}
             </p>
           </div>
         </div>
@@ -585,9 +588,9 @@ export default function HomeShelvesView({
           <section className="glass-panel-soft flex min-h-[180px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-white/10 px-6 text-center">
             <Sparkles className="h-8 w-8 text-slate-500" />
             <div>
-              <h3 className="text-xl font-semibold text-white">No recommendations yet.</h3>
+              <h3 className="text-xl font-semibold text-white">{t('library.noRecommendations')}</h3>
               <p className="mt-2 max-w-md text-sm text-slate-400">
-                Rate a few titles highly and your discover shelf will start learning your taste.
+                {t('library.noRecommendationsHint')}
               </p>
             </div>
           </section>

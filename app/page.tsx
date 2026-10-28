@@ -6,11 +6,14 @@ import { getCustomLists } from '../lib/data/lists'
 import { getOwnershipMode } from '../lib/data/ownership'
 import { getDiscoverRecommendations } from '../lib/home-signals'
 import { toMediaItem } from '../lib/media'
+import { getRequestLocale } from '../lib/i18n-server'
+import { t } from '../lib/i18n'
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
+  const locale = await getRequestLocale()
   const [itemsResult, ownershipMode, listsResult, profileResult] = await Promise.all([
     getItems(),
     getOwnershipMode(),
@@ -41,13 +44,13 @@ export default async function HomePage() {
     <main className="vault-page">
       <header className="mb-6 flex max-w-3xl min-w-0 flex-col gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
-          Your collection
+          {t(locale, 'library.collection')}
         </p>
         <h1 className="vault-title">
-          Library
+          {t(locale, 'nav.library')}
         </h1>
         <p className="text-sm leading-6 text-slate-300 sm:text-lg sm:leading-7">
-          Track your titles, pick up where you left off, and find your next favorite.
+          {t(locale, 'library.description')}
         </p>
       </header>
 

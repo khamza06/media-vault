@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ContinueShelf from '../components/ContinueShelf'
 import type ShelfItemCard from '../components/ShelfItemCard'
 import { toMediaItem } from '../lib/media'
+import { t, type MessageKey } from '../lib/i18n'
+vi.mock('../components/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en', t: (key: MessageKey) => t('en', key) }) }))
 
 const { card } = vi.hoisted(() => ({ card: vi.fn() }))
 vi.mock('../components/ShelfItemCard', () => ({ default: card }))

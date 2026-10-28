@@ -37,6 +37,7 @@ export default async function ShelfPage(props: {
       description={shelf.description}
       items={shelfItems}
       listOptions={listOptions}
+      shelfKey={shelf.key}
       title={shelf.label}
     />
   )

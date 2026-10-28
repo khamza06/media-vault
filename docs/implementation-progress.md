@@ -451,3 +451,23 @@ switching. No real Save, upload, import, login or database write was run.
 Temporary fixtures were removed before production build.
 Lint passed without warnings, TypeScript and production build passed, and the
 runtime dependency audit reported zero known vulnerabilities.
+
+## Stage 9E: Library and Shelf Display Translation
+
+- Translated the main Library heading, shelf names/descriptions, shared filters,
+  active chips, result counts, Continue, view/density labels, completion counts
+  and filtered empty states. Existing English copy is retained for unconverted
+  card/actions, saved views and onboarding; Russian remains explicitly beta.
+- A display-only option helper preserves the canonical filter model and option
+  order. Status/type/source/sort values, URL keys, item return links and saved
+  preference modes are unchanged. No queries, mutations, schema or RLS changed.
+- Shelf grouping and completion calculations are unchanged. Tests distinguish
+  zero completed items from an empty family and preserve exact notes.
+
+Verification: 369 isolated tests, lint without warnings, TypeScript and production
+build passed. Seven new tests cover display contracts, chips, reset, URLs,
+completion counts and density storage. Synthetic browser QA at 320-1920px found
+no page/control overflow, verified real Radix selection (`status=Completed`),
+reset and table mode, and switched back to English without changing filters.
+No item save/progress/list/delete action, authentication or live database write
+was used. Temporary fixtures were removed; runtime audit found zero known issues.

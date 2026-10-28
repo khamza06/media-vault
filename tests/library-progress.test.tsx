@@ -4,6 +4,8 @@ import type { ComponentProps } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type ShelfItemCard from '../components/ShelfItemCard'
+import { t, type MessageKey } from '../lib/i18n'
+vi.mock('../components/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en', t: (key: MessageKey, vars?: Record<string, string | number>) => t('en', key, vars) }) }))
 const mocks = vi.hoisted(() => ({ incrementProgressAction: vi.fn(), deleteItemsBulkAction: vi.fn(), showToast: vi.fn() }))
 vi.mock('../app/actions/items', () => mocks)
 vi.mock('next/navigation', () => ({ usePathname: () => '/', useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }), useSearchParams: () => params }))

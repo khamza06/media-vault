@@ -6,6 +6,7 @@ import { getContinueItems } from '../lib/continue-items'
 import type { MediaItem } from '../lib/media'
 import type { AddToListOption } from './lists/AddToListButton'
 import ShelfItemCard from './ShelfItemCard'
+import { useLocale } from './LocaleProvider'
 
 type ContinueShelfProps = {
   items: MediaItem[]
@@ -21,6 +22,7 @@ type ContinueShelfProps = {
 export default function ContinueShelf({
   items, listOptions, busyIds, isSelectionMode, onIncrement, accentHandler, returnTo, density,
 }: ContinueShelfProps) {
+  const { t } = useLocale()
   const continueItems = getContinueItems(items)
 
   if (isSelectionMode || continueItems.length === 0) return null
@@ -33,10 +35,10 @@ export default function ContinueShelf({
         </div>
         <div className="min-w-0">
           <h2 id="continue-heading" className="text-lg font-bold tracking-tight text-white sm:text-2xl">
-            Continue
+            {t('library.continue')}
           </h2>
           <p className="text-sm text-slate-400">
-            Pick up a title you are watching or reading. Your current filters apply.
+            {t('library.continueHint')}
           </p>
         </div>
       </div>

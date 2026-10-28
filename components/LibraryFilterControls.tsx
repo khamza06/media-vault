@@ -6,18 +6,14 @@ import { useId, useState, type ReactNode } from 'react'
 import {
   defaultLibraryFilters,
   hasActiveLibraryFilters,
-  libraryCoverOptions,
-  libraryRatingOptions,
-  librarySortOptions,
-  librarySourceOptions,
-  libraryStatusOptions,
-  libraryTypeOptions,
   type LibraryCoverFilter,
   type LibraryFilters,
   type LibraryRatingFilter,
   type LibrarySortMode,
   type LibrarySourceFilter,
 } from '../lib/library-filters'
+import { getLibraryDisplayOptions } from '../lib/library-display'
+import { useLocale } from './LocaleProvider'
 import AppSelect from './ui/AppSelect'
 
 type LibraryFilterControlsProps = {
@@ -42,20 +38,22 @@ export default function LibraryFilterControls({
   totalCount,
   visibleCount,
 }: LibraryFilterControlsProps) {
+  const { locale, t } = useLocale()
+  const options = getLibraryDisplayOptions(locale)
   const hasActiveFilters = hasActiveLibraryFilters(filters)
   const advancedId = useId()
   const [showAdvanced, setShowAdvanced] = useState(
     filters.cover !== 'all' || filters.rating !== 'all' || filters.source !== 'all' || filters.sort !== 'created-desc'
   )
   const activeChips = [
-    { key: 'query' as const, label: filters.query.trim() ? `Search: ${filters.query}` : null },
+    { key: 'query' as const, label: filters.query.trim() ? t('library.searchChip', { query: filters.query }) : null },
     ...([
-      ['type', libraryTypeOptions],
-      ['status', libraryStatusOptions],
-      ['cover', libraryCoverOptions],
-      ['rating', libraryRatingOptions],
-      ['source', librarySourceOptions],
-      ['sort', librarySortOptions],
+      ['type', options.type],
+      ['status', options.status],
+      ['cover', options.cover],
+      ['rating', options.rating],
+      ['source', options.source],
+      ['sort', options.sort],
     ] as const).map(([key, options]) => ({
       key,
       label: filters[key] !== defaultLibraryFilters[key]
@@ -82,12 +80,11 @@ export default function LibraryFilterControls({
           <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-blue-200">
             <Filter className="h-4 w-4" />
           </span>
-          <span>Library filters</span>
+          <span>{t('library.filters')}</span>
         </div>
         <div className="flex min-w-0 flex-col gap-2 text-sm text-slate-400 sm:flex-row sm:items-center">
           <span>
-            Showing <span className="font-semibold text-slate-100">{visibleCount}</span> of{' '}
-            <span className="font-semibold text-slate-100">{totalCount}</span> items
+            {t('library.showing', { filtered: visibleCount, total: totalCount })}
           </span>
           {hasActiveFilters ? (
             <button
@@ -96,7 +93,7 @@ export default function LibraryFilterControls({
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
             >
               <X className="h-4 w-4" />
-              Clear filters
+              {t('library.clearFilters')}
             </button>
           ) : null}
         </div>
@@ -105,25 +102,25 @@ export default function LibraryFilterControls({
       <div className={`mt-4 grid min-w-0 grid-cols-2 gap-3 ${showTypeFilter ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <label className="col-span-2 min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Search
+            {t('library.search')}
           </span>
           <input
             type="search"
             value={filters.query}
             onChange={(event) => updateFilters({ query: event.target.value })}
-            placeholder="Search title, notes, genres..."
+            placeholder={t('library.searchFields')}
             className={controlClassName}
           />
         </label>
 
         {showTypeFilter ? (
           <label className="min-w-0 space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Type</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{t('form.type')}</span>
             <AppSelect
-              ariaLabel="Type filter"
+              ariaLabel={t('library.typeFilter')}
               value={filters.type}
               onValueChange={(type) => updateFilters({ type })}
-              options={libraryTypeOptions}
+              options={options.type}
               className={controlClassName}
             />
           </label>
@@ -131,13 +128,13 @@ export default function LibraryFilterControls({
 
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Status
+            {t('form.status')}
           </span>
           <AppSelect
-            ariaLabel="Status filter"
+            ariaLabel={t('library.statusFilter')}
             value={filters.status}
             onValueChange={(value) => updateFilters({ status: value })}
-            options={libraryStatusOptions}
+            options={options.status}
             className={controlClassName}
           />
         </label>
@@ -152,7 +149,7 @@ export default function LibraryFilterControls({
         onClick={() => setShowAdvanced(!showAdvanced)}
         className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold text-blue-200 hover:text-white focus-visible:outline-2 focus-visible:outline-blue-400"
       >
-        Advanced filters
+        {t('library.advanced')}
         <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
       </button>
       {actions}
@@ -162,13 +159,13 @@ export default function LibraryFilterControls({
 
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Cover
+            {t('library.cover')}
           </span>
           <AppSelect
-            ariaLabel="Cover filter"
+            ariaLabel={t('library.coverFilter')}
             value={filters.cover}
             onValueChange={(value) => updateFilters({ cover: value as LibraryCoverFilter })}
-            options={libraryCoverOptions}
+            options={options.cover}
             className={controlClassName}
           />
         </label>
@@ -176,13 +173,13 @@ export default function LibraryFilterControls({
         {showSourceFilter ? (
           <label className="min-w-0 space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-              Source
+              {t('catalog.source')}
             </span>
             <AppSelect
-              ariaLabel="Source filter"
+              ariaLabel={t('library.sourceFilter')}
               value={filters.source}
               onValueChange={(value) => updateFilters({ source: value as LibrarySourceFilter })}
-              options={librarySourceOptions}
+              options={options.source}
               className={controlClassName}
             />
           </label>
@@ -190,26 +187,26 @@ export default function LibraryFilterControls({
 
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Rating
+            {t('form.rating')}
           </span>
           <AppSelect
-            ariaLabel="Rating filter"
+            ariaLabel={t('library.ratingFilter')}
             value={filters.rating}
             onValueChange={(value) => updateFilters({ rating: value as LibraryRatingFilter })}
-            options={libraryRatingOptions}
+            options={options.rating}
             className={controlClassName}
           />
         </label>
 
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Sort
+            {t('library.sort')}
           </span>
           <AppSelect
-            ariaLabel="Sort library"
+            ariaLabel={t('library.sortFilter')}
             value={filters.sort}
             onValueChange={(value) => updateFilters({ sort: value as LibrarySortMode })}
-            options={librarySortOptions}
+            options={options.sort}
             className={controlClassName}
           />
         </label>
@@ -217,9 +214,9 @@ export default function LibraryFilterControls({
       </div>
 
       {activeChips.length > 0 ? (
-        <div className="mt-3 flex min-w-0 flex-wrap gap-2" aria-label="Active filters">
+        <div className="mt-3 flex min-w-0 flex-wrap gap-2" aria-label={t('library.active')}>
           {activeChips.map((chip) => (
-            <button key={chip.key} type="button" onClick={() => updateFilters({ [chip.key]: defaultLibraryFilters[chip.key] })} aria-label={`Remove ${chip.label} filter`} className="inline-flex max-w-full min-h-9 items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium text-blue-100 hover:border-blue-400/50 focus-visible:outline-2 focus-visible:outline-blue-400">
+            <button key={chip.key} type="button" onClick={() => updateFilters({ [chip.key]: defaultLibraryFilters[chip.key] })} aria-label={t('library.removeChip', { label: chip.label ?? '' })} className="inline-flex max-w-full min-h-9 items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium text-blue-100 hover:border-blue-400/50 focus-visible:outline-2 focus-visible:outline-blue-400">
               <span className="min-w-0 break-words [overflow-wrap:anywhere]">{chip.label}</span><X aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
             </button>
           ))}

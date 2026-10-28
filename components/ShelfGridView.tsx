@@ -13,7 +13,9 @@ import {
   type LibraryFilters,
   writeLibraryFiltersToSearchParams,
 } from '../lib/library-filters'
-import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
+import { isMovieType, usesPageProgress, type MediaItem, type MediaShelfKey } from '../lib/media'
+import { getShelfDisplay } from '../lib/library-display'
+import { useLocale } from './LocaleProvider'
 import { getMediaCardGridClassName } from '../lib/media-card-grid'
 import { applyBulkItemChange } from '../lib/bulk-item-changes'
 import BulkItemActions from './BulkItemActions'
@@ -29,13 +31,17 @@ export default function ShelfGridView({
   description,
   items,
   listOptions,
+  shelfKey,
   title,
 }: {
   description: string
   items: MediaItem[]
   listOptions: AddToListOption[]
+  shelfKey?: MediaShelfKey
   title: string
 }) {
+  const { locale, t } = useLocale()
+  const shelfDisplay = shelfKey ? getShelfDisplay(locale, shelfKey) : { label: title, description }
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -218,9 +224,9 @@ export default function ShelfGridView({
   return (
     <main className="vault-page">
       <header className="mb-8 max-w-3xl min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">Shelf Detail</p>
-        <h1 className="vault-title mt-3">{title}</h1>
-        <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg">{description}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">{t('library.shelfDetail')}</p>
+        <h1 className="vault-title mt-3">{shelfDisplay.label}</h1>
+        <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg">{shelfDisplay.description}</p>
       </header>
 
       <section className="mb-8 min-w-0 space-y-4">
@@ -243,7 +249,7 @@ export default function ShelfGridView({
                 : 'border-white/10 bg-white/5 text-slate-300 hover:text-white'
             }`}
           >
-            Favorites only
+            {t('library.favoritesFilter')}
           </button>
           <BulkSelectionToolbar
             isDeleting={isBulkDeleting || Object.keys(busyIds).length > 0}
@@ -271,9 +277,9 @@ export default function ShelfGridView({
       {filteredItems.length === 0 ? (
         <section className="glass-panel-soft flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-white/10 px-6 text-center">
           <div>
-            <h3 className="text-xl font-semibold text-white">No items match these filters.</h3>
+            <h3 className="text-xl font-semibold text-white">{t('library.noMatches')}</h3>
             <p className="mt-2 max-w-md text-sm text-slate-400">
-              Try another filter or add a few more titles to this category.
+              {t('library.tryShelfFilters')}
             </p>
           </div>
           {hasActiveLibraryFilters(filters) || favoritesOnly ? (
@@ -284,7 +290,7 @@ export default function ShelfGridView({
               }}
               className="min-h-11 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
             >
-              Clear filters
+              {t('library.clearFilters')}
             </button>
           ) : null}
         </section>

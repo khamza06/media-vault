@@ -52,6 +52,11 @@ payloads, provider identity, duplicate feedback and draft recovery. Unit tests
 inspect option values independently of Radix geometry; real-browser synthetic
 fixtures check the actual custom dropdown and responsive layout without saving.
 
+Library localization checks preserve every filter option value/order, query text,
+clean URL keys, active-chip removal, owner-card return URLs, completion group
+counts and canonical density preferences. Synthetic browser checks cover actual
+Radix status selection, URL updates, clearing, table mode and long Russian copy.
+
 ## Optional Provider Smoke Tests
 
 ```sh

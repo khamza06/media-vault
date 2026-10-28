@@ -4,6 +4,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import VaultPreferencesProvider, { useVaultPreferences } from '../components/VaultPreferencesProvider'
 import LibraryViewControls from '../components/LibraryViewControls'
+import { t, type MessageKey } from '../lib/i18n'
+vi.mock('../components/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en', t: (key: MessageKey) => t('en', key) }) }))
 import { parseVaultViewMode, vaultPreferencesKey } from '../lib/vault-preferences'
 
 function Value() {

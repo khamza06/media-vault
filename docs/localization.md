@@ -54,3 +54,11 @@ source titles/genres, provider IDs and exact notes remain unchanged. Server-side
 validation/provider errors can still be English; outer page copy and remaining
 major screens are not fully translated. Keep the beta notice until those passes
 are complete. Switching languages must retain drafts rather than recreate forms.
+
+Library coverage now includes the main heading, shelf names/descriptions,
+shared filters and active chips, result counts, view/density controls, Continue,
+completion counts and filtered empty states. Display options are generated
+separately from the canonical filter model: locale changes must never rename
+URL keys, status/type values, saved view modes or source provider identities.
+The legacy `MediaLibrary` component, item-card copy, bulk dialogs, saved-view/
+Planning-picker copy, onboarding and public-grid filters remain separate passes.
