@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createBackupPayload, mediaItemToInput, recordToVaultExportItem, serializeVaultExportCsv } from '../lib/backup'
+import { createBackupPayload, extractBackupItems, getBackupExternalKey, mediaItemToInput, recordToVaultExportItem, serializeVaultExportCsv } from '../lib/backup'
 import { defaultLibraryFilters, filterAndSortMediaItems, getLibraryFiltersFromSearchParams, writeLibraryFiltersToSearchParams } from '../lib/library-filters'
 import { formatProgressValue, toMediaItem } from '../lib/media'
 
@@ -46,6 +46,24 @@ describe('library filter regression', () => {
 })
 
 describe('backup regression', () => {
+  it('keeps source identity when exporting a MediaItem as well as a database record', () => {
+    expect(createBackupPayload(items).items[0]).toMatchObject({ external_source: 'anilist', external_id: '1' })
+  })
+  it('accepts supported legacy files but rejects unknown versions or another app wrapper', () => {
+    expect(extractBackupItems(createBackupPayload(items))).toHaveLength(2)
+    expect(extractBackupItems(records)).toEqual(records)
+    expect(extractBackupItems({ items: records })).toEqual(records)
+    expect(extractBackupItems({ app: 'Other app', version: 1, items: records })).toBeNull()
+    expect(extractBackupItems({ app: 'Media Vault', version: 99, items: records })).toBeNull()
+  })
+  it('separates TMDB namespaces and recognizes known prefixed IDs without guessing other providers', () => {
+    const movie = getBackupExternalKey({ type: 'Movie', external_source: 'tmdb', external_id: '1' })
+    const series = getBackupExternalKey({ type: 'TV Series', external_source: 'tmdb', external_id: 'tmdb:tv:1' })
+    expect(movie).not.toBe(series)
+    expect(series).toBe(getBackupExternalKey({ type: 'TV Series', external_source: 'TMDB', external_id: '1' }))
+    expect(getBackupExternalKey({ type: 'Anime', external_source: 'jikan', external_id: '1' }))
+      .toBe(getBackupExternalKey({ type: 'Anime', external_source: 'myanimelist', external_id: '1' }))
+  })
   it('preserves Markdown and progress through JSON export and form mapping', () => {
     const payload = createBackupPayload(items)
     const restored = JSON.parse(JSON.stringify(payload)) as typeof payload

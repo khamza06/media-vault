@@ -35,6 +35,16 @@ cross-tab changes and blocked storage. Card layout tests cover the same progress
 list and return-link controls in grid/rail/row modes, bulk selection and known vs
 unknown totals. Browser checks use synthetic data, not an authenticated vault.
 
+Additional suites cover reviewed bulk status/favorite updates, safe list membership
+conflicts, owner-only cover previews, on-demand provider details, exact note drafts,
+saved view account isolation and the non-mutating Planning picker.
+
+Backup checks simulate more than 1000 records under a smaller API row cap, later
+page failures, strict owner filters, TMDB movie/TV ID collisions, canonical provider
+IDs, malformed tracking values, explicit preview selection and honest result counts.
+They never restore data into a real vault. Backup v2 list/membership round trips are
+still a planned follow-up, not a passed test.
+
 ## Optional Provider Smoke Tests
 
 ```sh

@@ -7,6 +7,7 @@ import { getDefaultStatus, isMovieType, usesPageProgress } from '../media'
 import { isMissingColumnError, isMissingUserIdError } from './ownership'
 import { createSupabaseServerClient } from '../supabase/server'
 import type { CatalogIdentity } from '../catalog-identity'
+import { readAllOwnedBackupItems } from './backup-items'
 
 const fullItemSelectFieldsWithSource =
   'id, user_id, title, type, status, progress, total_progress, last_progress_at, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, external_source, external_id, created_at'
@@ -518,15 +519,16 @@ export async function getItemsForBackupExport() {
   const user = await requireCurrentUser()
   const supabase = createSupabaseServerClient(user.accessToken)
 
-  const exportResult = await orderFullQuery(
-    supabase.from('items').select(backupExportItemSelectFields).eq('user_id', user.id)
-  )
-
-  if (!exportResult.error) {
-    return exportResult
+  const selections = [backupExportItemSelectFields, metadataItemSelectFieldsWithSource,
+    fullItemSelectFields, metadataItemSelectFields, compatibilityItemSelectFields, legacyItemSelectFields]
+  for (const fields of selections) {
+    const result = await readAllOwnedBackupItems<MediaItemRecord>(supabase, user.id, fields)
+    if (!result.error) return result
+    const message = result.error.message
+    if (isMissingUserIdError(message) || (!isExtendedSchemaError(message)
+      && !isMetadataColumnError(message) && !isExternalSourceColumnError(message))) return result
   }
-
-  return getItems()
+  return { data: null, error: { message: 'Backup export requires a supported owned-item schema.' } }
 }
 
 export async function getItemById(id: string) {

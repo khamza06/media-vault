@@ -1,4 +1,5 @@
-import { formatExternalRatingValue, type MediaItem, type MediaItemInput, type MediaItemRecord } from './media'
+import { formatExternalRatingValue, getAllowedStatuses, type MediaItem, type MediaItemInput, type MediaItemRecord } from './media'
+import { getProviderReference } from './provider-details'
 
 const APP_NAME = 'Media Vault'
 
@@ -49,7 +50,40 @@ export function isBackupPayload(value: unknown): value is BackupPayload {
 
   const payload = value as Partial<BackupPayload>
 
-  return payload.version === 1 && Array.isArray(payload.items)
+  return payload.version === 1 && (payload.app === undefined || payload.app === APP_NAME) && Array.isArray(payload.items)
+}
+
+export function extractBackupItems(value: unknown): unknown[] | null {
+  if (Array.isArray(value)) return value
+  if (!value || typeof value !== 'object') return null
+  const payload = value as Record<string, unknown>
+  if (payload.app !== undefined && payload.app !== APP_NAME) return null
+  if (payload.version !== undefined && payload.version !== 1) return null
+  return Array.isArray(payload.items) ? payload.items : null
+}
+
+export function getBackupExternalKey(item: { type?: string | null; external_source?: string | null; external_id?: string | null }) {
+  const source = item.external_source?.trim().toLowerCase()
+  const id = item.external_id?.trim()
+  if (!source || !id || !item.type) return null
+  const ref = getProviderReference({ type: item.type, externalSource: source, externalId: id })
+  if (ref?.provider === 'anilist') return `${ref.isMalId ? 'myanimelist' : 'anilist'}::${ref.type}::${ref.id}`
+  if (ref?.provider === 'tmdb') return `tmdb::${ref.type}::${ref.id}`
+  return `${source}::${item.type}::${id}`
+}
+
+export function getBackupTrackingError(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Invalid backup row.'
+  const item = value as Record<string, unknown>
+  if (item.notes != null && typeof item.notes !== 'string') return 'Notes must be text.'
+  if (item.progress != null && (typeof item.progress !== 'number' || !Number.isInteger(item.progress) || item.progress < 0)) return 'Progress must be a whole number of 0 or more.'
+  if (item.total_progress != null && (typeof item.total_progress !== 'number' || !Number.isInteger(item.total_progress) || item.total_progress < 1)) return 'Total progress must be a positive whole number.'
+  const total = item.type === 'Movie' ? 1 : item.total_progress
+  if (typeof item.progress === 'number' && typeof total === 'number' && item.progress > total) return 'Progress cannot exceed the total.'
+  if (item.rating != null && (typeof item.rating !== 'number' || !Number.isInteger(item.rating) || item.rating < 1 || item.rating > 10)) return 'Rating must be 1-10.'
+  if (item.external_rating_value != null && (typeof item.external_rating_value !== 'number' || !Number.isFinite(item.external_rating_value) || item.external_rating_value < 0 || item.external_rating_value > 10)) return 'Official rating must be 0-10.'
+  if (typeof item.type === 'string' && typeof item.status === 'string' && !getAllowedStatuses(item.type).includes(item.status as ReturnType<typeof getAllowedStatuses>[number])) return 'Unsupported status for this media type.'
+  return null
 }
 
 export function recordToVaultExportItem(record: MediaItemRecord): VaultExportItem {
@@ -182,6 +216,8 @@ function toVaultExportItem(item: RestorableBackupItem): VaultExportItem {
   return {
     completed_at: item.completedAt,
     created_at: item.createdAt,
+    external_source: item.externalSource,
+    external_id: item.externalId,
     external_rating_label: item.externalRatingLabel,
     external_rating_value: numberOrNull(item.externalRatingValue),
     favorite: item.favorite,

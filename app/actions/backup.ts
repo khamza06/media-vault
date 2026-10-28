@@ -3,8 +3,9 @@
 import { revalidatePath } from 'next/cache'
 
 import { getCurrentUser } from '../../lib/auth/dal'
-import { createBackupPayload, type VaultExportItem } from '../../lib/backup'
-import { getItems } from '../../lib/data/items'
+import { createBackupPayload, getBackupExternalKey, getBackupTrackingError, type VaultExportItem } from '../../lib/backup'
+import { readAllOwnedBackupItems } from '../../lib/data/backup-items'
+import { getItemsForBackupExport } from '../../lib/data/items'
 import {
   getAllowedStatuses,
   isMovieType,
@@ -27,6 +28,7 @@ type BackupRestoreResult = {
 }
 
 type ExistingItemLookup = {
+  id: string
   external_id?: string | null
   external_source?: string | null
   title?: string | null
@@ -162,12 +164,13 @@ function normalizeGenres(value: unknown) {
 }
 
 function validateBackupRestoreItem(value: unknown): ValidatedBackupRestoreItem | null {
+  if (getBackupTrackingError(value)) return null
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null
   }
 
   const item = value as Partial<VaultExportItem>
-  const title = sanitizeText(item.title, { maxLength: 180 })
+  const title = sanitizeText(item.title)
   const type = sanitizeText(item.type)
 
   if (!title || !mediaTypes.includes(type as MediaType)) {
@@ -202,7 +205,7 @@ function validateBackupRestoreItem(value: unknown): ValidatedBackupRestoreItem |
     favorite: normalizeBoolean(item.favorite),
     genres: normalizeGenres(item.genres),
     imageUrl: sanitizeText(item.image_url ?? '', { maxLength: 1000 }) || null,
-    lastProgressAt: normalizeDate(item.last_progress_at) ?? (nextProgress > 0 ? new Date().toISOString() : null),
+    lastProgressAt: normalizeDate(item.last_progress_at),
     notes: sanitizeText(item.notes ?? '', { preserveWhitespace: true }),
     progress: nextProgress,
     rating: normalizeInteger(item.rating, { max: 10, min: 1 }),
@@ -254,18 +257,13 @@ function toCompatibilityRestoreRow(row: RestoreInsertRow) {
 }
 
 async function revalidateBackupRestorePaths(userId: string) {
-  revalidatePath('/')
-  revalidatePath('/backup')
-  revalidatePath('/import')
-  revalidatePath('/library')
-  revalidatePath('/lists')
-  revalidatePath('/stats')
-  revalidatePath('/summary')
-  revalidatePath(`/public/${userId}`)
-  revalidatePath(`/share/${userId}`)
-
-  for (const shelf of shelfDefinitions) {
-    revalidatePath(`/shelves/${shelf.slug}`)
+  try {
+    for (const path of ['/', '/backup', '/import', '/library', '/lists', '/stats', '/summary']) revalidatePath(path)
+    revalidatePath(`/public/${userId}`)
+    revalidatePath(`/share/${userId}`)
+    for (const shelf of shelfDefinitions) revalidatePath(`/shelves/${shelf.slug}`)
+  } catch {
+    console.warn('Backup restore saved, but view invalidation was unavailable.')
   }
 }
 
@@ -318,7 +316,7 @@ export async function restoreBackupItemsAction(
   if (validatedItems.length === 0) {
     return {
       error: 'No valid Media Vault items were found in the selected backup.',
-      failed: candidates.length,
+      failed: 0,
       invalid,
       restored: 0,
       skipped: 0,
@@ -328,10 +326,9 @@ export async function restoreBackupItemsAction(
   }
 
   const supabase = createSupabaseServerClient(user.accessToken)
-  const existingWithExternalResult = await supabase
-    .from('items')
-    .select('title, type, external_source, external_id')
-    .eq('user_id', user.id)
+  const existingWithExternalResult = await readAllOwnedBackupItems<ExistingItemLookup>(
+    supabase, user.id, 'id, title, type, external_source, external_id'
+  )
 
   let usedExternalIdColumns = !existingWithExternalResult.error
   let existingRows: ExistingItemLookup[] = existingWithExternalResult.data ?? []
@@ -339,7 +336,7 @@ export async function restoreBackupItemsAction(
   if (existingWithExternalResult.error) {
     if (!isMissingColumnError(existingWithExternalResult.error.message)) {
       return {
-        error: existingWithExternalResult.error.message,
+        error: 'Could not check existing vault items. Nothing was restored.',
         failed: validatedItems.length,
         invalid,
         restored: 0,
@@ -349,17 +346,16 @@ export async function restoreBackupItemsAction(
       }
     }
 
-    const existingTitleResult = await supabase
-      .from('items')
-      .select('title, type')
-      .eq('user_id', user.id)
+    const existingTitleResult = await readAllOwnedBackupItems<ExistingItemLookup>(
+      supabase, user.id, 'id, title, type'
+    )
 
     usedExternalIdColumns = false
     existingRows = existingTitleResult.data ?? []
 
     if (existingTitleResult.error) {
       return {
-        error: existingTitleResult.error.message,
+        error: 'Could not check existing vault items. Nothing was restored.',
         failed: validatedItems.length,
         invalid,
         restored: 0,
@@ -376,20 +372,18 @@ export async function restoreBackupItemsAction(
     )
   )
   const existingExternalKeys = new Set(
-    existingRows
-      .filter((item) => item.external_source && item.external_id)
-      .map((item) => `${item.external_source}::${item.external_id}`)
+    existingRows.map(getBackupExternalKey).filter((key): key is string => key !== null)
   )
   const incomingTitleKeys = new Set<string>()
   const incomingExternalKeys = new Set<string>()
   const rowsToInsert: RestoreInsertRowWithExternalMetadata[] = []
-  let skipped = invalid
+  let skipped = 0
 
   for (const item of validatedItems) {
     const titleKey = `${item.type}::${normalizeComparableTitle(item.title)}`
     const externalKey =
-      usedExternalIdColumns && item.externalSource && item.externalId
-        ? `${item.externalSource}::${item.externalId}`
+      usedExternalIdColumns
+        ? getBackupExternalKey({ type: item.type, external_source: item.externalSource, external_id: item.externalId })
         : null
 
     if (
@@ -436,20 +430,21 @@ export async function restoreBackupItemsAction(
 
   if (!fullInsert.error) {
     await revalidateBackupRestorePaths(user.id)
+    const restored = fullInsert.data?.length ?? 0
     return {
-      error: null,
-      failed: 0,
+      error: restored === rowsToInsert.length ? null : 'Not all restored items were confirmed. Refresh your vault before retrying.',
+      failed: Math.max(0, rowsToInsert.length - restored),
       invalid,
-      restored: fullInsert.data?.length ?? rowsToInsert.length,
+      restored,
       skipped,
-      success: true,
+      success: restored === rowsToInsert.length,
       usedExternalIdColumns,
     }
   }
 
   if (!isMissingColumnError(fullInsert.error.message)) {
     return {
-      error: fullInsert.error.message,
+      error: 'Could not restore the selected items. Please try again.',
       failed: rowsToInsert.length,
       invalid,
       restored: 0,
@@ -474,7 +469,7 @@ export async function restoreBackupItemsAction(
   })
   let compatibilityInsert = await supabase.from('items').insert(compatibilityRows).select('id')
 
-  if (compatibilityInsert.error && usedExternalIdColumns) {
+  if (compatibilityInsert.error && usedExternalIdColumns && isMissingColumnError(compatibilityInsert.error.message)) {
     const rowsWithoutExternalMetadata = rowsToInsert.map((row) =>
       toCompatibilityRestoreRow(row)
     )
@@ -484,7 +479,7 @@ export async function restoreBackupItemsAction(
 
   if (compatibilityInsert.error) {
     return {
-      error: compatibilityInsert.error.message,
+      error: 'Could not restore the selected items with this database schema.',
       failed: rowsToInsert.length,
       invalid,
       restored: 0,
@@ -495,19 +490,20 @@ export async function restoreBackupItemsAction(
   }
 
   await revalidateBackupRestorePaths(user.id)
+  const restored = compatibilityInsert.data?.length ?? 0
   return {
-    error: null,
-    failed: 0,
+    error: restored === compatibilityRows.length ? null : 'Not all restored items were confirmed. Refresh your vault before retrying.',
+    failed: Math.max(0, compatibilityRows.length - restored),
     invalid,
-    restored: compatibilityInsert.data?.length ?? compatibilityRows.length,
+    restored,
     skipped,
-    success: true,
+    success: restored === compatibilityRows.length,
     usedExternalIdColumns,
   }
 }
 
 export async function previewBackupAction() {
-  const result = await getItems()
+  const result = await getItemsForBackupExport()
   if (result.error) {
     throw new Error(result.error.message)
   }

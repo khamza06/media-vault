@@ -20,8 +20,8 @@ Live confirmation/recovery and two-account RLS checks remain unverified.
 
 ## Next Increments
 
-1. Continue detail-page improvements; Continue and account-scoped view preferences are complete.
-2. Continue detail-page and collection improvements, saved views and backup v2.
+1. Finish JSON backup v2 (private lists/memberships and safe item-ID mapping).
+2. Related-title browsing, full EN/RU copy and provider cache tuning remain separate follow-ups.
 3. Keep the schema-heavy activity/calendar/seasons stages separate and reviewed.
 
 Later roadmap stages (density, detail-page polish, lists, saved views, backup v2,
@@ -247,3 +247,28 @@ saved URLs, persistence through reload/density changes, Planning previews and th
 empty-pool state. No live account or database write was used. QA route removed.
 
 Next checkpoint: JSON backup v2 with private custom lists and item-ID mapping.
+
+## Stage 8A: Backup Safety Prerequisites
+
+Before changing the backup format, fixed concrete risks in the v1 path:
+
+- Backup export and duplicate lookup now keyset-page owned items until an empty
+  page, rather than silently accepting a provider row limit. Later-page errors
+  reject the export, not download a partial file. Schema fallback never removes
+  the owner filter; ownerless legacy schemas require the existing setup migration.
+- TMDB movie/TV duplicate identities are separate. Known prefixed IDs normalize
+  consistently; numeric IDs from unrelated provider namespaces are not equated.
+- MediaItem export preserves source/ID too. Restore preserves notes/progress and
+  no longer invents a last-progress timestamp when the backup has none.
+- Preview and server validation reject malformed tracking values, excess progress
+  and incompatible statuses. Unknown backup versions/other-app wrappers are not
+  silently imported. Supported legacy arrays and item wrappers still work.
+- Invalid rows, duplicates and failed/unconfirmed writes have separate counts.
+  Cache invalidation failures do not hide a successful restore. Export API requires
+  auth, uses private/no-store headers and does not return raw database errors.
+
+Verification: 269 tests, lint and production build passed. Tests cover >1000 items under a lower API cap, partial-page failures,
+owner-scoped fallback, namespace collisions, exact Markdown, no invented dates,
+explicit restore selection, guest downloads and malformed files. No live restore
+or export of the user's vault was performed. Format remains v1: list export and
+membership restore are not implemented yet and are the next distinct increment.

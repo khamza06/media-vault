@@ -6,7 +6,7 @@ import { Check, FileJson2, RotateCcw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { restoreBackupItemsAction } from '../app/actions/backup'
-import { isBackupPayload, type VaultExportItem } from '../lib/backup'
+import { extractBackupItems, getBackupTrackingError, type VaultExportItem } from '../lib/backup'
 import { mediaStatuses, mediaTypes } from '../lib/media'
 import { useToast } from './ToastProvider'
 import ActionFeedback from './ui/ActionFeedback'
@@ -171,6 +171,7 @@ export default function ImportBackupForm() {
 
       <div className="mt-5 space-y-4">
         <input
+          aria-label="Media Vault backup file"
           type="file"
           accept="application/json,.json"
           onChange={(event) => void handleFileChange(event.target.files?.[0] ?? null)}
@@ -384,26 +385,10 @@ function PreviewRow({
   )
 }
 
-function extractBackupItems(value: unknown): unknown[] | null {
-  if (isBackupPayload(value)) {
-    return value.items
-  }
-
-  if (Array.isArray(value)) {
-    return value
-  }
-
-  if (isRecord(value) && Array.isArray(value.items)) {
-    return value.items
-  }
-
-  return null
-}
-
 function normalizePreviewCandidate(value: unknown, index: number): PreviewCandidate {
   const record = isRecord(value) ? value : {}
   const item = toPreviewItem(record, index)
-  const reason = validatePreviewItem(item)
+  const reason = getBackupTrackingError(value) ?? validatePreviewItem(item)
 
   return {
     item,
