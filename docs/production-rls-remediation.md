@@ -54,11 +54,10 @@ credentials in a file, Git, logs or command history. Run only with disposable
 fixtures and ensure cleanup even if a check fails. It is deliberately outside
 default unit tests/CI and must never use real user IDs.
 
-## Remaining boundaries
+## Historical boundaries of the initial fix
 
-The existing product model makes every item row of a public profile public,
-including notes through the Data API. These migrations close private-profile
-exposure; they do not introduce field-level privacy or per-item visibility.
+The initial two migrations closed private-profile exposure but still exposed
+notes of public profiles. The follow-up below closes that remaining boundary.
 Private lists hide membership, not items already visible in a public vault.
 Public cover URLs retain their existing storage behavior.
 
@@ -67,3 +66,71 @@ whether earlier exposure was exploited, and do not test full browser workflows.
 
 Do not roll back by restoring unrestricted SELECT. If a legitimate flow fails,
 repair its specific policy while preserving private-profile denial.
+
+## Public notes privacy — completed follow-up
+
+Applied `20261028125052_add_notes_free_public_items.sql` and
+`20261028125530_restrict_item_notes_to_owners.sql`. No notes were moved, cleared,
+rewritten or copied into another table. All existing owner CRUD/import/backup
+paths continue using `items`; its SELECT access is now owner-only, including a
+restrictive owner policy that prevents future permissive sharing policies from
+silently reopening notes.
+
+Public profiles, public lists and legacy UUID/share readers use `public_items`.
+This intentional security-barrier definer view has a fixed column allowlist,
+an explicit public-profile predicate and SELECT-only grants. It contains no
+notes column. Public discovery cannot search/filter notes, and its loader strips
+unexpected non-public fields before serialization. No fallback reads the base
+table. Private owner discovery retains title/notes search and exact notes.
+
+The view requires the intended metadata/provider identity columns, confirmed
+present in production. A missing optional `last_progress_at` is projected as
+NULL; do not invent an activity date. Incomplete unrelated historical schemas
+fail closed rather than reverting to broad reads. View creation must precede
+the restriction migration; filenames match the production migration ledger.
+
+### Rollout and verification
+
+1. Created the notes-free view without removing existing access.
+2. Verified 418 unit/component tests, TypeScript, ESLint and production build.
+3. Pushed `e67e34c`; Vercel confirmed READY production deployment
+   `dpl_FFQSNEWAf8G2VyFcYGnozWfpvZGm` on media-vault.app.
+4. Atomically restricted base-table reads and updated list membership reads to
+   join the safe view. This preserved public sharing during the rollout.
+5. Ran 59 live checks with two disposable confirmed accounts and real user JWTs:
+   direct notes denial, note-filter inference denial, wildcard projection,
+   rejected note selection/filtering, relationship embedding, rejected view
+   writes, owner note preservation/writes, public/private profiles/lists,
+   visibility revocation and inconsistent membership ownership.
+6. Retrieved production `/u/[username]`, public list, `/public/[userId]` and
+   `/share/[user_id]` for synthetic fixtures: all HTTP 200, expected media present,
+   private note sentinel absent from HTML/RSC. No private real-user data queried.
+7. Removed only the exact synthetic account IDs; verified zero remaining fixture
+   users, items, lists and memberships. Existing users/data were not modified.
+
+Before restriction, a UUID-scoped synthetic test reproduced note disclosure
+through the old base API and confirmed the new projection omitted notes.
+After restriction, the same class of direct access returned no rows for anon
+and another authenticated user. Live checks use no service-role authorization;
+administrative SQL is only used to provision and clean synthetic fixtures.
+
+`tests/public-notes.test.ts` adds eight regressions for public loading,
+serialization, fail-closed schema errors, legacy helpers, public genre/search
+paths and retained owner notes. The live verifier accepts optional fixture
+`siteUrl` to check deployed public HTML/RSC too. Credentials are memory-only.
+
+### Advisor and rollback considerations
+
+Supabase Advisor flags the intentional `security_invoker=false` view. This is a
+reviewed exception: an invoker view cannot expose public media once base items
+are owner-only. The fixed projection excludes notes, explicit profile filtering
+guards rows, security_barrier protects the view boundary, and anon/authenticated
+have no view write privileges. Never replace the projection with SELECT * or
+remove its visibility predicate. The 59 real-session checks validate this boundary.
+Pre-existing mutable function search_path and leaked-password-protection warnings
+remain separate work; no unrelated Auth configuration was changed.
+
+Rollback must retain owner-only base reads. Keep the safe view when rolling back
+an application deployment; restoring the old public item policy would re-expose
+notes. Already downloaded historical data cannot be recalled. Public cover URLs
+and whole-public-profile media visibility remain as before.

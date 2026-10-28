@@ -34,6 +34,8 @@ try {
     const safeRows = must(await c.from('public_items').select('*').eq('id', f.itemA))
     check(`${name}: public wildcard excludes notes`, Object.hasOwn(safeRows[0], 'notes'), false)
     check(`${name}: public notes selection rejected`, Boolean((await c.from('public_items').select('notes').eq('id', f.itemA)).error), true)
+    const embedded = await c.from('public_items').select('id,items(notes)').eq('id', f.itemA)
+    check(`${name}: relationship embedding cannot expose notes`, Boolean(embedded.error) || !JSON.stringify(embedded.data).includes('P0 synthetic note'), true)
     check(`${name}: public note filter rejected`, Boolean((await c.from('public_items').select('id').eq('id', f.itemA).ilike('notes', '%synthetic%')).error), true)
     check(`${name}: public view write rejected`, Boolean((await c.from('public_items').update({ title: 'unexpected' }).eq('id', f.itemA)).error), true)
   }
@@ -49,6 +51,15 @@ try {
   check('other user cannot add to owner list', Boolean(invalid.error), true)
   must(await a.from('items').update({ progress: 1 }).eq('id', f.itemA).select('id').single())
   check('owner write preserves notes', must(await a.from('items').select('notes,progress').eq('id', f.itemA))[0], { notes: 'P0 synthetic note', progress: 1 })
+  if (f.siteUrl) {
+    for (const path of [`/u/p0-${f.run.slice(0, 8)}`, `/u/p0-${f.run.slice(0, 8)}/lists/p0-${f.run.slice(0, 8)}`, `/public/${f.a}`, `/share/${f.a}`]) {
+      const response = await fetch(new URL(path, f.siteUrl), { signal: AbortSignal.timeout(20000), cache: 'no-store' })
+      const body = await response.text()
+      check(`public page succeeds: ${path.split('/')[1]}`, response.status, 200)
+      check(`public page preserves media: ${path.split('/')[1]}`, body.includes('P0 synthetic A'), true)
+      check(`public HTML/RSC has no notes: ${path.split('/')[1]}`, body.includes('P0 synthetic note'), false)
+    }
+  }
   must(await a.from('lists').update({ is_public: false }).eq('id', f.publicList).select('id').single())
   check('list becomes private', await ids(anon, 'list_items', f.goodLink), [])
   check('public profile items remain public', await ids(anon, 'public_items', f.itemA), [f.itemA])
