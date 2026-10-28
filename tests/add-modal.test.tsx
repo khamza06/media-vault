@@ -37,6 +37,17 @@ function open() {
 }
 
 describe('Add New catalog save', () => {
+  it('keeps a rejected save inside the dialog without an inaccessible duplicate notification', async () => {
+    mocks.createItemAction.mockResolvedValueOnce({ success: false, error: 'Synthetic save failure' })
+    open()
+    fireEvent.click(screen.getByRole('button', { name: 'Save fixture' }))
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('Synthetic save failure'))
+    expect(mocks.showToast).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog').contains(screen.getByRole('alert'))).toBe(true)
+    expect((screen.getByRole('button', { name: 'Save fixture' }) as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Save fixture' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
   it('sends the selected ID, preserves exact notes and closes after success', async () => {
     open()
     fireEvent.change(screen.getByLabelText('Notes'), { target: { value: '  **Draft**\n' } })

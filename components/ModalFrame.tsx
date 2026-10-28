@@ -29,6 +29,8 @@ export default function ModalFrame({
       return
     }
     const previousFocus = document.activeElement as HTMLElement | null
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     const frame = window.requestAnimationFrame(() => contentRef.current?.focus())
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -52,7 +54,8 @@ export default function ModalFrame({
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.cancelAnimationFrame(frame)
-      previousFocus?.focus()
+      document.body.style.overflow = overflow
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true })
     }
   }, [isOpen])
 
@@ -62,7 +65,7 @@ export default function ModalFrame({
 
   return createPortal(
     <div
-      className="safe-top safe-bottom fixed inset-0 z-[1000] overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_30%),rgba(2,6,23,0.82)] px-4 py-6 backdrop-blur-sm sm:px-6 sm:py-10"
+      className="fixed inset-0 z-[1000] overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_30%),rgba(2,6,23,0.82)] px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:px-6 sm:pt-[max(1.5rem,env(safe-area-inset-top))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
       onClick={onClose}
     >
       <div className="flex min-h-full items-start justify-center">
@@ -73,11 +76,11 @@ export default function ModalFrame({
           aria-labelledby={titleId}
           aria-describedby={descriptionId}
           tabIndex={-1}
-          className="glass-panel surface-highlight flex w-full max-w-3xl flex-col overflow-hidden rounded-[30px]"
+          className="glass-panel surface-highlight flex max-h-[calc(100dvh-3rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-3xl flex-col overflow-hidden rounded-2xl sm:rounded-[30px]"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
-            <div>
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-6 sm:py-5">
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-200/75">
                 {t('form.quickCapture')}
               </p>
@@ -94,7 +97,7 @@ export default function ModalFrame({
             </button>
           </div>
 
-          <div className="max-h-[calc(100dvh-6rem)] overflow-y-auto pb-32 md:pb-8">
+          <div className="min-h-0 overflow-y-auto overscroll-contain pb-4 sm:pb-6">
             {children}
           </div>
         </div>

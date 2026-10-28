@@ -89,8 +89,8 @@ export default function MediaItemForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 px-5 py-5 sm:px-6">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block">
+      <div className="grid gap-4 min-[360px]:grid-cols-2">
+        <label className="block min-w-0">
           <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.type')}</span>
           <AppSelect
             ariaLabel={t('catalog.mediaType')}
@@ -114,7 +114,7 @@ export default function MediaItemForm({
           />
         </label>
 
-        <label className="block">
+        <label className="block min-w-0">
           <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.status')}</span>
           <AppSelect
             ariaLabel={t('form.status')}

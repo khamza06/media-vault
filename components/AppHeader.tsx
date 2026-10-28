@@ -3,8 +3,9 @@
 import { Menu, MoreVertical, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { isPublicVaultRoute } from '../lib/public-routes'
+import { dispatchOpenAddModal } from '../lib/add-modal-events'
 
 import AddModal from './AddModal'
 import HeaderCatalogSearch from './HeaderCatalogSearch'
@@ -22,7 +23,13 @@ export default function AppHeader({
   const { t } = useLocale()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false)
+  const [menuContext, setMenuContext] = useState({ pathname, userId })
   const utilityMenuRef = useRef<HTMLDivElement | null>(null)
+  const utilityTriggerRef = useRef<HTMLButtonElement>(null)
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const mobileMenuId = useId()
+  const utilityMenuId = useId()
   const isPublicRoute = isPublicVaultRoute(pathname)
   const isAuthRoute =
     pathname === '/login' || pathname === '/register' || pathname === '/welcome'
@@ -35,6 +42,8 @@ export default function AppHeader({
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        if (isMobileMenuOpen) mobileTriggerRef.current?.focus()
+        else utilityTriggerRef.current?.focus()
         setIsMobileMenuOpen(false)
         setIsUtilityMenuOpen(false)
       }
@@ -53,6 +62,44 @@ export default function AppHeader({
       document.removeEventListener('mousedown', handlePointerDown)
     }
   }, [isMobileMenuOpen, isUtilityMenuOpen])
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return
+    const trigger = mobileTriggerRef.current
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const frame = requestAnimationFrame(() => mobileMenuRef.current?.querySelector<HTMLButtonElement>('button')?.focus())
+    function trapFocus(event: KeyboardEvent) {
+      if (event.key !== 'Tab') return
+      const controls = [...(mobileMenuRef.current?.querySelectorAll<HTMLElement>('*') ?? [])]
+        .filter(element => element.matches('a[href],button:not(:disabled)') && element.tabIndex >= 0)
+      const first = controls[0], last = controls.at(-1)
+      if (event.shiftKey && (document.activeElement === first || !mobileMenuRef.current?.contains(document.activeElement))) {
+        event.preventDefault(); last?.focus()
+      } else if (!event.shiftKey && (document.activeElement === last || !mobileMenuRef.current?.contains(document.activeElement))) {
+        event.preventDefault(); first?.focus()
+      }
+    }
+    const desktop = window.matchMedia?.('(min-width: 768px)')
+    const closeOnDesktop = () => { if (desktop?.matches) setIsMobileMenuOpen(false) }
+    desktop?.addEventListener('change', closeOnDesktop)
+    document.addEventListener('keydown', trapFocus)
+    return () => {
+      cancelAnimationFrame(frame)
+      document.body.style.overflow = overflow
+      document.removeEventListener('keydown', trapFocus)
+      desktop?.removeEventListener('change', closeOnDesktop)
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true })
+    }
+  }, [isMobileMenuOpen])
+
+  // The shared layout survives history navigation and session changes.
+  // Reset before committing the new route so hidden menus release their effects.
+  if (menuContext.pathname !== pathname || menuContext.userId !== userId) {
+    setMenuContext({ pathname, userId })
+    setIsMobileMenuOpen(false)
+    setIsUtilityMenuOpen(false)
+  }
 
   if (isAuthRoute) {
     return null
@@ -119,16 +166,26 @@ export default function AppHeader({
               />
               <div ref={utilityMenuRef} className="relative">
                 <button
+                  ref={utilityTriggerRef}
                   type="button"
                   onClick={() => setIsUtilityMenuOpen((current) => !current)}
                   className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-900 hover:text-white"
                   aria-label={t('nav.utilityMenu')}
+                  aria-expanded={isUtilityMenuOpen}
+                  aria-controls={utilityMenuId}
+                  onKeyDown={(event) => {
+                    if (event.key === 'ArrowDown') {
+                      event.preventDefault()
+                      setIsUtilityMenuOpen(true)
+                      requestAnimationFrame(() => utilityMenuRef.current?.querySelector<HTMLAnchorElement>('a')?.focus())
+                    }
+                  }}
                 >
                   <MoreVertical className="h-5 w-5" />
                 </button>
 
                 {isUtilityMenuOpen ? (
-                  <div className="absolute right-0 top-full z-[150] mt-2 w-56 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 p-2 shadow-2xl">
+                  <div id={utilityMenuId} className="absolute right-0 top-full z-[150] mt-2 w-56 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 p-2 shadow-2xl">
                     <Link
                       href="/import"
                       onClick={() => setIsUtilityMenuOpen(false)}
@@ -166,16 +223,19 @@ export default function AppHeader({
             </div>
 
             <button
+              ref={mobileTriggerRef}
               type="button"
-              onClick={() => setIsMobileMenuOpen(true)}
+              onClick={() => { setIsUtilityMenuOpen(false); setIsMobileMenuOpen(true) }}
               className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-white shadow-[0_12px_30px_rgba(2,6,23,0.35)] transition hover:border-blue-400/40 hover:bg-slate-900 md:hidden"
               aria-label={t('nav.openMenu')}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls={mobileMenuId}
             >
               <Menu className="h-5 w-5" />
             </button>
           </div>
 
-          <nav className="scrollbar-hide relative z-10 hidden items-center gap-2 overflow-x-auto pb-1 md:flex">
+          <nav aria-label={t('nav.navigation')} className="scrollbar-hide relative z-10 hidden items-center gap-2 overflow-x-auto pb-1 md:flex">
             <NavLink
               href="/"
               isActive={
@@ -192,7 +252,7 @@ export default function AppHeader({
             <NavLink href={profileHref} isActive={pathname === '/discover'}>
               {t('nav.discover')}
             </NavLink>
-            <NavLink href="/lists" isActive={pathname === '/lists'}>
+            <NavLink href="/lists" isActive={pathname === '/lists' || pathname.startsWith('/lists/')}>
               {t('nav.lists')}
             </NavLink>
             <NavLink href="/stats" isActive={pathname === '/stats'}>
@@ -203,7 +263,7 @@ export default function AppHeader({
       </header>
 
       {isMobileMenuOpen ? (
-        <div className="fixed inset-0 z-[999] bg-slate-950/98 backdrop-blur-xl md:hidden">
+        <div ref={mobileMenuRef} id={mobileMenuId} role="dialog" aria-modal="true" aria-label={t('nav.navigation')} className="fixed inset-0 z-[999] bg-slate-950/98 backdrop-blur-xl md:hidden">
           <div className="vault-mobile-menu flex h-[100dvh] min-h-0 flex-col px-5">
             <div className="flex shrink-0 items-center justify-between gap-4">
               <div>
@@ -269,7 +329,7 @@ export default function AppHeader({
                 </MobileMenuLink>
                 <MobileMenuLink
                   href="/lists"
-                  isActive={pathname === '/lists'}
+                  isActive={pathname === '/lists' || pathname.startsWith('/lists/')}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
                   {t('nav.lists')}
@@ -306,11 +366,12 @@ export default function AppHeader({
             </div>
 
             <div className="shrink-0 space-y-3 border-t border-white/10 bg-slate-950 pt-4">
-              <AddModal
-                listenForExternalOpen
-                triggerClassName="w-full min-h-12 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_24px_rgba(59,130,246,0.28)] transition-all duration-300 hover:bg-blue-400"
-                triggerContent={t('common.addNew')}
-              />
+              <button type="button" onClick={() => {
+                setIsMobileMenuOpen(false)
+                requestAnimationFrame(() => dispatchOpenAddModal())
+              }} className="w-full min-h-12 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_24px_rgba(59,130,246,0.28)] transition hover:bg-blue-400">
+                {t('common.addNew')}
+              </button>
 
               <LogoutButton className="w-full min-h-12 rounded-xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-medium text-slate-100 transition hover:border-blue-400/30 hover:bg-white/10 hover:text-white" />
             </div>
@@ -336,6 +397,7 @@ function MobileMenuLink({
     <Link
       href={href}
       onClick={onNavigate}
+      aria-current={isActive ? 'page' : undefined}
       className={`inline-flex min-h-12 items-center justify-center rounded-xl border px-4 py-3 text-base font-medium transition ${
         isActive
           ? 'border-blue-400/30 bg-blue-500/20 text-white shadow-[0_0_20px_rgba(59,130,246,0.22)]'
@@ -359,6 +421,7 @@ function NavLink({
   return (
     <Link
       href={href}
+      aria-current={isActive ? 'page' : undefined}
       className={`shrink-0 rounded-xl border px-4 py-2 text-sm font-medium transition ${
         isActive
           ? 'border-blue-400/30 bg-blue-500/20 text-white shadow-[0_0_20px_rgba(59,130,246,0.22)]'

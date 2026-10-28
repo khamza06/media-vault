@@ -1,8 +1,8 @@
 'use client'
 
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import type { CatalogSearchCandidate, CatalogSearchPage, CatalogSearchSource } from '../../lib/catalog-types'
 import { fetchCatalogPage } from '../../lib/catalog-client'
@@ -31,6 +31,8 @@ export default function CatalogDiscover({ ownedItems, lists, loadPage = fetchCat
   const canChooseSources = type === 'anime' || type === 'manga'
   const source: CatalogSearchSource = canChooseSources && ['jikan', 'kitsu', 'shikimori'].includes(sourceParam ?? '') ? sourceParam as CatalogSearchSource : 'primary'
   const [query, setQuery] = useState(urlQuery)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const searchId = useId()
   const [lastUrlQuery, setLastUrlQuery] = useState(urlQuery)
   const [cursor, setCursor] = useState({ key: '', page: 1 })
   const [response, setResponse] = useState<(CatalogSearchPage & { key: string }) | null>(null)
@@ -98,13 +100,14 @@ export default function CatalogDiscover({ ownedItems, lists, loadPage = fetchCat
   return (
     <div className="space-y-6">
       <section aria-label="Catalog search" className="grid min-w-0 gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_10rem_11rem]">
-        <label className="min-w-0">
-          <span className="mb-2 block text-sm font-semibold text-slate-300">{t('catalog.searchTitles')}</span>
-          <div className="flex min-h-12 items-center gap-3 rounded-xl border border-slate-700 bg-slate-950 px-4 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/30">
+        <div className="min-w-0">
+          <label htmlFor={searchId} className="mb-2 block text-sm font-semibold text-slate-300">{t('catalog.searchTitles')}</label>
+          <div className="flex min-h-12 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 pl-4 pr-1 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/30">
             <Search className="h-4 w-4 shrink-0 text-slate-400" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} type="text" inputMode="search" maxLength={200} autoComplete="off" autoCorrect="off" spellCheck={false} placeholder={t('catalog.placeholder')} className="min-h-12 min-w-0 w-full bg-transparent text-base text-slate-100 outline-none placeholder:text-slate-500" />
+            <input id={searchId} ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} type="text" inputMode="search" enterKeyHint="search" maxLength={200} autoComplete="off" autoCorrect="off" spellCheck={false} placeholder={t('catalog.placeholder')} className="min-h-12 min-w-0 w-full bg-transparent text-base text-slate-100 outline-none placeholder:text-slate-500" />
+            {query ? <button type="button" aria-label={t('catalog.clearSearch')} onClick={() => { setQuery(''); searchRef.current?.focus() }} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white"><X aria-hidden="true" className="h-4 w-4" /></button> : null}
           </div>
-        </label>
+        </div>
         <label className="min-w-0"><span className="mb-2 block text-sm font-semibold text-slate-300">{t('catalog.mediaType')}</span>
           <AppSelect ariaLabel={t('catalog.mediaType')} value={type} onValueChange={(value) => updateFilter('type', value)} options={catalogSearchTypes.map((value) => ({ value, label: value === 'series' ? t('catalog.series') : translateType(locale, mapCatalogSearchTypeToMediaType(value)) }))} />
         </label>

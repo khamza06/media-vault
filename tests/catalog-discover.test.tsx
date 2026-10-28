@@ -29,6 +29,21 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe('Discover interactions', () => {
+  it('clears the catalog draft and URL without another provider call, retaining input focus', async () => {
+    const loadPage = vi.fn(async (input: CatalogPageRequest) => pageFor(input))
+    render(<CatalogDiscover ownedItems={[]} lists={[]} loadPage={loadPage} />)
+    const input = screen.getByRole('textbox', { name: 'Search titles' })
+    fireEvent.change(input, { target: { value: 'Re' } })
+    await flushSearch()
+    expect(screen.getByRole('textbox', { name: /^Search titles$/ })).toBe(input)
+    fireEvent.click(screen.getByRole('button', { name: 'Clear catalog search' }))
+    await flushSearch()
+    expect((input as HTMLInputElement).value).toBe('')
+    expect(document.activeElement).toBe(input)
+    expect(window.location.search).toBe('')
+    expect(screen.queryByRole('button', { name: /^Preview / })).toBeNull()
+    expect(loadPage).toHaveBeenCalledTimes(1)
+  })
   it('searches two-character titles after the same debounce', async () => {
     const loadPage = vi.fn(async (input: CatalogPageRequest) => pageFor(input))
     render(<CatalogDiscover ownedItems={[]} lists={[]} loadPage={loadPage} />)

@@ -216,7 +216,7 @@ export default function LibraryFilterControls({
       {activeChips.length > 0 ? (
         <div className="mt-3 flex min-w-0 flex-wrap gap-2" aria-label={t('library.active')}>
           {activeChips.map((chip) => (
-            <button key={chip.key} type="button" onClick={() => updateFilters({ [chip.key]: defaultLibraryFilters[chip.key] })} aria-label={t('library.removeChip', { label: chip.label ?? '' })} className="inline-flex max-w-full min-h-9 items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium text-blue-100 hover:border-blue-400/50 focus-visible:outline-2 focus-visible:outline-blue-400">
+            <button key={chip.key} type="button" onClick={() => updateFilters({ [chip.key]: defaultLibraryFilters[chip.key] })} aria-label={t('library.removeChip', { label: chip.label ?? '' })} className="inline-flex max-w-full min-h-11 items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium text-blue-100 hover:border-blue-400/50 focus-visible:outline-2 focus-visible:outline-blue-400">
               <span className="min-w-0 break-words [overflow-wrap:anywhere]">{chip.label}</span><X aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
             </button>
           ))}

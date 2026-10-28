@@ -71,22 +71,22 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
       <div className="mb-5">
         <Link
           href={backQuery}
-          className="glass-panel-soft inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
+          className="glass-panel-soft inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
         >
           Back to vault
         </Link>
       </div>
 
       <section className="grid min-w-0 gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start xl:grid-cols-[280px_minmax(0,1fr)] xl:gap-6">
-        <aside className="grid min-w-0 gap-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-start lg:sticky lg:top-[var(--vault-header-offset)] lg:block lg:space-y-4 lg:self-start">
-          <div className="glass-panel surface-highlight relative mx-auto aspect-[2/3] w-full max-w-60 overflow-hidden rounded-xl sm:max-w-none">
+        <aside className="order-2 grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-[var(--vault-header-offset)] lg:block lg:space-y-4 lg:self-start">
+          <div className="glass-panel surface-highlight relative mx-auto aspect-[2/3] w-full overflow-hidden rounded-xl">
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-white/5" />
             {item.image_url ? (
               <Image
                 src={item.image_url}
                 alt={item.title}
                 fill
-                sizes="(max-width: 640px) 240px, (max-width: 1024px) 180px, 280px"
+                sizes="(max-width: 640px) 80px, (max-width: 1024px) 180px, 280px"
                 className="object-cover"
               />
             ) : (
@@ -97,8 +97,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
           <ItemSnapshot item={mediaItem} addedAt={createdAt} />
         </aside>
 
-        <div className="min-w-0 space-y-4">
-          <div className="glass-panel space-y-4 rounded-xl p-5 sm:p-6">
+          <div className="glass-panel order-1 min-w-0 space-y-4 rounded-xl p-5 sm:p-6 lg:col-start-2 lg:row-start-1">
             <div className="flex flex-wrap gap-2">
               {mediaItem.favorite ? <Badge tone="favorite">Favorite</Badge> : null}
               <Badge>{item.status}</Badge>
@@ -126,7 +125,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
                     returnTo: editReturnTo,
                   },
                 }}
-                className="glass-panel-soft rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
+                className="glass-panel-soft inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
               >
                 Edit
               </Link>
@@ -145,6 +144,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
             </div>
           </div>
 
+        <div className="order-3 min-w-0 space-y-4 lg:col-start-2 lg:row-start-2">
           <ItemQuickEditPanel key={mediaItem.id} item={mediaItem} />
           <ItemProviderPanel key={`provider-${mediaItem.id}`} itemId={mediaItem.id} supported={Boolean(getProviderReference(mediaItem))} />
 

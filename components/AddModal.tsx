@@ -1,6 +1,6 @@
 'use client'
 
-import { Sparkles } from 'lucide-react'
+import { ChevronDown, Sparkles } from 'lucide-react'
 import { FormEvent, ReactNode, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -327,7 +327,6 @@ export default function AddModal({
     if (data.warning && !hasStrongMetadata) {
       setQuickImportMessage(data.warning)
       setQuickImportTone('error')
-      showToast(data.warning, 'error')
       return
     }
 
@@ -368,11 +367,9 @@ export default function AddModal({
       if (draft) {
         setQuickImportMessage(draft.warning)
         setQuickImportTone('error')
-        showToast(draft.warning, 'error')
       } else {
         setQuickImportMessage(message)
         setQuickImportTone('error')
-        showToast(message, 'error')
       }
     } finally {
       setIsQuickImporting(false)
@@ -403,7 +400,6 @@ export default function AddModal({
 
         if (!uploadResult.success || !uploadResult.url) {
           setErrorMessage(uploadResult.error ?? t('error.uploadCover'))
-          showToast(uploadResult.error ?? t('error.uploadCover'), 'error')
           return
         }
 
@@ -414,7 +410,6 @@ export default function AddModal({
       const result = await createItemAction({ ...form, imageUrl, notes: form.notes }, selectedCatalogId)
       if (!result.success) {
         setErrorMessage(result.error ?? t('error.saveItem'))
-        showToast(result.error ?? t('error.saveItem'), 'error')
         return
       }
 
@@ -449,17 +444,15 @@ export default function AddModal({
         title={t('add.title')}
         description={t('add.description')}
       >
-        <section className="border-b border-slate-800 px-6 py-5">
-          <div className="rounded-3xl border border-blue-500/20 bg-blue-500/10 p-4">
+        <details className="group/quick-import border-b border-slate-800 px-4 py-3 sm:px-6">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl text-sm font-semibold text-blue-200">
+            <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4" aria-hidden="true" />{t('form.quickImport')}</span>
+            <ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open/quick-import:rotate-180" />
+          </summary>
+          <div className="mb-2 mt-3 rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-200/80">
-                  <span className="inline-flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" aria-hidden="true" />
-                    {t('form.quickImport')}
-                  </span>
-                </p>
-                <p className="mt-2 text-sm text-slate-300">
+                <p className="text-sm text-slate-300">
                   {t('form.quickImportDescription')}
                 </p>
               </div>
@@ -509,6 +502,7 @@ export default function AddModal({
 
             {quickImportMessage ? (
               <p
+                role={quickImportTone === 'error' ? 'alert' : 'status'}
                 className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
                   quickImportTone === 'success'
                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
@@ -563,7 +557,7 @@ export default function AddModal({
               </div>
             ) : null}
           </div>
-        </section>
+        </details>
 
         <MediaItemForm
           coverFileName={coverFile?.name}

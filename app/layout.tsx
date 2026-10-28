@@ -11,6 +11,7 @@ import VaultPreferencesProvider from '../components/VaultPreferencesProvider'
 import { getCurrentUser } from '../lib/auth/dal'
 import { getConfiguredSiteUrl } from '../lib/auth/site-url'
 import { getRequestLocale } from '../lib/i18n-server'
+import { t } from '../lib/i18n'
 import './globals.css'
 
 const manrope = localFont({
@@ -135,11 +136,12 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <LocaleProvider locale={locale}>
+          <a href="#main-content" className="vault-skip-link">{t(locale, 'nav.skipToContent')}</a>
           <ToastProvider>
             <VaultPreferencesProvider userId={user?.id ?? null}>
               <PwaShell />
               <AppHeader accountLabel={accountLabel} userId={user?.id ?? null} />
-              {children}
+              <div id="main-content" tabIndex={-1} className="outline-none">{children}</div>
               <MobileTabBar userId={user?.id ?? null} />
             </VaultPreferencesProvider>
           </ToastProvider>

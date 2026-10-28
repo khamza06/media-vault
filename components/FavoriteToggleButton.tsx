@@ -50,7 +50,7 @@ export default function FavoriteToggleButton({
       }}
       disabled={isPending}
       aria-label={favorite ? t('common.favorited') : t('common.favorite')}
-      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`min-h-11 min-w-11 rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
         favorite
           ? 'border-amber-400/40 bg-amber-400/15 text-amber-100 hover:bg-amber-400/20'
           : 'border-slate-700 bg-slate-900/90 text-slate-200 hover:border-amber-400/40 hover:text-amber-100'

@@ -12,6 +12,7 @@ describe('capture modal accessibility', () => {
     const props = { title: 'New item', description: 'Private draft', isOpen: true, onClose: vi.fn() }
     const trigger = document.createElement('button'); document.body.append(trigger); trigger.focus()
     const view = render(<ModalFrame {...props}><input aria-label="Draft" /></ModalFrame>)
+    expect(document.body.style.overflow).toBe('hidden')
     act(() => frame?.(0))
     expect(screen.getByRole('dialog', { name: 'New item' }).getAttribute('aria-modal')).toBe('true')
     const input = screen.getByRole('textbox', { name: 'Draft' }); input.focus()
@@ -20,6 +21,7 @@ describe('capture modal accessibility', () => {
     expect(document.activeElement).toBe(input)
     expect(frame).toBeUndefined()
     view.unmount()
+    expect(document.body.style.overflow).toBe('')
     await waitFor(() => expect(document.activeElement).toBe(trigger))
     trigger.remove(); vi.unstubAllGlobals()
   })

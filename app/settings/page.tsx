@@ -3,7 +3,6 @@ import Link from 'next/link'
 import {
   AlertTriangle,
   Database,
-  Import,
   Lock,
   ShieldCheck,
   SlidersHorizontal,
@@ -122,8 +121,7 @@ export default async function SettingsPage() {
                 </dd>
               </div>
               <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-                Your raw user id is not shown here. Public sharing now uses a username-based
-                profile URL instead of exposing your owner id.
+                Manage your public name and sharing preferences below. Your account email is private.
               </div>
             </dl>
           </SettingsCard>
@@ -136,17 +134,15 @@ export default async function SettingsPage() {
           <SettingsCard
             icon={<SlidersHorizontal className="h-5 w-5" />}
             kicker="Preferences"
-            title="Vault defaults"
+            title="Language and display"
           >
             <div className="grid gap-4">
               <LanguageToggle />
-              <DisabledField label="Default landing page" value="Settings schema required" />
-              <DisabledField label="Default sort/filter" value="Settings schema required" />
               <p className="text-sm leading-6 text-slate-400">
-                Language and Library view preferences are stored in this browser. The remaining
-                default settings need a dedicated preferences schema. Public visibility is saved
-                separately in your profile.
+                Language, Library layout and saved views are remembered in this browser.
+                Change the layout or save your current filters from Library.
               </p>
+              <ToolLink href="/">Open Library preferences</ToolLink>
             </div>
           </SettingsCard>
         </section>
@@ -162,8 +158,8 @@ export default async function SettingsPage() {
               <ToolLink href="/import">Open Import Center</ToolLink>
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-400">
-              Use Backup before large imports, cleanup runs, or schema changes. Tiny seatbelt,
-              big relief.
+              Download a JSON backup before a large import or cleanup. You can preview and
+              selectively restore its contents from Backup.
             </p>
             <div className="mt-4">
               <MetadataRefreshButton />
@@ -172,12 +168,12 @@ export default async function SettingsPage() {
 
           <SettingsCard
             icon={<AlertTriangle className="h-5 w-5" />}
-            kicker="Danger Zone"
-            title="Destructive actions"
+            kicker="Collection tools"
+            title="Manage your collection"
           >
             <p className="text-sm leading-6 text-slate-400">
-              No destructive controls live on Settings yet. MyAnimeList cleanup remains in Import
-              Center, and normal item deletion stays inside Library selection mode.
+              Review MyAnimeList imports in Import Center. To delete individual titles or a
+              selection, use Library. Deletions require confirmation.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <ToolLink href="/import">Manage import cleanup</ToolLink>
@@ -186,22 +182,6 @@ export default async function SettingsPage() {
           </SettingsCard>
         </section>
 
-        <section className="mt-4 min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <div className="flex min-w-0 items-start gap-3">
-            <Import className="mt-1 h-5 w-5 shrink-0 text-blue-200" />
-            <div className="min-w-0">
-              <h2 className="text-lg font-semibold text-white">Public profile status</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                Public profile sharing is username-based at `/u/[username]`. Visitors only see
-                read-only vault items when your profile is public.
-              </p>
-              <p className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm leading-6 text-slate-300">
-                Developer note: run the public profiles migration before using these controls in
-                Supabase production.
-              </p>
-            </div>
-          </div>
-        </section>
       </div>
     </main>
   )
@@ -233,20 +213,6 @@ function SettingsCard({
       </div>
       {children}
     </section>
-  )
-}
-
-function DisabledField({ label, value }: { label: string; value: string }) {
-  return (
-    <label className="block">
-      <span className="text-sm font-semibold text-slate-200">{label}</span>
-      <input
-        disabled
-        value={value}
-        className="mt-2 min-h-11 w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-500"
-        readOnly
-      />
-    </label>
   )
 }
 

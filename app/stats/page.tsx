@@ -63,10 +63,12 @@ export default async function StatsPage() {
           <h1 className="vault-title mt-2">
             {t(locale, 'stats.title')}
           </h1>
+          <p className="max-w-2xl text-sm leading-6 text-slate-400">{t(locale, 'stats.description')}</p>
+          <Link href="/summary" className="inline-flex min-h-11 items-center text-sm font-semibold text-blue-200 hover:text-white">← {t(locale, 'nav.summary')}</Link>
         </div>
         {currentUser?.id ? (
           <div className="flex flex-wrap items-center gap-3">
-            {publicProfilePath ? (
+            {publicProfilePath && profileResult.profile?.isPublic ? (
               <>
                 <CopyShareLinkButton
                   path={publicProfilePath}
@@ -85,7 +87,7 @@ export default async function StatsPage() {
                 href="/settings"
                 className="inline-flex min-h-11 items-center rounded-xl border border-blue-400/30 bg-blue-500/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500/25"
               >
-                Set up public profile
+                {t(locale, 'common.manageSharing')}
               </Link>
             )}
           </div>

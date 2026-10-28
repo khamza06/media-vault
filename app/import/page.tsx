@@ -28,7 +28,13 @@ export default async function ImportPage() {
           </p>
         </header>
 
-        <section className="mb-6 min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
+        <nav aria-label="Import formats" className="mb-6 flex flex-wrap gap-2">
+          {([{ id: 'anilist-import', label: 'AniList' }, { id: 'csv-import', label: 'CSV' }, { id: 'mal-import', label: 'MyAnimeList XML' }]).map(format => (
+            <a key={format.id} href={`#${format.id}`} className="inline-flex min-h-11 items-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-blue-400 hover:text-white">{format.label}</a>
+          ))}
+        </nav>
+
+        <section id="anilist-import" className="mb-6 min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
           <div className="mb-5">
             <h2 className="text-xl font-semibold text-slate-100">AniList Import</h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
@@ -39,7 +45,7 @@ export default async function ImportPage() {
           <AniListImporter canImport={Boolean(user)} />
         </section>
 
-        <section className="mb-6 min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
+        <section id="csv-import" className="mb-6 min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
           <div className="mb-5">
             <h2 className="text-xl font-semibold text-slate-100">CSV Import</h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
@@ -51,7 +57,7 @@ export default async function ImportPage() {
           <CsvImporter canImport={Boolean(user)} />
         </section>
 
-        <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
+        <section id="mal-import" className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
           <div className="mb-5">
             <h2 className="text-xl font-semibold text-slate-100">MyAnimeList XML Import</h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
