@@ -159,3 +159,27 @@ Verification: 189 isolated tests, lint and production build passed. New mocked
 checks cover provider/type validation, owner-scoped reads/inserts, duplicate
 lookup failures, manual/MAL separation, schema fallbacks, exact notes and Add New
 success/error behavior. No live account, signup email or database write was used.
+
+## Stage 5B: On-Demand Provider Details
+
+- Added a collapsible About this title section to private item details. It loads
+  synopsis, provider title, genres, year, format, duration when provided, and a
+  canonical source link only when opened. Short/long descriptions remain readable.
+- Uses existing AniList/TMDB detail clients and exact saved IDs; MAL/Jikan IDs
+  can resolve through AniList's MAL mapping. Kitsu, OpenLibrary and Shikimori
+  details are not guessed across unrelated ID namespaces.
+- Added an authenticated owner-scoped endpoint with private/no-store responses,
+  minimal item selection and safe missing/error/retry states. No metadata writes
+  occur, and public profile/list components remain unchanged.
+- Jikan metadata refresh now also uses its saved MAL ID without changing the
+  source cleanup tag. Notes previews keep the same draft while provider sections
+  toggle and other personal fields save. Item editors are keyed by item ID to
+  avoid carrying one item's draft into another detail page.
+
+Verification: provider/component/API tests cover lazy loading, retry, owner scope,
+missing IDs, sanitized text, exact notes and failed saves. Eight opt-in live
+AniList/TMDB search/detail checks passed, without any auth or database mutation.
+Lint, TypeScript and production build passed. Related-title browsing is still
+deferred; no fake relation or activity history is added.
+
+Next checkpoint: collection cover previews and safe bulk list/status/favorite actions.

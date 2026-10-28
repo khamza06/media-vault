@@ -53,6 +53,14 @@ describe('metadata refresh writes', () => {
     expect(mocks.update).not.toHaveBeenCalled()
   })
 
+  it('uses a selected Jikan MAL ID without treating its cleanup source as a MAL import', async () => {
+    const query = mocks.from()
+    query.order.mockResolvedValue({ data: [{ ...ownedItem, external_source: 'jikan', external_id: 'jikan:anime:1' }], error: null })
+    await refreshCurrentUserItemMetadata()
+    expect(mocks.findAniListImportMetadata).toHaveBeenCalledWith(ownedItem.title, 'Anime', { anilistId: null, malId: '1', strictTitleMatch: true })
+    expect(mocks.update.mock.calls[0][0]).not.toHaveProperty('external_source')
+  })
+
   it('does not access items for guests', async () => {
     mocks.getCurrentUser.mockResolvedValue(null)
     expect(await refreshCurrentUserItemMetadata()).toMatchObject({ checked: 0, updated: 0 })

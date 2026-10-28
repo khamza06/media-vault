@@ -42,7 +42,8 @@ npm run test:providers
 ```
 
 This separate, opt-in command reads `.env.local` using the Next.js development
-environment loader and makes four public catalog searches against AniList/TMDB.
+environment loader and makes four public catalog searches and four linked-detail
+lookups against AniList/TMDB.
 TMDB needs a configured API key. It never signs in, sends email or writes to
 Supabase. It is not part of CI: external outages/rate limits can make it fail.
 Do not enable verbose request/URL logging that could reveal API keys.

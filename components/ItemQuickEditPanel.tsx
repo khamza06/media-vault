@@ -349,6 +349,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           </div>
         ) : (
           <textarea
+            aria-label="Notes"
             value={notes}
             onChange={(event) => {
               setNotes(event.target.value)

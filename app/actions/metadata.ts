@@ -15,6 +15,7 @@ import type { CatalogSearchCandidate } from '../../lib/catalog-types'
 import { getCurrentUser } from '../../lib/auth/dal'
 import { normalizeGenreList } from '../../lib/genres'
 import { parseProviderMediaId } from '../../lib/provider-ids'
+import { getProviderReference } from '../../lib/provider-details'
 import { shelfDefinitions } from '../../lib/shelves'
 import { createSupabaseServerClient } from '../../lib/supabase/server'
 
@@ -92,12 +93,8 @@ function getTmdbLookupType(type: string | null | undefined): 'movie' | 'tv' | nu
 }
 
 function getMyAnimeListId(item: RefreshableItem) {
-  if (item.external_source !== 'myanimelist') {
-    return null
-  }
-
-  const externalId = item.external_id?.trim()
-  return externalId || null
+  const ref = getProviderReference({ type: item.type ?? '', externalSource: item.external_source ?? null, externalId: item.external_id ?? null })
+  return ref?.provider === 'anilist' && ref.isMalId ? String(ref.id) : null
 }
 
 function parsePositiveInteger(value: string | number | null | undefined) {
@@ -196,9 +193,10 @@ async function fetchProviderMetadata(item: RefreshableItem): Promise<ProviderMet
   const aniListType = getAniListLookupType(item.type)
 
   if (aniListType) {
+    const ref = getProviderReference({ type: item.type ?? '', externalSource: item.external_source ?? null, externalId: item.external_id ?? null })
     return fromAniListMetadata(
       await findAniListImportMetadata(title, aniListType, {
-        anilistId: item.external_source?.toLowerCase() === 'anilist' ? item.external_id : null,
+        anilistId: ref?.provider === 'anilist' && !ref.isMalId ? String(ref.id) : null,
         malId: getMyAnimeListId(item),
         strictTitleMatch: true,
       })

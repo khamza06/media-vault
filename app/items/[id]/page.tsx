@@ -7,6 +7,8 @@ import DeleteItemButton from '../../../components/DeleteItemButton'
 import CoverPlaceholder from '../../../components/CoverPlaceholder'
 import FavoriteToggleButton from '../../../components/FavoriteToggleButton'
 import ItemQuickEditPanel from '../../../components/ItemQuickEditPanel'
+import ItemProviderPanel from '../../../components/ItemProviderPanel'
+import { getProviderReference } from '../../../lib/provider-details'
 import AddToListButton from '../../../components/lists/AddToListButton'
 import { getItemById } from '../../../lib/data/items'
 import { getCustomLists } from '../../../lib/data/lists'
@@ -143,11 +145,12 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
             </div>
           </div>
 
-          <ItemQuickEditPanel item={mediaItem} />
+          <ItemQuickEditPanel key={mediaItem.id} item={mediaItem} />
+          <ItemProviderPanel key={`provider-${mediaItem.id}`} itemId={mediaItem.id} supported={Boolean(getProviderReference(mediaItem))} />
 
           {mediaItem.genres.length > 0 ? (
             <section className="rounded-xl border border-slate-800 bg-slate-900/80 px-5 py-5">
-              <p className="text-sm text-slate-400">Genres</p>
+              <p className="text-sm text-slate-400">Saved genres</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {mediaItem.genres.map((genre) => (
                   <Badge key={genre} tone="muted">

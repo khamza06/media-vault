@@ -4,6 +4,7 @@ import type { CatalogProvider, CatalogSearchCandidate, CatalogSearchPage, Catalo
 import { normalizeGenreList } from './genres'
 import type { Locale } from './i18n'
 import type { QuickImportTypeHint } from './quick-import-parser'
+import { plainProviderDescription, type ProviderDetails } from './provider-details'
 import { mapCatalogSearchTypeToMediaType, type CatalogSearchType } from './search-safety'
 
 const ANILIST_ANIME_FORMATS = new Set([
@@ -569,6 +570,7 @@ async function getTmdbDetails(
 ) {
   return safeFetchJson<{
     genres?: Array<{ id: number; name: string }>
+    runtime?: number | null
     number_of_episodes?: number | null
     poster_path?: string | null
     release_date?: string | null
@@ -614,6 +616,23 @@ export async function getTmdbCandidateById(id: number, mediaType: 'movie' | 'tv'
     type: mediaType === 'tv' ? 'TV Series' : 'Movie',
     year: (details.release_date ?? details.first_air_date)?.slice(0, 4) ?? null,
   }, [title])
+}
+
+export async function getTmdbProviderDetails(id: number, mediaType: 'movie' | 'tv'): Promise<ProviderDetails | null> {
+  if (!Number.isSafeInteger(id) || id < 1 || id > 2147483647) return null
+  const apiKey = getTmdbApiKey()
+  if (!apiKey) return null
+  const details = await getTmdbDetails(apiKey, id, mediaType)
+  if (!details || details.adult) return null
+  return {
+    provider: 'TMDB', url: `https://www.themoviedb.org/${mediaType}/${id}`,
+    title: details.title?.trim() || details.name?.trim() || null,
+    description: plainProviderDescription(details.overview ?? ''),
+    genres: normalizeGenreList((details.genres ?? []).map((genre) => genre.name)),
+    year: (details.release_date ?? details.first_air_date)?.slice(0, 4) || null,
+    format: mediaType === 'movie' ? 'Movie' : 'TV Series',
+    durationMinutes: typeof details.runtime === 'number' && details.runtime > 0 ? details.runtime : null,
+  }
 }
 
 export async function searchTmdbCandidatesByType(

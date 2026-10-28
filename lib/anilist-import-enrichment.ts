@@ -3,10 +3,15 @@ import 'server-only'
 import { normalizeGenreList } from './genres'
 import { normalizeAniListAverageScore } from './anilist-values'
 import { parseProviderMediaId } from './provider-ids'
+import { plainProviderDescription, type ProviderDetails } from './provider-details'
 
 type AniListMediaType = 'ANIME' | 'MANGA'
 
 type AniListMedia = {
+  duration?: number | null
+  format?: string | null
+  isAdult?: boolean | null
+  startDate?: { year?: number | null } | null
   averageScore?: number | null
   chapters?: number | null
   coverImage?: {
@@ -92,6 +97,10 @@ const ANILIST_IMPORT_QUERY = `
 const ANILIST_IMPORT_BY_MAL_ID_QUERY = `
   query ImportEnrichmentByMalId($idMal: Int!, $type: MediaType!) {
     Media(idMal: $idMal, type: $type) {
+      duration
+      format
+      isAdult
+      startDate { year }
       id
       idMal
       type
@@ -591,4 +600,22 @@ export async function findAniListImportMetadata(
 
   const bestMatch = chooseBestMatch(allCandidates, variants)
   return bestMatch ? toImportMetadata(bestMatch, type, 'title') : null
+}
+
+export async function getAniListProviderDetails(id: number, type: 'Anime' | 'Manga', isMalId: boolean): Promise<ProviderDetails | null> {
+  if (!Number.isSafeInteger(id) || id < 1 || id > 2147483647) return null
+  const providerType = type === 'Anime' ? 'ANIME' : 'MANGA'
+  const media = await searchAniListMediaById(id, providerType, isMalId)
+  if (!media || !Number.isSafeInteger(media.id) || media.id < 1 || media.isAdult || (media.type && media.type !== providerType)
+    || (isMalId ? media.idMal !== id : media.id !== id)) return null
+  const year = media.startDate?.year
+  return {
+    provider: 'AniList', url: `https://anilist.co/${type === 'Anime' ? 'anime' : 'manga'}/${media.id}`,
+    title: media.title?.english || media.title?.romaji || media.title?.native || null,
+    description: plainProviderDescription(media.description ?? ''),
+    genres: normalizeGenreList(media.genres ?? []),
+    year: typeof year === 'number' && year > 0 ? String(year) : null,
+    format: media.format?.replaceAll('_', ' ') ?? null,
+    durationMinutes: typeof media.duration === 'number' && media.duration > 0 ? media.duration : null,
+  }
 }
