@@ -24,6 +24,10 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Save/open/remove a named filter view; confirm its URL and return navigation.
 - Try Pick for me with and without Planning items under the current filters.
 - Review bulk status/favorite/list changes; cancel, then test a small confirmed selection.
+- Simulate failed Add-to-list and bulk-delete responses: loading must stop, selection must remain, and no automatic retry may run.
+- Simulate a partial bulk delete: only confirmed deleted IDs may disappear; unconfirmed items must remain selected for review.
+- Confirm bulk review retains its original item IDs if the background selection changes.
+- Check dialog Cancel/Escape and focus return; cancellation must be blocked while a confirmed write is pending.
 - Simulate a network failure on +1 and confirm rollback and a usable retry.
 - Expand provider details; confirm notes drafts survive loading, retry and preview toggles.
 - On an AniList-linked item, expand related titles; confirm sequel/adaptation labels, provider links and Discover search links without automatic additions.
@@ -87,6 +91,7 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Confirm media type, status, genres, and monthly additions charts render.
 - Test Library filters and sorting together.
 - Test mobile nav at a narrow viewport.
+- Check list/bulk dialogs at 320px and a short 390x420 viewport: internal scrolling, no horizontal overflow, reachable Cancel/confirm controls and Radix options above the modal.
 - Confirm Logout is reachable from the mobile menu.
 - Switch English/Russian in Settings, reload, and verify the language persists without garbled text.
 - Test blocked localStorage and failed locale requests; selection should remain usable and retryable.

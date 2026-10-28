@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Check, ListPlus, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { addItemToListsAction } from '../../app/actions/lists'
 import { useToast } from '../ToastProvider'
@@ -36,17 +36,28 @@ export default function AddToListButton({
 }: AddToListButtonProps) {
   const router = useRouter()
   const { showToast } = useToast()
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const pendingRef = useRef(false)
+  const titleId = useId()
   const [isOpen, setIsOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [isAdding, setIsAdding] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!isOpen) return
+    const dialog = dialogRef.current
+    if (dialog && !dialog.open) dialog.showModal()
+    return () => dialog?.close()
+  }, [isOpen])
+
   function closeDialog() {
-    if (isAdding) {
+    if (pendingRef.current) {
       return
     }
 
+    dialogRef.current?.close()
     setIsOpen(false)
     setSelectedIds(new Set())
     setMessage(null)
@@ -68,36 +79,47 @@ export default function AddToListButton({
   }
 
   async function handleAdd() {
-    if (selectedIds.size === 0 || isAdding) {
+    if (selectedIds.size === 0 || pendingRef.current) {
       return
     }
 
+    pendingRef.current = true
     setIsAdding(true)
     setMessage(null)
     setError(null)
 
-    const result = await addItemToListsAction(itemId, [...selectedIds])
+    try {
+      const result = await addItemToListsAction(itemId, [...selectedIds])
+      if (!result.success || result.failed > 0) {
+        const nextError = result.error ?? 'Could not add this item to all selected lists.'
+        setError(nextError)
+        if (result.added > 0) {
+          setMessage(`Added to ${result.added} list${result.added === 1 ? '' : 's'}. Skipped ${result.skipped}. Failed ${result.failed}. Review your lists before retrying.`)
+          router.refresh()
+        }
+        showToast(nextError, 'error')
+        return
+      }
 
-    setIsAdding(false)
+      const nextMessage =
+        result.added > 0
+          ? result.skipped > 0
+            ? `Added to ${result.added} list${result.added === 1 ? '' : 's'}. ${result.skipped} skipped.`
+            : `Added to ${result.added} list${result.added === 1 ? '' : 's'}.`
+          : 'This item was already in the selected lists.'
 
-    if (!result.success) {
-      const nextError = result.error ?? 'Could not add this item to your lists.'
+      setMessage(nextMessage)
+      setSelectedIds(new Set())
+      showToast(nextMessage)
+      router.refresh()
+    } catch {
+      const nextError = 'Connection interrupted. Some list additions may have saved. Refresh and review your lists before retrying. Your selection is still here.'
       setError(nextError)
       showToast(nextError, 'error')
-      return
+    } finally {
+      pendingRef.current = false
+      setIsAdding(false)
     }
-
-    const nextMessage =
-      result.added > 0
-        ? result.skipped > 0
-          ? `Added to ${result.added} list${result.added === 1 ? '' : 's'}. ${result.skipped} skipped.`
-          : `Added to ${result.added} list${result.added === 1 ? '' : 's'}.`
-        : 'This item was already in the selected lists.'
-
-    setMessage(nextMessage)
-    setSelectedIds(new Set())
-    showToast(nextMessage)
-    router.refresh()
   }
 
   const buttonClassName =
@@ -109,6 +131,7 @@ export default function AddToListButton({
     <>
       <button
         type="button"
+        disabled={isAdding}
         onClick={() => {
           setIsOpen(true)
           setMessage(null)
@@ -122,22 +145,24 @@ export default function AddToListButton({
       </button>
 
       {isOpen ? (
-        <div
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/85 px-4 py-8 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="add-to-list-title"
+        <dialog
+          ref={dialogRef}
+          onCancel={(event) => { if (pendingRef.current) event.preventDefault() }}
+          onClose={() => { if (!dialogRef.current?.open) closeDialog() }}
+          aria-labelledby={titleId}
+          aria-busy={isAdding}
+          className="fixed inset-0 m-auto max-h-[calc(100dvh_-_3rem_-_env(safe-area-inset-bottom))] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl backdrop:bg-slate-950/85"
         >
-          <div className="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
+          <div className="min-w-0 p-5">
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200/75">
                   Custom lists
                 </p>
-                <h2 id="add-to-list-title" className="mt-2 text-xl font-bold text-slate-100">
+                <h2 id={titleId} className="mt-2 text-xl font-bold text-slate-100">
                   Add to list
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
+                <p className="mt-2 break-words text-sm leading-6 text-slate-400 [overflow-wrap:anywhere]">
                   Choose one or more custom lists for {itemTitle}.
                 </p>
               </div>
@@ -152,7 +177,7 @@ export default function AddToListButton({
               </button>
             </div>
 
-            <div className="mt-5 max-h-[360px] overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-2">
+            <div className="mt-5 max-h-[min(360px,40dvh)] overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-2">
               {lists.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900 p-5 text-center">
                   <h3 className="text-base font-semibold text-slate-100">
@@ -179,8 +204,10 @@ export default function AddToListButton({
                         key={list.id}
                         type="button"
                         onClick={() => toggleList(list.id)}
+                        aria-label={`${list.name} ${list.itemCount} item${list.itemCount === 1 ? '' : 's'}`}
+                        aria-pressed={selected}
                         disabled={isAdding}
-                        className={`grid min-h-16 grid-cols-[auto_1fr] gap-3 rounded-xl border p-3 text-left transition disabled:opacity-60 ${
+                        className={`grid min-h-16 min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-xl border p-3 text-left transition disabled:opacity-60 ${
                           selected
                             ? 'border-blue-400/60 bg-blue-500/15'
                             : 'border-slate-800 bg-slate-900 hover:border-blue-400/30'
@@ -212,12 +239,12 @@ export default function AddToListButton({
             </div>
 
             {message ? (
-              <p className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+              <p role="status" className={`mt-4 rounded-xl border px-4 py-3 text-sm ${error ? 'border-amber-400/30 bg-amber-500/10 text-amber-100' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'}`}>
                 {message}
               </p>
             ) : null}
             {error ? (
-              <p className="mt-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+              <p role="alert" className="mt-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
                 {error}
               </p>
             ) : null}
@@ -245,7 +272,7 @@ export default function AddToListButton({
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       ) : null}
     </>
   )

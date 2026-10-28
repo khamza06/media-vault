@@ -64,6 +64,15 @@ names/links/drafts across language changes and report session-only saving when
 storage fails. Planning-picker tests run in Strict Mode and check empty/guest/
 selection states without adding or updating items.
 
+List/bulk recovery suites mock every write. They cover transport rejection,
+same-tick duplicate submissions, partial confirmed additions/deletions, legacy
+count-only results, retained selections, stable review targets and deleted list
+options. Action tests assert owner filters and cover cleanup for confirmed rows
+only; invalidation failures cannot disguise an already committed deletion.
+Native-dialog shims test pending cancellation locks and focus return, while
+synthetic browser fixtures verify actual top-layer layout, keyboard behavior
+and Radix menus. No real deletion or list addition is used for these checks.
+
 ## Optional Provider Smoke Tests
 
 ```sh

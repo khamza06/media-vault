@@ -21,14 +21,17 @@ type Props = {
 const buttonClass = 'min-h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:border-blue-400/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:opacity-50'
 
 export default function BulkItemActions(props: Props) {
-  const [action, setAction] = useState<ActionKind | null>(null)
-  if (props.items.length === 0) return null
+  const [review, setReview] = useState<{ action: ActionKind; items: MediaItem[] } | null>(null)
+  if (props.items.length === 0 && !review) return null
+  const currentItems = new Map(props.items.map((item) => [item.id, item]))
+  const reviewedItems = review?.items.map((item) => currentItems.get(item.id) ?? item) ?? []
+  const startReview = (action: ActionKind) => setReview({ action, items: [...props.items] })
   return (
     <div className="flex min-w-0 flex-wrap gap-2 rounded-xl border border-slate-800 bg-slate-900 p-3" role="group" aria-label="Selected item actions">
-      <button type="button" className={buttonClass} onClick={() => setAction('status')}>Change status</button>
-      <button type="button" className={buttonClass} onClick={() => setAction('favorite')}>Favorite settings</button>
-      <button type="button" className={buttonClass} onClick={() => setAction('list')}>Add to list</button>
-      {action ? <BulkActionDialog {...props} action={action} onClose={() => setAction(null)} /> : null}
+      <button type="button" className={buttonClass} disabled={props.items.length === 0} onClick={() => startReview('status')}>Change status</button>
+      <button type="button" className={buttonClass} disabled={props.items.length === 0} onClick={() => startReview('favorite')}>Favorite settings</button>
+      <button type="button" className={buttonClass} disabled={props.items.length === 0} onClick={() => startReview('list')}>Add to list</button>
+      {review ? <BulkActionDialog {...props} items={reviewedItems} action={review.action} onClose={() => setReview(null)} /> : null}
     </div>
   )
 }
@@ -41,6 +44,7 @@ function BulkActionDialog({ items, lists, action, onClose, onUpdated, onDone }: 
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const pendingRef = useRef(false)
+  const cancelRef = useRef<HTMLButtonElement>(null)
   const router = useRouter()
   const { showToast } = useToast()
   const change: BulkItemChange = action === 'favorite' ? { kind: 'favorite', favorite } : { kind: 'status', status }
@@ -49,12 +53,19 @@ function BulkActionDialog({ items, lists, action, onClose, onUpdated, onDone }: 
 
   useEffect(() => {
     if (!dialog) return
-    dialog.showModal()
-    return () => dialog.close()
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    if (!dialog.open) dialog.showModal()
+    cancelRef.current?.focus()
+    return () => {
+      dialog.close()
+      if (opener?.isConnected) opener.focus({ preventScroll: true })
+    }
   }, [dialog])
 
   async function apply() {
     if (pendingRef.current) return
+    if (items.length === 0 || items.length > 500) { setError('Select between 1 and 500 items for one action.'); return }
+    if (action === 'list' && !lists.some((list) => list.id === listId)) { setError('Choose an available list before applying.'); return }
     pendingRef.current = true; setPending(true); setError('')
     try {
       const ids = items.map((item) => item.id)
@@ -64,7 +75,10 @@ function BulkActionDialog({ items, lists, action, onClose, onUpdated, onDone }: 
         showToast(`Added ${result.added} items. Skipped ${result.skipped} existing or unavailable items.`)
       } else {
         const result = await bulkUpdateItemsAction(ids, change)
-        if (result.updatedIds.length > 0) onUpdated(change, result.updatedIds)
+        if (result.updatedIds.length > 0) {
+          onUpdated(change, result.updatedIds.filter((id) => ids.includes(id)))
+          if (!result.success) router.refresh()
+        }
         if (!result.success) { setError(`${result.error ?? 'Could not save changes.'} Updated ${result.updated}. Skipped ${result.skipped}. Failed ${result.failed}.`); return }
         showToast(`Updated ${result.updated} items. Skipped ${result.skipped} unchanged, incompatible or unavailable items.`)
       }
@@ -94,8 +108,8 @@ function BulkActionDialog({ items, lists, action, onClose, onUpdated, onDone }: 
         {error ? <p role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p> : null}
       </div>
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <button type="button" autoFocus disabled={pending} onClick={onClose} className={buttonClass}>Cancel</button>
-        <button type="button" disabled={pending || items.length > 500 || (action === 'list' && !listId)} onClick={() => void apply()} className="min-h-11 rounded-xl bg-blue-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-400 disabled:opacity-50">{pending ? 'Applying...' : 'Apply changes'}</button>
+        <button ref={cancelRef} type="button" disabled={pending} onClick={onClose} className={buttonClass}>Cancel</button>
+        <button type="button" disabled={pending || items.length > 500 || (action === 'list' && !lists.some((list) => list.id === listId))} onClick={() => void apply()} className="min-h-11 rounded-xl bg-blue-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-400 disabled:opacity-50">{pending ? 'Applying...' : 'Apply changes'}</button>
       </div>
     </dialog>
   )

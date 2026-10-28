@@ -5,7 +5,8 @@ import { BookOpen, Clapperboard, Library, MonitorPlay, Sparkles, Tv } from 'luci
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
-import { deleteItemsBulkAction, incrementProgressAction } from '../app/actions/items'
+import { incrementProgressAction } from '../app/actions/items'
+import { useBulkDeleteRequest } from './useBulkDeleteRequest'
 import { isInProgressItem } from '../lib/continue-items'
 import type { DiscoverRecommendation } from '../lib/home-signals'
 import {
@@ -68,8 +69,13 @@ export default function HomeShelvesView({
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
-  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null)
+  const { isDeleting: isBulkDeleting, error: bulkDeleteError, setError: setBulkDeleteError, deleteSelected } = useBulkDeleteRequest({
+    onDeleted(ids) {
+      setLiveItems((current) => current.filter((item) => !ids.has(item.id)))
+      setSelectedIds((current) => new Set([...current].filter((id) => !ids.has(id))))
+    },
+    onComplete() { setSelectionMode(false); setIsBulkDeleteOpen(false) },
+  })
   const [dismissedRecommendations, setDismissedRecommendations] = useState<Set<string>>(
     () => new Set()
   )
@@ -359,38 +365,7 @@ export default function HomeShelvesView({
     )
   }
 
-  async function confirmBulkDelete() {
-    const ids = [...selectedIds]
-
-    if (ids.length === 0) {
-      return
-    }
-
-    setIsBulkDeleting(true)
-    setBulkDeleteError(null)
-
-    const result = await deleteItemsBulkAction(ids)
-
-    setIsBulkDeleting(false)
-
-    if (!result.success) {
-      setBulkDeleteError(result.error ?? 'Failed to delete selected items.')
-      showToast(result.error ?? 'Failed to delete selected items.', 'error')
-      return
-    }
-
-    const deletedIds = new Set(ids)
-    setLiveItems((current) => current.filter((item) => !deletedIds.has(item.id)))
-    setSelectedIds(new Set())
-    setSelectionMode(false)
-    setIsBulkDeleteOpen(false)
-    showToast(
-      result.failed > 0
-        ? `Deleted ${result.deleted} items. ${result.failed} were skipped.`
-        : `Deleted ${result.deleted} items.`
-    )
-    router.refresh()
-  }
+  function confirmBulkDelete() { void deleteSelected([...selectedIds]) }
 
   const selectionToolbar = (
     <BulkSelectionToolbar

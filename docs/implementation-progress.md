@@ -493,3 +493,25 @@ states and Strict Mode. Synthetic browser QA at 320-1920px verified dialog/card
 fit, saved-view links and EN/RU switching. Only a scoped synthetic browser
 preference was saved and cleared via UI; no real account/item/list write was run.
 Temporary fixtures were removed. Runtime dependency audit found zero known issues.
+
+## Stage 11A: List and Bulk-action Recovery
+
+- Add to list releases pending state after transport failures, keeps the selected
+  lists for review, blocks same-tick duplicate requests and distinguishes partial
+  confirmed additions from an unknown outcome. No automatic retry is performed.
+- Bulk deletion returns confirmed row IDs. Library, shelf and legacy grid views
+  remove only those cards; partial failures retain unconfirmed selections. Older
+  count-only responses are trusted only for a complete, unambiguous success.
+- Bulk review keeps its original target IDs if background selection changes,
+  refreshes confirmed partial updates and rejects a list target that disappeared.
+- Add-to-list and delete confirmation use bounded native modal dialogs above
+  transformed cards. Cancel/Escape, pending locks, safe initial focus and focus
+  return are covered; Radix dropdowns remain inside the modal's top layer.
+- Existing owner-scoped queries, RLS, notes/progress fields and duplicate-safe
+  membership actions are unchanged. No dependency or migration was added.
+
+Verification: 410 isolated tests, lint, TypeScript and production build passed.
+Synthetic browser checks covered 320-1920px, a short 390x420 viewport, long
+titles, a clipped/transformed card ancestor, dropdown selection and Cancel/Escape
+focus return. No real Add/Apply/Delete, authentication or live database write was
+performed. Temporary fixtures were removed before the production build.

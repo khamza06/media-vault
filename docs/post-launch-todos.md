@@ -37,3 +37,6 @@ the production polish sprint to avoid expanding scope.
   an interrupted real request may still have committed before its response failed.
 - Run disposable-account restore/RLS checks for backup v2; mocked write coverage
   and synthetic-file browser checks do not verify a live database restore.
+- Verify Add-to-list and bulk-action transport/partial recovery with a disposable
+  account and throwaway items. Automated tests use mocked writes; browser QA
+  opens/reviews/cancels synthetic dialogs without executing Add/Apply/Delete.

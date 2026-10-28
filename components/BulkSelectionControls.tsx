@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useId, useRef } from 'react'
+
 type BulkSelectionToolbarProps = {
   isDeleting: boolean
   isSelectionMode: boolean
@@ -101,19 +103,34 @@ export function BulkDeleteConfirmDialog({
   onCancel,
   onConfirm,
 }: BulkDeleteConfirmDialogProps) {
+  const ref = useRef<HTMLDialogElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const titleId = useId()
+  useEffect(() => {
+    if (!isOpen) return
+    const dialog = ref.current
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    if (dialog && !dialog.open) dialog.showModal()
+    cancelRef.current?.focus()
+    return () => {
+      dialog?.close()
+      if (opener?.isConnected) opener.focus({ preventScroll: true })
+    }
+  }, [isOpen])
   if (!isOpen) {
     return null
   }
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/80 px-4 py-8 backdrop-blur-sm">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="bulk-delete-title"
-        className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
+      <dialog
+        ref={ref}
+        onCancel={(event) => { if (isDeleting) event.preventDefault() }}
+        onClose={() => { if (!ref.current?.open && !isDeleting) onCancel() }}
+        aria-labelledby={titleId}
+        aria-busy={isDeleting}
+        className="fixed inset-0 m-auto max-h-[calc(100dvh_-_3rem_-_env(safe-area-inset-bottom))] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-5 text-slate-100 shadow-2xl backdrop:bg-slate-950/80"
       >
-        <h2 id="bulk-delete-title" className="text-xl font-bold text-slate-100">
+        <h2 id={titleId} className="text-xl font-bold text-slate-100">
           Delete selected items?
         </h2>
         <p className="mt-3 text-sm leading-6 text-slate-400">
@@ -122,13 +139,14 @@ export function BulkDeleteConfirmDialog({
         </p>
 
         {errorMessage ? (
-          <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-100">
+          <div role="alert" className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-100">
             {errorMessage}
           </div>
         ) : null}
 
         <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
+            ref={cancelRef}
             type="button"
             onClick={onCancel}
             disabled={isDeleting}
@@ -147,7 +165,6 @@ export function BulkDeleteConfirmDialog({
               : `Delete ${count} item${count === 1 ? '' : 's'}`}
           </button>
         </div>
-      </div>
-    </div>
+      </dialog>
   )
 }

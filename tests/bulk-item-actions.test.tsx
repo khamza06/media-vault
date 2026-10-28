@@ -27,6 +27,51 @@ beforeEach(() => {
 afterEach(() => { cleanup(); Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal'); Reflect.deleteProperty(HTMLDialogElement.prototype, 'close') })
 
 describe('reviewed bulk changes', () => {
+  it('focuses Cancel on open and returns focus to the trigger after cancellation', () => {
+    render(<StrictMode><BulkItemActions {...props()} /></StrictMode>)
+    const trigger = screen.getByRole('button', { name: 'Favorite settings' })
+    trigger.focus()
+    fireEvent.click(trigger)
+    const cancel = screen.getByRole('button', { name: 'Cancel' })
+    expect(document.activeElement).toBe(cancel)
+    expect((trigger as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(cancel)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+    expect(mocks.bulkUpdateItemsAction).not.toHaveBeenCalled()
+  })
+  it('keeps the reviewed IDs stable if the background selection changes before Apply', async () => {
+    const input = props()
+    const view = render(<BulkItemActions {...input} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Change status' }))
+    view.rerender(<BulkItemActions {...input} items={[{ ...item, id: '22222222-2222-4222-8222-222222222222' }]} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Apply changes' }))
+    await waitFor(() => expect(input.onDone).toHaveBeenCalledOnce())
+    expect(mocks.bulkUpdateItemsAction).toHaveBeenCalledExactlyOnceWith([item.id], { kind: 'status', status: 'Completed' })
+  })
+  it('reports partial confirmed updates, refreshes and keeps review open for the remaining items', async () => {
+    mocks.bulkUpdateItemsAction.mockResolvedValueOnce({ success: false, updated: 1, updatedIds: [item.id], skipped: 0, failed: 1, error: 'One item failed.' })
+    const other = { ...item, id: '22222222-2222-4222-8222-222222222222' }
+    const input = { ...props(), items: [item, other] }
+    const view = render(<BulkItemActions {...input} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Change status' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Apply changes' }))
+    await screen.findByRole('alert')
+    expect(input.onUpdated).toHaveBeenCalledWith({ kind: 'status', status: 'Completed' }, [item.id])
+    expect(input.onDone).not.toHaveBeenCalled()
+    expect(mocks.refresh).toHaveBeenCalledOnce()
+    view.rerender(<BulkItemActions {...input} items={[{ ...item, status: 'Completed' }, other]} />)
+    expect(screen.getByText(/1 can be updated/)).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Apply changes' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+  it('disables a list target that disappeared while review was open', () => {
+    const input = props()
+    const view = render(<BulkItemActions {...input} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Add to list' }))
+    view.rerender(<BulkItemActions {...input} lists={[]} />)
+    expect((screen.getByRole('button', { name: 'Apply changes' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(mocks.addItemsToListAction).not.toHaveBeenCalled()
+  })
   it('requires a review/apply step and mounts dropdowns inside the native dialog', async () => {
     const input = props()
     render(<StrictMode><BulkItemActions {...input} /></StrictMode>)

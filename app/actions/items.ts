@@ -31,6 +31,7 @@ type ActionResult = {
 
 type BulkDeleteActionResult = ActionResult & {
   deleted: number
+  deletedIds?: string[]
   failed: number
 }
 
@@ -190,7 +191,7 @@ export async function deleteItemsBulkAction(itemIds: string[]): Promise<BulkDele
   if (ownedItems.error) {
     return {
       deleted: 0,
-      error: ownedItems.error.message,
+      error: 'Could not verify the selected items. Please try again.',
       failed: ids.length,
       success: false,
     }
@@ -218,13 +219,14 @@ export async function deleteItemsBulkAction(itemIds: string[]): Promise<BulkDele
   if (deleteResult.error) {
     return {
       deleted: 0,
-      error: deleteResult.error.message,
+      error: 'Could not delete these items. Refresh your vault before retrying.',
       failed: ids.length,
       success: false,
     }
   }
 
-  const deletedIds = new Set((deleteResult.data ?? []).map((item) => item.id))
+  const ownedIdSet = new Set(ownedIds)
+  const deletedIds = new Set((deleteResult.data ?? []).map((item) => item.id).filter((id) => ownedIdSet.has(id)))
   const deleted = deletedIds.size
   const coverUrls = ownedRows
     .filter((item) => deletedIds.has(item.id))
@@ -239,10 +241,12 @@ export async function deleteItemsBulkAction(itemIds: string[]): Promise<BulkDele
     }
   }
 
-  await revalidateVaultPaths()
+  try { await revalidateVaultPaths() }
+  catch { console.warn('Bulk deletion saved, but view invalidation was unavailable.') }
 
   return {
     deleted,
+    deletedIds: [...deletedIds],
     error: deleted > 0 ? null : 'No items were deleted.',
     failed: ids.length - deleted,
     success: deleted > 0,
