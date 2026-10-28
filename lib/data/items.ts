@@ -8,6 +8,8 @@ import { isMissingColumnError, isMissingUserIdError } from './ownership'
 import { createSupabaseServerClient } from '../supabase/server'
 import type { CatalogIdentity } from '../catalog-identity'
 import { readAllOwnedBackupItems } from './backup-items'
+import { getPublicItemsByUserId, publicItemRecords, publicItemSelectFields } from './public-items'
+export { getPublicItemsByUserId } from './public-items'
 
 const fullItemSelectFieldsWithSource =
   'id, user_id, title, type, status, progress, total_progress, last_progress_at, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, external_source, external_id, created_at'
@@ -882,106 +884,8 @@ export async function incrementItemProgress(id: string) {
     .maybeSingle()
 }
 
-export async function getPublicItemsByUserId(userId: string) {
-  const supabase = createSupabaseServerClient()
-
-  const fullResult = await orderFullQuery(
-    supabase.from('items').select(fullItemSelectFields).eq('user_id', userId)
-  )
-
-  if (!fullResult.error) {
-    return fullResult
-  }
-
-  if (isExtendedSchemaError(fullResult.error.message) || isMetadataColumnError(fullResult.error.message)) {
-    if (isExtendedSchemaError(fullResult.error.message)) {
-      const metadataResult = await orderCompatibilityQuery(
-        supabase.from('items').select(metadataItemSelectFields).eq('user_id', userId)
-      )
-
-      if (!metadataResult.error) {
-        return metadataResult
-      }
-
-      if (
-        metadataResult.error.message &&
-        !isMetadataColumnError(metadataResult.error.message) &&
-        !isMissingUserIdError(metadataResult.error.message)
-      ) {
-        return metadataResult
-      }
-    }
-
-    const compatibilityResult = await orderCompatibilityQuery(
-      supabase.from('items').select(compatibilityItemSelectFields).eq('user_id', userId)
-    )
-
-    if (!compatibilityResult.error) {
-      return compatibilityResult
-    }
-
-    if (
-      isMissingUserIdError(compatibilityResult.error?.message) ||
-      isMetadataColumnError(compatibilityResult.error?.message)
-    ) {
-      return supabase.from('items').select(legacyItemSelectFields).order('created_at', { ascending: false })
-    }
-  }
-
-  if (isMissingUserIdError(fullResult.error.message) || isMetadataColumnError(fullResult.error.message)) {
-    return supabase.from('items').select(legacyItemSelectFields).order('created_at', { ascending: false })
-  }
-
-  return fullResult
-}
-
 export async function getSharedItemsByUserId(userId: string) {
-  const supabase = createSupabaseServerClient()
-
-  const fullResult = await orderFullQuery(
-    supabase.from('items').select(fullItemSelectFields).eq('user_id', userId)
-  )
-
-  if (!fullResult.error) {
-    return fullResult
-  }
-
-  if (isExtendedSchemaError(fullResult.error.message)) {
-    const metadataResult = await orderCompatibilityQuery(
-      supabase.from('items').select(metadataItemSelectFields).eq('user_id', userId)
-    )
-
-    if (!metadataResult.error) {
-      return metadataResult
-    }
-
-    if (
-      metadataResult.error.message &&
-      !isMetadataColumnError(metadataResult.error.message) &&
-      !isMissingUserIdError(metadataResult.error.message)
-    ) {
-      return metadataResult
-    }
-
-    const compatibilityResult = await orderCompatibilityQuery(
-      supabase.from('items').select(compatibilityItemSelectFields).eq('user_id', userId)
-    )
-
-    if (!compatibilityResult.error || !isMetadataColumnError(compatibilityResult.error?.message)) {
-      return compatibilityResult
-    }
-  }
-
-  if (isMissingUserIdError(fullResult.error.message)) {
-    return {
-      data: null,
-      error: {
-        message: 'Shared discovery needs the ownership migration so items can be filtered by owner id.',
-      },
-    }
-  }
-
-  return fullResult
+  return getPublicItemsByUserId(userId)
 }
 
 export async function getDiscoveryHubItemsByUserId(
@@ -989,19 +893,30 @@ export async function getDiscoveryHubItemsByUserId(
   filters: DiscoveryHubFilters,
   viewer?: { accessToken: string; id: string } | null
 ): Promise<DiscoveryHubItemsResult> {
+  const isOwner = viewer?.id === userId
   const supabase =
-    viewer?.id === userId ? createSupabaseServerClient(viewer.accessToken) : createSupabaseServerClient()
+    isOwner ? createSupabaseServerClient(viewer.accessToken) : createSupabaseServerClient()
 
   const totalResult = await supabase
-    .from('items')
+    .from(isOwner ? 'items' : 'public_items')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
 
   const totalCount = totalResult.count ?? 0
 
+  if (!isOwner) {
+    if (totalResult.error) return { data: null, error: totalResult.error, filteredCount: 0, totalCount: 0 }
+    const result = await applyDiscoveryFilters(
+      supabase.from('public_items').select(publicItemSelectFields, { count: 'exact' }).eq('user_id', userId),
+      filters, { supportsNotes: false }
+    )
+    return { data: result.error ? null : publicItemRecords(result.data), error: result.error,
+      filteredCount: result.count ?? 0, totalCount }
+  }
+
   const fullQuery = applyDiscoveryFilters(
     supabase
-      .from('items')
+      .from(isOwner ? 'items' : 'public_items')
       .select(discoveryExtendedSelectFields, { count: 'exact' })
       .eq('user_id', userId),
     filters,
@@ -1026,7 +941,7 @@ export async function getDiscoveryHubItemsByUserId(
   if (isExtendedSchemaError(fullResult.error.message)) {
     const metadataQuery = applyDiscoveryFilters(
       supabase
-        .from('items')
+        .from(isOwner ? 'items' : 'public_items')
         .select(discoveryMetadataSelectFields, { count: 'exact' })
         .eq('user_id', userId),
       filters,
@@ -1063,7 +978,7 @@ export async function getDiscoveryHubItemsByUserId(
 
     const compatibilityQuery = applyDiscoveryFilters(
       supabase
-        .from('items')
+        .from(isOwner ? 'items' : 'public_items')
         .select(discoveryCompatibilitySelectFields, { count: 'exact' })
         .eq('user_id', userId),
       filters,
@@ -1090,7 +1005,7 @@ export async function getDiscoveryHubItemsByUserId(
       isMetadataColumnError(compatibilityResult.error?.message)
     ) {
       const legacyQuery = applyDiscoveryFilters(
-        supabase.from('items').select(legacyItemSelectFields, { count: 'exact' }).eq('user_id', userId),
+        supabase.from(isOwner ? 'items' : 'public_items').select(legacyItemSelectFields, { count: 'exact' }).eq('user_id', userId),
         filters,
         {
           supportsGenres: false,
@@ -1112,7 +1027,7 @@ export async function getDiscoveryHubItemsByUserId(
 
   if (isMissingUserIdError(fullResult.error.message) || isMetadataColumnError(fullResult.error.message)) {
     const legacyQuery = applyDiscoveryFilters(
-      supabase.from('items').select(legacyItemSelectFields, { count: 'exact' }).eq('user_id', userId),
+      supabase.from(isOwner ? 'items' : 'public_items').select(legacyItemSelectFields, { count: 'exact' }).eq('user_id', userId),
       filters,
       {
         supportsGenres: false,
@@ -1143,11 +1058,12 @@ export async function getDiscoveryHubGenresByUserId(
   userId: string,
   viewer?: { accessToken: string; id: string } | null
 ) {
+  const isOwner = viewer?.id === userId
   const supabase =
-    viewer?.id === userId ? createSupabaseServerClient(viewer.accessToken) : createSupabaseServerClient()
+    isOwner ? createSupabaseServerClient(viewer.accessToken) : createSupabaseServerClient()
 
   const fullResult: GenreRowsResult = await supabase
-    .from('items')
+    .from(isOwner ? 'items' : 'public_items')
     .select('genres')
     .eq('user_id', userId)
 

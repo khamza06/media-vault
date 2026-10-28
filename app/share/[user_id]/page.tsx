@@ -96,6 +96,7 @@ export default async function ShareDiscoveryPage(props: PageProps) {
         </section>
       ) : (
         <DiscoveryHubView
+          isOwnerView={isOwnerView}
           items={items}
           totalCount={totalCount}
           availableGenres={availableGenres}

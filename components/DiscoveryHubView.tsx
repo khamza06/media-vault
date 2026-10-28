@@ -29,6 +29,7 @@ type DiscoveryHubViewProps = {
   availableGenres: string[]
   items: MediaItem[]
   totalCount: number
+  isOwnerView?: boolean
 }
 
 type LayoutMode = 'grid' | 'list'
@@ -75,6 +76,7 @@ export default function DiscoveryHubView({
   availableGenres,
   items,
   totalCount,
+  isOwnerView = false,
 }: DiscoveryHubViewProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -229,7 +231,7 @@ export default function DiscoveryHubView({
           type="search"
           value={draftFilters.query}
           onChange={(event) => updateDraft('query', event.target.value)}
-          placeholder="Search title, notes..."
+          placeholder={isOwnerView ? 'Search title, notes...' : 'Search public titles...'}
           className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/30"
         />
       </section>
