@@ -38,6 +38,7 @@ type ExistingItemLookup = {
 
 type ValidatedBackupRestoreItem = {
   completedAt: string | null
+  createdAt: string | null
   externalId: string | null
   externalRatingLabel: string | null
   externalRatingValue: number | null
@@ -58,6 +59,7 @@ type ValidatedBackupRestoreItem = {
 
 type RestoreInsertRow = {
   completed_at: string | null
+  created_at?: string
   external_rating_label: string | null
   external_rating_value: number | null
   favorite: boolean
@@ -196,6 +198,7 @@ function validateBackupRestoreItem(value: unknown): ValidatedBackupRestoreItem |
 
   return {
     completedAt: normalizeDate(item.completed_at),
+    createdAt: normalizeDate(item.created_at),
     externalId: sanitizeText(item.external_id ?? '', { maxLength: 120 }) || null,
     externalRatingLabel:
       sanitizeText(item.external_rating_label ?? '', { maxLength: 40 }) || null,
@@ -221,6 +224,7 @@ function validateBackupRestoreItem(value: unknown): ValidatedBackupRestoreItem |
 function toRestoreInsertRow(item: ValidatedBackupRestoreItem, userId: string): RestoreInsertRow {
   return {
     completed_at: item.completedAt,
+    ...(item.createdAt ? { created_at: item.createdAt } : {}),
     external_rating_label: item.externalRatingLabel,
     external_rating_value: item.externalRatingValue,
     favorite: item.favorite,
@@ -242,6 +246,7 @@ function toRestoreInsertRow(item: ValidatedBackupRestoreItem, userId: string): R
 function toCompatibilityRestoreRow(row: RestoreInsertRow) {
   return {
     completed_at: row.completed_at,
+    ...(row.created_at ? { created_at: row.created_at } : {}),
     favorite: row.favorite,
     genres: row.genres,
     image_url: row.image_url,
@@ -427,7 +432,11 @@ export async function restoreBackupItemsAction(
     }
   }
 
-  const fullInsert = await supabase.from('items').insert(rowsToInsert).select('id')
+  // Legacy undated rows must use the DB default, not NULL in a mixed bulk insert.
+  const fullInsert = await supabase
+    .from('items')
+    .insert(rowsToInsert, { defaultToNull: false })
+    .select('id')
 
   if (!fullInsert.error) {
     await revalidateBackupRestorePaths(user.id)
@@ -468,13 +477,19 @@ export async function restoreBackupItemsAction(
       external_source: row.external_source,
     }
   })
-  let compatibilityInsert = await supabase.from('items').insert(compatibilityRows).select('id')
+  let compatibilityInsert = await supabase
+    .from('items')
+    .insert(compatibilityRows, { defaultToNull: false })
+    .select('id')
 
   if (compatibilityInsert.error && usedExternalIdColumns && isMissingColumnError(compatibilityInsert.error.message)) {
     const rowsWithoutExternalMetadata = rowsToInsert.map((row) =>
       toCompatibilityRestoreRow(row)
     )
-    compatibilityInsert = await supabase.from('items').insert(rowsWithoutExternalMetadata).select('id')
+    compatibilityInsert = await supabase
+      .from('items')
+      .insert(rowsWithoutExternalMetadata, { defaultToNull: false })
+      .select('id')
     usedExternalIdColumns = false
   }
 

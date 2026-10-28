@@ -33,6 +33,13 @@ as list fields. Restore creates fresh list IDs owned by the signed-in user,
 explicitly private with no public slug. Item restore also does not reuse old IDs
 or owners. No schema migration is introduced by this increment.
 
+Valid original item `created_at` values are restored too, so monthly additions
+do not move to the restore month. Legacy files with missing/null/empty dates use
+the database creation default; the original date cannot be recovered from them.
+Mixed dated/undated bulk inserts explicitly use column defaults for missing
+values. A nonempty malformed date is reported invalid in preview and on the
+server, rather than silently replaced. No progress activity date is invented.
+
 ## Selection and Mapping
 
 1. Upload JSON; parsing and preview happen locally, without writing data.

@@ -82,6 +82,9 @@ export function getBackupTrackingError(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Invalid backup row.'
   const item = value as Record<string, unknown>
   if (item.notes != null && typeof item.notes !== 'string') return 'Notes must be text.'
+  if (item.created_at != null && item.created_at !== '' && (
+    typeof item.created_at !== 'string' || Number.isNaN(new Date(item.created_at).getTime())
+  )) return 'Added date must be a valid timestamp or empty.'
   if (item.progress != null && (typeof item.progress !== 'number' || !Number.isInteger(item.progress) || item.progress < 0)) return 'Progress must be a whole number of 0 or more.'
   if (item.total_progress != null && (typeof item.total_progress !== 'number' || !Number.isInteger(item.total_progress) || item.total_progress < 1)) return 'Total progress must be a positive whole number.'
   const total = item.type === 'Movie' ? 1 : item.total_progress

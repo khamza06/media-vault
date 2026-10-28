@@ -414,3 +414,18 @@ existing Add New form with source data unchanged and empty personal notes;
 Save was not clicked. Add New/full editing remain a separate translation pass,
 not a completed part of this increment.
 Lint, TypeScript and production build passed after the temporary route was removed.
+
+## Stage 8D: Original Backup Addition Dates
+
+- Item restore now includes the existing `created_at` field when the backup has
+  a valid original date. Monthly additions no longer shift to the restore month.
+- Legacy missing/null/empty dates use database defaults, including mixed bulk
+  batches and supported-column fallback. No progress activity date is invented.
+- Nonempty malformed dates are invalid in both local preview and server
+  validation. Exact Markdown notes, progress and owner-scoped duplicate skipping
+  are unchanged; no schema change or existing-item update is introduced.
+
+Verification: 351 isolated tests, lint, TypeScript and production build passed.
+Six added regressions cover original dates, legacy/mixed rows, compatibility and
+preview rejection. Runtime dependency audit reported zero known vulnerabilities.
+No real restore or account/database write was performed.

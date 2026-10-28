@@ -54,6 +54,8 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Verify exports over the configured API row limit are complete and reject partial-page errors.
 - Confirm malformed notes/progress are reported invalid, not silently changed.
 - Confirm missing activity timestamps stay missing after restore.
+- Confirm original addition dates survive restore and retain their month in Stats.
+- Test mixed dated/undated legacy rows; missing dates use DB defaults and malformed nonempty dates are invalid.
 
 ## Lists
 

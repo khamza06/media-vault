@@ -17,6 +17,13 @@ function upload(value: unknown) {
   fireEvent.change(screen.getByLabelText('Media Vault backup file'), { target: { files: [file] } })
 }
 describe('backup preview validation', () => {
+  it('reports malformed original dates before any restore is enabled', async () => {
+    render(<ImportBackupForm />); upload([{ ...row, created_at: 'invalid timestamp' }])
+    await screen.findByText('Added date must be a valid timestamp or empty.')
+    expect((screen.getByRole('button', { name: 'Restore selected items' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(mocks.restoreBackupItemsAction).not.toHaveBeenCalled()
+    expect(mocks.restoreBackupCollectionsAction).not.toHaveBeenCalled()
+  })
   it('releases pending state and keeps the selected lists after a transport failure', async () => {
     const id = '11111111-1111-4111-8111-111111111111'
     const list = { id: '22222222-2222-4222-8222-222222222222', name: 'Retry list', description: null, item_ids: [id] }
