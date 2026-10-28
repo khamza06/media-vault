@@ -15,7 +15,8 @@ type ShelfItemCardProps = {
   isSelected?: boolean
   isSelectionMode?: boolean
   item: MediaItem
-  layout?: 'grid' | 'rail'
+  layout?: 'grid' | 'rail' | 'row'
+  density?: 'comfortable' | 'compact'
   listOptions?: AddToListOption[]
   onIncrement: (item: MediaItem) => void
   onToggleSelection?: (item: MediaItem) => void
@@ -29,6 +30,7 @@ export default function ShelfItemCard({
   isSelectionMode = false,
   item,
   layout = 'grid',
+  density = 'comfortable',
   listOptions = [],
   onIncrement,
   onToggleSelection,
@@ -39,9 +41,54 @@ export default function ShelfItemCard({
     ? { pathname: `/items/${item.id}`, query: { returnTo } }
     : { pathname: `/items/${item.id}` }
 
+  const actions = !isSelectionMode ? (
+    <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
+      <button
+        type="button"
+        aria-label={`Increase progress for ${item.title}`}
+        onClick={() => onIncrement(item)}
+        disabled={progressBusy}
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-100 transition hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <Plus className="h-4 w-4" />
+        +1
+      </button>
+      <AddToListButton itemId={item.id} itemTitle={item.title} lists={listOptions} />
+    </div>
+  ) : null
+
+  if (layout === 'row') {
+    return (
+      <article className={`grid min-w-0 gap-x-4 gap-y-1 rounded-xl border bg-slate-900/80 p-3 sm:grid-cols-[minmax(0,1fr)_160px] sm:items-center ${isSelected ? 'border-blue-400/70' : 'border-slate-800'}`}>
+        <Link href={href} role={isSelectionMode ? 'button' : undefined}
+          aria-pressed={isSelectionMode ? isSelected : undefined}
+          aria-label={isSelectionMode ? `${isSelected ? 'Deselect' : 'Select'} ${item.title}` : undefined}
+          onClick={(event) => {
+            if (isSelectionMode) { event.preventDefault(); onToggleSelection?.(item) }
+          }}
+          className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400">
+          <div className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-xl bg-slate-950">
+            {item.imageUrl ? <Image src={item.imageUrl} alt="" fill sizes="56px" className="object-cover" />
+              : <CoverPlaceholder title={item.title} type={item.type} />}
+            {isSelectionMode ? <span className="absolute inset-0 flex items-center justify-center bg-slate-950/65">
+              {isSelected ? <Check aria-hidden="true" className="h-6 w-6 text-blue-200" /> : null}
+            </span> : null}
+          </div>
+          <div className="min-w-0 flex-1 space-y-1">
+            <h3 className="line-clamp-2 text-sm font-bold text-slate-100">{item.title}</h3>
+            <p className="text-xs text-slate-400">{item.type} / {item.status}</p>
+            <p className="text-xs text-slate-300">{formatProgressValue(item)}{item.rating ? ` / My rating: ${item.rating}/10` : ''}</p>
+            <ItemProgressBar item={item} />
+          </div>
+        </Link>
+        {actions}
+      </article>
+    )
+  }
+
   return (
     <article
-      className={`group flex min-w-0 shrink-0 flex-col ${layout === 'rail' ? 'w-[10.5rem] sm:w-[11.5rem]' : 'w-full'}`}
+      className={`group flex min-w-0 shrink-0 flex-col ${layout === 'rail' ? density === 'compact' ? 'w-36 sm:w-40' : 'w-[10.5rem] sm:w-[11.5rem]' : 'w-full'}`}
       onMouseEnter={() => accentHandler?.(item.imageUrl)}
       onMouseLeave={() => accentHandler?.(null)}
       onTouchStart={() => accentHandler?.(item.imageUrl)}
@@ -61,7 +108,7 @@ export default function ShelfItemCard({
         aria-label={
           isSelectionMode ? (isSelected ? `Deselect ${item.title}` : `Select ${item.title}`) : undefined
         }
-        className="block"
+        className="block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
       >
         <div
           className={`glass-panel-soft relative aspect-[2/3] overflow-hidden rounded-xl transition-all duration-300 group-hover:border-blue-400/30 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.22)] ${
@@ -108,6 +155,7 @@ export default function ShelfItemCard({
           {item.title}
         </h3>
         <p className="mt-1 text-sm text-slate-400">{renderMetaLine(item)}</p>
+        <ItemProgressBar item={item} />
         {item.externalRatingLabel && typeof item.externalRatingValue === 'number' ? (
           <p className="mt-1 text-xs font-medium text-blue-200">
             {formatExternalRating(item.externalRatingLabel, item.externalRatingValue)}
@@ -115,7 +163,7 @@ export default function ShelfItemCard({
         ) : null}
       </Link>
 
-      {item.genres.length > 0 ? (
+      {density !== 'compact' && item.genres.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {item.genres.slice(0, 2).map((genre) => (
             <span
@@ -133,21 +181,20 @@ export default function ShelfItemCard({
         </div>
       ) : null}
 
-      {!isSelectionMode ? (
-        <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
-          <button
-            type="button"
-            onClick={() => onIncrement(item)}
-            disabled={progressBusy}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-100 transition hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Plus className="h-4 w-4" />
-            +1
-          </button>
-          <AddToListButton itemId={item.id} itemTitle={item.title} lists={listOptions} />
-        </div>
-      ) : null}
+      {actions}
     </article>
+  )
+}
+
+function ItemProgressBar({ item }: { item: MediaItem }) {
+  if (item.totalProgress === null || !Number.isFinite(item.totalProgress) || item.totalProgress <= 0) return null
+  const progress = Math.max(0, Math.min(Number.isFinite(item.progress) ? item.progress : 0, item.totalProgress))
+  return (
+    <div role="progressbar" aria-label={`Progress for ${item.title}`} aria-valuemin={0}
+      aria-valuemax={item.totalProgress} aria-valuenow={progress}
+      className="mt-2 h-1 overflow-hidden rounded-xl bg-slate-800">
+      <div className="h-full rounded-xl bg-blue-400/80" style={{ width: `${progress / item.totalProgress * 100}%` }} />
+    </div>
   )
 }
 

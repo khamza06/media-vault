@@ -19,6 +19,7 @@ import {
 } from '../lib/library-filters'
 import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
 import { shelfDefinitions } from '../lib/shelves'
+import { getMediaCardGridClassName } from '../lib/media-card-grid'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
 import ContinueShelf from './ContinueShelf'
 import DiscoverRecommendationCard from './DiscoverRecommendationCard'
@@ -27,6 +28,8 @@ import SetupChecklist, { type SetupChecklistState } from './onboarding/SetupChec
 import { useToast } from './ToastProvider'
 import type { AddToListOption } from './lists/AddToListButton'
 import ShelfItemCard from './ShelfItemCard'
+import LibraryViewControls from './LibraryViewControls'
+import { useVaultPreferences } from './VaultPreferencesProvider'
 
 const shelfIcons = {
   anime: Tv,
@@ -53,6 +56,7 @@ export default function HomeShelvesView({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { showToast } = useToast()
+  const { view } = useVaultPreferences()
   const [liveItems, setLiveItems] = useState(items)
   const [busyIds, setBusyIds] = useState<Record<string, boolean>>({})
   const [activeAccent, setActiveAccent] = useState<string | null>(null)
@@ -114,7 +118,7 @@ export default function HomeShelvesView({
     if (selectionMode) {
       setSelectedIds(new Set())
     }
-  }, [filters, selectionMode])
+  }, [filters, selectionMode, view])
 
   useEffect(() => {
     const root = document.documentElement
@@ -184,8 +188,8 @@ export default function HomeShelvesView({
   }, [filteredItems])
 
   const visibleShelfItems = useMemo(
-    () => sortedShelves.flatMap((shelf) => shelf.items),
-    [sortedShelves]
+    () => view === 'table' ? filteredItems : sortedShelves.flatMap((shelf) => shelf.items),
+    [sortedShelves, filteredItems, view]
   )
   const ownedRecommendationItems = useMemo(() => {
     const byTitleAndType = new Map<string, MediaItem>()
@@ -418,6 +422,7 @@ export default function HomeShelvesView({
         />
 
         {selectionMode ? selectionToolbar : null}
+        <LibraryViewControls />
       </section>
 
       {totalCount === 0 ? (
@@ -447,7 +452,7 @@ export default function HomeShelvesView({
             <SetupChecklist state={onboardingState} variant="compact" />
           ) : null}
 
-          <ContinueShelf
+          {view !== 'table' ? <ContinueShelf
             items={filteredItems}
             listOptions={listOptions}
             busyIds={busyIds}
@@ -455,9 +460,19 @@ export default function HomeShelvesView({
             onIncrement={handleIncrement}
             accentHandler={resolveAccent}
             returnTo={currentReturnTo}
-          />
+            density={view === 'compact' ? 'compact' : 'comfortable'}
+          /> : null}
 
-          {sortedShelves.map((shelf) => {
+          {view === 'table' ? (
+            <section aria-label="Library items" className={getMediaCardGridClassName(view)}>
+              {filteredItems.map((item) => (
+                <ShelfItemCard key={item.id} item={item} layout="row" listOptions={listOptions}
+                  onIncrement={handleIncrement} progressBusy={Boolean(busyIds[item.id])}
+                  isSelected={selectedIds.has(item.id)} isSelectionMode={selectionMode}
+                  onToggleSelection={toggleSelection} returnTo={currentReturnTo} />
+              ))}
+            </section>
+          ) : sortedShelves.map((shelf) => {
             const ShelfIcon = shelfIcons[shelf.key]
 
             return (
@@ -490,6 +505,7 @@ export default function HomeShelvesView({
                         isSelectionMode={selectionMode}
                         item={item}
                         layout="rail"
+                        density={view === 'compact' ? 'compact' : 'comfortable'}
                         listOptions={listOptions}
                         onIncrement={handleIncrement}
                         onToggleSelection={toggleSelection}

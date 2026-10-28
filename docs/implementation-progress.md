@@ -20,7 +20,7 @@ Live confirmation/recovery and two-account RLS checks remain unverified.
 
 ## Next Increments
 
-1. Add account-scoped card-density/view preferences; the compact Continue shelf is complete.
+1. Continue detail-page improvements; Continue and account-scoped view preferences are complete.
 2. Continue detail-page and collection improvements, saved views and backup v2.
 3. Keep the schema-heavy activity/calendar/seasons stages separate and reviewed.
 
@@ -113,5 +113,27 @@ preservation, existing action props, parent progress/busy updates and bulk-mode
 visibility. No authenticated browser session or live vault writes were used;
 visual validation with a signed-in account remains a manual check.
 
-Next checkpoint: account-scoped density/view preferences. Not implemented in this
-increment, to keep this stage bounded before the usage limit.
+## Stage 4B: Account-Scoped Library Views
+
+- Added Comfortable / Compact / Table controls shared by home and shelf pages.
+  Table shows all filtered home items, with responsive rows instead of a wide
+  horizontally scrolling table. Compact cards hide secondary genre badges.
+- Reuses the existing card actions, owner-only list picker, progress busy state,
+  URL filters and return links. Bulk selection clears when switching views.
+- Stores only the selected view in browser localStorage, under a versioned key
+  scoped to the signed-in user ID already available in the root layout. No extra
+  auth request, database preference, user notes or secrets are stored there.
+- Handles blocked storage/quota errors in memory, validates stored data and
+  synchronizes other tabs. Guests do not inherit another account's preference.
+- Added a small progress indicator only when the saved total is known; display
+  clamping does not modify saved progress. Public card grids are unchanged.
+
+Verification: 157 tests, lint and the production build passed.
+Automated component/selection tests cover storage/account isolation, failures,
+card actions, row selection and chapter units. Synthetic browser checks at
+320/390/768/1280/1440/1920 px found no page overflow in all three modes; verified
+15-row selection, URL filtering and restoring Table after reload/hydration.
+No signed-in browser session or live item writes were used. The temporary QA
+route was removed before the production build.
+
+Next checkpoint: detail-page provider metadata and draft-safe section polish.

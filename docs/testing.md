@@ -30,6 +30,11 @@ Continue shelf tests cover active statuses, last-progress ordering and safe date
 fallbacks, the six-card limit, current Library filters, notes immutability, card
 action/return URL reuse, progress/busy rerenders and hiding during bulk selection.
 
+View preference tests cover validation, account isolation, reload/remount,
+cross-tab changes and blocked storage. Card layout tests cover the same progress,
+list and return-link controls in grid/rail/row modes, bulk selection and known vs
+unknown totals. Browser checks use synthetic data, not an authenticated vault.
+
 ## Optional Provider Smoke Tests
 
 ```sh

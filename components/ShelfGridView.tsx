@@ -14,12 +14,14 @@ import {
   writeLibraryFiltersToSearchParams,
 } from '../lib/library-filters'
 import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
-import { mediaCardGridClassName } from '../lib/media-card-grid'
+import { getMediaCardGridClassName } from '../lib/media-card-grid'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
 import LibraryFilterControls from './LibraryFilterControls'
 import { useToast } from './ToastProvider'
 import type { AddToListOption } from './lists/AddToListButton'
 import ShelfItemCard from './ShelfItemCard'
+import LibraryViewControls from './LibraryViewControls'
+import { useVaultPreferences } from './VaultPreferencesProvider'
 
 export default function ShelfGridView({
   description,
@@ -36,6 +38,7 @@ export default function ShelfGridView({
   const router = useRouter()
   const searchParams = useSearchParams()
   const { showToast } = useToast()
+  const { view } = useVaultPreferences()
   const [liveItems, setLiveItems] = useState(items)
   const [busyIds, setBusyIds] = useState<Record<string, boolean>>({})
   const [selectionMode, setSelectionMode] = useState(false)
@@ -83,7 +86,7 @@ export default function ShelfGridView({
     if (selectionMode) {
       setSelectedIds(new Set())
     }
-  }, [favoritesOnly, filters, selectionMode])
+  }, [favoritesOnly, filters, selectionMode, view])
 
   const filteredItems = useMemo(() => {
     const baseItems = filterAndSortMediaItems(liveItems, filters, {
@@ -215,6 +218,7 @@ export default function ShelfGridView({
       </header>
 
       <section className="mb-8 min-w-0 space-y-4">
+        <LibraryViewControls />
         <LibraryFilterControls
           filters={filters}
           onChange={updateFilterUrl}
@@ -276,13 +280,15 @@ export default function ShelfGridView({
           ) : null}
         </section>
       ) : (
-        <section className={mediaCardGridClassName}>
+        <section className={getMediaCardGridClassName(view)}>
           {filteredItems.map((item) => (
             <ShelfItemCard
               key={item.id}
               isSelected={selectedIds.has(item.id)}
               isSelectionMode={selectionMode}
               item={item}
+              layout={view === 'table' ? 'row' : 'grid'}
+              density={view === 'compact' ? 'compact' : 'comfortable'}
               listOptions={listOptions}
               onIncrement={handleIncrement}
               onToggleSelection={toggleSelection}

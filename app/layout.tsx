@@ -7,6 +7,7 @@ import { LocaleProvider } from '../components/LocaleProvider'
 import MobileTabBar from '../components/MobileTabBar'
 import PwaShell from '../components/PwaShell'
 import { ToastProvider } from '../components/ToastProvider'
+import VaultPreferencesProvider from '../components/VaultPreferencesProvider'
 import { getCurrentUser } from '../lib/auth/dal'
 import { getConfiguredSiteUrl } from '../lib/auth/site-url'
 import { getRequestLocale } from '../lib/i18n-server'
@@ -135,10 +136,12 @@ export default async function RootLayout({
       >
         <LocaleProvider locale={locale}>
           <ToastProvider>
-            <PwaShell />
-            <AppHeader accountLabel={accountLabel} userId={user?.id ?? null} />
-            {children}
-            <MobileTabBar userId={user?.id ?? null} />
+            <VaultPreferencesProvider userId={user?.id ?? null}>
+              <PwaShell />
+              <AppHeader accountLabel={accountLabel} userId={user?.id ?? null} />
+              {children}
+              <MobileTabBar userId={user?.id ?? null} />
+            </VaultPreferencesProvider>
           </ToastProvider>
         </LocaleProvider>
       </body>

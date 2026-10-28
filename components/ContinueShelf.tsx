@@ -15,10 +15,11 @@ type ContinueShelfProps = {
   onIncrement: (item: MediaItem) => void
   accentHandler: (imageUrl: string | null) => void
   returnTo: string
+  density?: 'comfortable' | 'compact'
 }
 
 export default function ContinueShelf({
-  items, listOptions, busyIds, isSelectionMode, onIncrement, accentHandler, returnTo,
+  items, listOptions, busyIds, isSelectionMode, onIncrement, accentHandler, returnTo, density,
 }: ContinueShelfProps) {
   const continueItems = getContinueItems(items)
 
@@ -46,6 +47,7 @@ export default function ContinueShelf({
             accentHandler={accentHandler}
             item={item}
             layout="rail"
+            density={density}
             listOptions={listOptions}
             onIncrement={onIncrement}
             progressBusy={Boolean(busyIds[item.id])}
