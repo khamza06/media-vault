@@ -9,19 +9,23 @@ import {
   serializeVaultExportJson,
   type VaultExportItem,
 } from '../lib/backup'
+import type { VaultExportList } from '../lib/backup-collections'
 
 type VaultExportSectionProps = {
   items: VaultExportItem[]
+  lists?: VaultExportList[]
+  listExportError?: string | null
+  listExportWarning?: string | null
 }
 
-export default function VaultExportSection({ items }: VaultExportSectionProps) {
+export default function VaultExportSection({ items, lists, listExportError, listExportWarning }: VaultExportSectionProps) {
   const [activeFormat, setActiveFormat] = useState<'json' | 'csv' | null>(null)
   const [message, setMessage] = useState('')
   const [messageTone, setMessageTone] = useState<'error' | 'success' | null>(null)
 
   async function downloadExport(format: 'json' | 'csv') {
-    if (items.length === 0) {
-      setMessage('Your vault is empty. Add items before exporting a backup.')
+    if (items.length === 0 && (format === 'csv' || !lists?.length)) {
+      setMessage('Your vault is empty. Add items or create a list before exporting JSON.')
       setMessageTone('error')
       return
     }
@@ -32,7 +36,7 @@ export default function VaultExportSection({ items }: VaultExportSectionProps) {
 
     try {
       const content =
-        format === 'json' ? serializeVaultExportJson(items) : serializeVaultExportCsv(items)
+        format === 'json' ? serializeVaultExportJson(items, lists) : serializeVaultExportCsv(items)
       const mimeType = format === 'json' ? 'application/json' : 'text/csv;charset=utf-8'
       const blob = new Blob([content], { type: mimeType })
       const objectUrl = URL.createObjectURL(blob)
@@ -47,7 +51,7 @@ export default function VaultExportSection({ items }: VaultExportSectionProps) {
       setMessage(
         `${format.toUpperCase()} export ready. Downloaded ${items.length} item${
           items.length === 1 ? '' : 's'
-        }.`
+        }.${format === 'json' && lists ? ` Includes ${lists.length} lists. Sharing settings are not included.` : ''}`
       )
       setMessageTone('success')
     } catch {
@@ -72,12 +76,14 @@ export default function VaultExportSection({ items }: VaultExportSectionProps) {
           </p>
         </div>
       </div>
+      <p className="mt-4 text-sm text-slate-400">JSON {lists ? 'v2 includes items, lists and their memberships. Restored lists are always private.' : 'v1 contains items only.'} CSV contains items only.</p>
+      {listExportError || listExportWarning ? <p role={listExportError ? 'alert' : 'status'} className="mt-3 break-words rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">{listExportError ?? listExportWarning}</p> : null}
 
       <div className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2">
         <button
           type="button"
           onClick={() => void downloadExport('json')}
-          disabled={activeFormat !== null}
+          disabled={activeFormat !== null || Boolean(listExportError)}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(59,130,246,0.32)] transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <FileJson2 className="h-4 w-4" />

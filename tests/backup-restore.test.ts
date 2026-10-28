@@ -3,6 +3,7 @@ const mocks = vi.hoisted(() => ({ getCurrentUser: vi.fn(), readAllOwnedBackupIte
 vi.mock('../lib/auth/dal', () => mocks)
 vi.mock('../lib/data/backup-items', () => mocks)
 vi.mock('../lib/data/items', () => ({ getItemsForBackupExport: vi.fn() }))
+vi.mock('../lib/data/backup-collections', () => ({ getCollectionsForBackupExport: vi.fn() }))
 vi.mock('next/cache', () => mocks)
 vi.mock('../lib/supabase/server', () => ({ createSupabaseServerClient: () => ({ from: () => ({ insert: (rows: unknown) => { mocks.insert(rows); return { select: async () => mocks.result } } }) }) }))
 import { restoreBackupItemsAction } from '../app/actions/backup'

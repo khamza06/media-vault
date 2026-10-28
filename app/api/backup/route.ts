@@ -7,6 +7,7 @@ import {
 import { getItemsForBackupExport } from '../../../lib/data/items'
 import type { MediaItemRecord } from '../../../lib/media'
 import { getCurrentUser } from '../../../lib/auth/dal'
+import { getCollectionsForBackupExport } from '../../../lib/data/backup-collections'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,9 @@ export async function GET(request: Request) {
     })
   }
 
-  const payload = createBackupPayload(items)
+  const collections = await getCollectionsForBackupExport(items.map((item) => item.id))
+  if (collections.error) return Response.json({ error: collections.error }, { status: 500, headers })
+  const payload = createBackupPayload(items, collections.lists)
 
   return new Response(JSON.stringify(payload, null, 2), {
     status: 200,

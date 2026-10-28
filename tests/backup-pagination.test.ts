@@ -3,7 +3,7 @@ const mocks = vi.hoisted(() => ({ requireCurrentUser: vi.fn(), eq: vi.fn(), sele
 vi.mock('server-only', () => ({}))
 vi.mock('../lib/auth/dal', () => mocks)
 vi.mock('../lib/supabase/server', () => ({ createSupabaseServerClient: () => client }))
-import { readAllOwnedBackupItems } from '../lib/data/backup-items'
+import { readAllOwnedBackupItems, readAllOwnedBackupRows } from '../lib/data/backup-items'
 import { getItemsForBackupExport } from '../lib/data/items'
 
 function from() {
@@ -30,6 +30,13 @@ beforeEach(() => {
   mocks.rows = Array.from({ length: 1251 }, (_, index) => ({ id: `item-${String(index).padStart(5, '0')}`, title: 'Fixture', type: 'Anime', status: 'Planning' }))
 })
 describe('complete owned backup reads', () => {
+  it.each(['lists', 'list_items'] as const)('keyset-pages %s with an owner filter on every page', async (table) => {
+    const fromTable = vi.fn((name: string) => { expect(name).toBe(table); return from() })
+    const scopedClient = { from: fromTable } as unknown as Parameters<typeof readAllOwnedBackupRows>[0]
+    expect((await readAllOwnedBackupRows(scopedClient, 'owner', 'id', table)).data).toHaveLength(1251)
+    expect(fromTable.mock.calls.every(([name]) => name === table)).toBe(true)
+    expect(mocks.eq.mock.calls.every(([key, value]) => key === 'user_id' && value === 'owner')).toBe(true)
+  })
   it('exports beyond 1000 rows even when the project row cap is lower than the requested page', async () => {
     const result = await getItemsForBackupExport()
     expect(result.error).toBeNull()

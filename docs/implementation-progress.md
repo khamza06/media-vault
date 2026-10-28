@@ -20,9 +20,9 @@ Live confirmation/recovery and two-account RLS checks remain unverified.
 
 ## Next Increments
 
-1. Finish JSON backup v2 (private lists/memberships and safe item-ID mapping).
-2. Related-title browsing, full EN/RU copy and provider cache tuning remain separate follow-ups.
-3. Keep the schema-heavy activity/calendar/seasons stages separate and reviewed.
+1. Related-title browsing, full EN/RU copy and provider cache tuning remain separate follow-ups.
+2. Keep the schema-heavy activity/calendar/seasons stages separate and reviewed.
+3. Run account-level auth/restore/RLS checks only with the user's explicit opt-in.
 
 Later roadmap stages (density, detail-page polish, lists, saved views, backup v2,
 activity history, calendar and seasons/repeats) are not implemented by this entry.
@@ -293,6 +293,30 @@ checks passed earlier in this run. Production dependency audit found no known
 vulnerabilities. No real sign-in, email, import, restore or database write was
 performed; these are not marked verified by the automated checks.
 
-Resume next: backup v2, starting with its versioned contract and pure ID mapping
-tests before any UI/write changes. Keep account-level testing opt-in. No
-background work continues after this checkpoint.
+At this checkpoint, backup v2 was the next increment; see the completed stage
+below. Account-level testing remains opt-in.
+
+## Stage 8B: Selected Collection Backup v2
+
+- JSON v2 exports explicit item/list fields and membership references. CSV and
+  legacy item-only restores remain compatible. List tables missing at export
+  produce labelled v1; other incomplete reads cancel JSON export.
+- File preview validates graph identity/references and offers independent opt-in
+  list selection. Only selected item identities may be mapped to owned rows.
+  Exact provider matches take priority; ambiguous/conflicting mappings are skipped.
+- Collection restore reuses the existing validated item action, then owner-scoped
+  reads and private list inserts. Fresh list IDs, no public slug, no old owners,
+  no modifications to existing same-name lists and no delete/update operations.
+- Bounded requests, duplicate submission guard, separate list/link counts, honest
+  partial-response handling and network-error feedback. Details and limitations
+  are documented in `docs/backup-v2.md`.
+- Synthetic browser QA at 320/390/768/1280/1440/1920px found no horizontal overflow.
+  Downloaded v2 contained 3 items, 2 lists and 3 links with exact Markdown notes;
+  selection/omitted-link indicators worked without clicking Restore.
+
+No migration or live account/database write was used. Restoring into a disposable
+account and verifying two-account RLS remain manual, not inferred from mocks.
+
+Verification: 304 isolated tests, lint, TypeScript and production build passed.
+The synthetic JSON download was uploaded again and produced the expected v2
+preview, with list restore still opt-in. The QA route was removed before build.

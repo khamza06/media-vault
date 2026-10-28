@@ -5,6 +5,7 @@ import SetupNotice from '../../components/SetupNotice'
 import VaultExportSection from '../../components/VaultExportSection'
 import { recordToVaultExportItem } from '../../lib/backup'
 import { getItemsForBackupExport } from '../../lib/data/items'
+import { getCollectionsForBackupExport } from '../../lib/data/backup-collections'
 import { getOwnershipMode } from '../../lib/data/ownership'
 import type { MediaItemRecord } from '../../lib/media'
 
@@ -28,6 +29,7 @@ export default async function BackupPage() {
 
   const totalItems = data?.length ?? 0
   const exportItems = ((data ?? []) as MediaItemRecord[]).map(recordToVaultExportItem)
+  const collections = await getCollectionsForBackupExport(exportItems.map((item) => item.id))
 
   return (
     <main className="vault-page">
@@ -53,7 +55,7 @@ export default async function BackupPage() {
       </section>
 
       <section className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <VaultExportSection items={exportItems} />
+        <VaultExportSection items={exportItems} lists={collections.lists} listExportError={collections.error} listExportWarning={collections.warning} />
 
         <ImportBackupForm />
       </section>

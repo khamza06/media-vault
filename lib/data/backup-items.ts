@@ -5,10 +5,17 @@ import type { createSupabaseServerClient } from '../supabase/server'
 export async function readAllOwnedBackupItems<T extends { id: string }>(
   supabase: ReturnType<typeof createSupabaseServerClient>, userId: string, fields: string
 ): Promise<{ data: T[] | null; error: { message: string } | null }> {
+  return readAllOwnedBackupRows<T>(supabase, userId, fields, 'items')
+}
+
+export async function readAllOwnedBackupRows<T extends { id: string }>(
+  supabase: ReturnType<typeof createSupabaseServerClient>, userId: string, fields: string,
+  table: 'items' | 'lists' | 'list_items'
+): Promise<{ data: T[] | null; error: { message: string; code?: string } | null }> {
   const rows: T[] = []
   let cursor: string | null = null
   while (true) {
-    let query = supabase.from('items').select(fields).eq('user_id', userId)
+    let query = supabase.from(table).select(fields).eq('user_id', userId)
       .order('id', { ascending: true }).limit(500)
     if (cursor) query = query.gt('id', cursor)
     const page = await query.overrideTypes<T[], { merge: false }>()

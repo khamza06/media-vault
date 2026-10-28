@@ -6,6 +6,7 @@ import { getCurrentUser } from '../../lib/auth/dal'
 import { createBackupPayload, getBackupExternalKey, getBackupTrackingError, type VaultExportItem } from '../../lib/backup'
 import { readAllOwnedBackupItems } from '../../lib/data/backup-items'
 import { getItemsForBackupExport } from '../../lib/data/items'
+import { getCollectionsForBackupExport } from '../../lib/data/backup-collections'
 import {
   getAllowedStatuses,
   isMovieType,
@@ -508,5 +509,8 @@ export async function previewBackupAction() {
     throw new Error(result.error.message)
   }
 
-  return createBackupPayload(((result.data ?? []) as MediaItemRecord[]).map(toMediaItem))
+  const items = ((result.data ?? []) as MediaItemRecord[]).map(toMediaItem)
+  const collections = await getCollectionsForBackupExport(items.map((item) => item.id))
+  if (collections.error) throw new Error(collections.error)
+  return createBackupPayload(items, collections.lists)
 }

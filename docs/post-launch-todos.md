@@ -15,7 +15,8 @@ the production polish sprint to avoid expanding scope.
 
 - Add richer long-running import progress UI for very large MAL/AniList/CSV imports.
 - Add a small sample CSV download in Import Center.
-- Add list export/restore once list backup mapping is fully designed.
+- Add resumable recovery for partially restored lists only after explicit review;
+  current v2 deliberately skips existing names rather than merging automatically.
 
 ## Visual polish
 
@@ -34,6 +35,5 @@ the production polish sprint to avoid expanding scope.
 - Exercise list create/edit/sharing/delete transport failures with a disposable
   account. Ensure each pending flag is released and unknown write outcomes ask
   for a refresh before retrying; do not imply a failed connection means no write.
-- Finish backup v2 as a separate increment with explicit list/membership preview,
-  owner checks, old-to-new item ID mapping and duplicate-list handling. Current
-  v1 remains item-only; do not infer list restore from item restore coverage.
+- Run disposable-account restore/RLS checks for backup v2; mocked write coverage
+  and synthetic-file browser checks do not verify a live database restore.

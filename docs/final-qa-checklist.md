@@ -44,7 +44,12 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Upload the exported JSON and confirm restore preview appears before writing.
 - Restore a selected subset.
 - Restore the same subset again and confirm duplicates are skipped.
-- Confirm backup v1 contains items only; do not claim lists/membership restore is supported yet.
+- Export JSON v2 and verify lists/references, including an empty list.
+- Keep v1/legacy item-only restore compatible.
+- Select lists separately from items; omitted items must not be restored or linked automatically.
+- Confirm restored lists are private, with fresh IDs and no public slug.
+- Confirm existing same-name lists are skipped without merging or overwriting.
+- Test partial list/link failures and review counts before any retry.
 - Verify exports over the configured API row limit are complete and reject partial-page errors.
 - Confirm malformed notes/progress are reported invalid, not silently changed.
 - Confirm missing activity timestamps stay missing after restore.

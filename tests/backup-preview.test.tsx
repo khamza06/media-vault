@@ -2,8 +2,9 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-const mocks = vi.hoisted(() => ({ restoreBackupItemsAction: vi.fn() }))
+const mocks = vi.hoisted(() => ({ restoreBackupItemsAction: vi.fn(), restoreBackupCollectionsAction: vi.fn() }))
 vi.mock('../app/actions/backup', () => mocks)
+vi.mock('../app/actions/backup-collections', () => mocks)
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 vi.mock('../components/ToastProvider', () => ({ useToast: () => ({ showToast: vi.fn() }) }))
 import ImportBackupForm from '../components/ImportBackupForm'
@@ -16,6 +17,37 @@ function upload(value: unknown) {
   fireEvent.change(screen.getByLabelText('Media Vault backup file'), { target: { files: [file] } })
 }
 describe('backup preview validation', () => {
+  it('releases pending state and keeps the selected lists after a transport failure', async () => {
+    const id = '11111111-1111-4111-8111-111111111111'
+    const list = { id: '22222222-2222-4222-8222-222222222222', name: 'Retry list', description: null, item_ids: [id] }
+    mocks.restoreBackupCollectionsAction.mockRejectedValueOnce(new Error('Network interrupted'))
+    render(<ImportBackupForm />); upload({ app: 'Media Vault', version: 2, items: [{ ...row, id }], lists: [list] })
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Restore list Retry list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Restore selected items and lists' }))
+    await screen.findByText(/Could not finish restoring/)
+    expect((screen.getByRole('checkbox', { name: 'Restore list Retry list' }) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByRole('button', { name: 'Restore selected items and lists' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+  it('previews v2 lists as opt-in and only sends selected items/lists after explicit restore', async () => {
+    const id = '11111111-1111-4111-8111-111111111111'
+    const list = { id: '22222222-2222-4222-8222-222222222222', name: 'Favorites', description: '  Keep description\n', item_ids: [id] }
+    mocks.restoreBackupCollectionsAction.mockResolvedValue({ success: true, restored: 1, skipped: 0, failed: 0, invalid: 0, usedExternalIdColumns: true, listsRestored: 1, listsSkipped: 0, listsFailed: 0, membershipsRestored: 1, membershipsSkipped: 0, membershipsFailed: 0, warnings: [] })
+    render(<ImportBackupForm />); upload({ app: 'Media Vault', version: 2, items: [{ ...row, id }], lists: [list] })
+    await screen.findByRole('checkbox', { name: 'Restore list Favorites' })
+    expect((screen.getByRole('checkbox', { name: 'Restore list Favorites' }) as HTMLInputElement).checked).toBe(false)
+    expect(mocks.restoreBackupCollectionsAction).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Restore list Favorites' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Restore selected items and lists' }))
+    await waitFor(() => expect(mocks.restoreBackupCollectionsAction).toHaveBeenCalledWith({ items: [expect.objectContaining({ id, notes: row.notes })], lists: [list] }))
+    expect(mocks.restoreBackupItemsAction).not.toHaveBeenCalled()
+    await screen.findByText(/Lists: restored 1/)
+  })
+  it('rejects broken v2 references before enabling restore', async () => {
+    render(<ImportBackupForm />); upload({ app: 'Media Vault', version: 2, items: [], lists: [{ id: '22222222-2222-4222-8222-222222222222', name: 'Broken', item_ids: ['11111111-1111-4111-8111-111111111111'] }] })
+    await screen.findByText('A list references an item missing from this backup.')
+    expect(mocks.restoreBackupCollectionsAction).not.toHaveBeenCalled()
+    expect((screen.getByRole('button', { name: 'Restore selected items' }) as HTMLButtonElement).disabled).toBe(true)
+  })
   it('does not restore on upload and preserves selected Markdown until explicit restore', async () => {
     render(<ImportBackupForm />); upload({ app: 'Media Vault', version: 1, items: [row] })
     await screen.findByText(/Backup parsed/)

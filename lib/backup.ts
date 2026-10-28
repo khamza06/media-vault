@@ -1,5 +1,6 @@
 import { formatExternalRatingValue, getAllowedStatuses, type MediaItem, type MediaItemInput, type MediaItemRecord } from './media'
 import { getProviderReference } from './provider-details'
+import type { VaultExportList } from './backup-collections'
 
 const APP_NAME = 'Media Vault'
 
@@ -25,21 +26,24 @@ export type VaultExportItem = {
   type: string
 }
 
-export type BackupPayload = {
+type BackupBase = {
   app: typeof APP_NAME
   exported_at: string
   items: VaultExportItem[]
-  version: 1
 }
+export type BackupPayload = BackupBase & ({ version: 1 } | { version: 2; lists: VaultExportList[] })
 
 type RestorableBackupItem = MediaItem | VaultExportItem
 
-export function createBackupPayload(items: RestorableBackupItem[]): BackupPayload {
+export function createBackupPayload(items: RestorableBackupItem[], lists?: VaultExportList[]): BackupPayload {
   return {
     app: APP_NAME,
     exported_at: new Date().toISOString(),
     items: items.map(toVaultExportItem),
-    version: 1,
+    ...(lists === undefined ? { version: 1 as const } : {
+      version: 2 as const,
+      lists: lists.map((list) => ({ id: list.id, name: list.name, description: list.description, item_ids: [...list.item_ids] })),
+    }),
   }
 }
 
@@ -50,7 +54,8 @@ export function isBackupPayload(value: unknown): value is BackupPayload {
 
   const payload = value as Partial<BackupPayload>
 
-  return payload.version === 1 && (payload.app === undefined || payload.app === APP_NAME) && Array.isArray(payload.items)
+  return Array.isArray(payload.items) && ((payload.version === 1 && (payload.app === undefined || payload.app === APP_NAME)) ||
+    (payload.version === 2 && payload.app === APP_NAME && 'lists' in payload && Array.isArray(payload.lists)))
 }
 
 export function extractBackupItems(value: unknown): unknown[] | null {
@@ -58,7 +63,8 @@ export function extractBackupItems(value: unknown): unknown[] | null {
   if (!value || typeof value !== 'object') return null
   const payload = value as Record<string, unknown>
   if (payload.app !== undefined && payload.app !== APP_NAME) return null
-  if (payload.version !== undefined && payload.version !== 1) return null
+  if (payload.version !== undefined && payload.version !== 1 && payload.version !== 2) return null
+  if (payload.version === 2 && (payload.app !== APP_NAME || !Array.isArray(payload.lists))) return null
   return Array.isArray(payload.items) ? payload.items : null
 }
 
@@ -146,8 +152,8 @@ export function getVaultExportFilename(format: 'json' | 'csv', date = new Date()
   return `media-vault-export-${stamp}.${format}`
 }
 
-export function serializeVaultExportJson(items: RestorableBackupItem[]) {
-  return JSON.stringify(createBackupPayload(items), null, 2)
+export function serializeVaultExportJson(items: RestorableBackupItem[], lists?: VaultExportList[]) {
+  return JSON.stringify(createBackupPayload(items, lists), null, 2)
 }
 
 export function serializeVaultExportCsv(items: RestorableBackupItem[]) {

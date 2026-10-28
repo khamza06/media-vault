@@ -86,7 +86,7 @@ Sentry captures production errors.
 - MyAnimeList XML import with preview, duplicate protection, and cover enrichment
 - AniList username import and Generic CSV import when enabled in the Import Center
 - Fill Missing Covers utility for imported anime/manga
-- JSON and CSV backup export plus JSON restore preview with duplicate skipping
+- JSON v2 backup with custom lists/memberships, item-only CSV export and selected restore preview
 - Custom private lists with add/remove existing vault items
 - Collection cover previews and reviewed bulk list, status, and favorite actions
 - On-demand provider descriptions and details, separate from personal Markdown notes
@@ -96,8 +96,10 @@ Sentry captures production errors.
 - Settings, onboarding checklist, and auth recovery flows
 
 View preferences and saved filters are stored in this browser per account. They
-are not synced settings or part of a backup. JSON backups currently use v1 and
-restore items only; custom list and membership export/restore is still planned.
+are not synced settings or part of a backup. JSON v2 restores selected lists as
+private and skips existing list names instead of merging. Legacy item-only
+backups remain supported. See [backup v2](docs/backup-v2.md) for mapping, limits
+and partial-restore behavior.
 
 ## Environment variables
 
