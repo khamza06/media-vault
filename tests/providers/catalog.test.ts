@@ -23,6 +23,8 @@ describe('live public catalog providers', () => {
     expect(details?.provider).toBe('AniList')
     expect(details?.description.length).toBeGreaterThan(0)
     expect(details?.url).toBe(`https://anilist.co/${type === 'Anime' ? 'anime' : 'manga'}/${id}`)
+    expect(Array.isArray(details?.relatedTitles)).toBe(true)
+    if (id === 20) expect(details?.relatedTitles?.some((title) => title.relation === 'Sequel')).toBe(true)
   })
   it.each([[27205, 'movie'], [1396, 'tv']] as const)('loads linked TMDB metadata for %s', async (id, type) => {
     const details = await getTmdbProviderDetails(id, type)

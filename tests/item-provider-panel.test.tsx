@@ -22,6 +22,15 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 describe('on-demand details and notes drafts', () => {
+  it('renders linked titles in the existing lazy request, not one provider call per relation', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ data: { ...details, relatedTitles: [{ id: 1735, title: 'Sequel fixture', type: 'Anime', relation: 'Sequel', coverUrl: null, url: 'https://anilist.co/anime/1735' }] } }))
+    render(<ItemProviderPanel itemId="fixture" supported />)
+    expect(screen.queryByRole('region', { name: 'Related titles' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /About this title/ }))
+    await screen.findByRole('link', { name: 'Sequel fixture' })
+    expect(screen.getByRole('link', { name: 'Search in Discover' }).getAttribute('href')).toContain('/discover?q=Sequel+fixture&type=anime')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
   it('fetches only after expanding and reuses the same details when reopened', async () => {
     render(<ItemProviderPanel itemId="fixture" supported />)
     expect(fetch).not.toHaveBeenCalled()

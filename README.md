@@ -90,6 +90,7 @@ Sentry captures production errors.
 - Custom private lists with add/remove existing vault items
 - Collection cover previews and reviewed bulk list, status, and favorite actions
 - On-demand provider descriptions and details, separate from personal Markdown notes
+- AniList-linked sequels, prequels and adaptations with read-only Discover search links
 - Optional public profile at `/u/[username]`
 - Optional public read-only custom list sharing
 - Stats dashboard with ratings, media mix, status, genres, monthly additions, and insights

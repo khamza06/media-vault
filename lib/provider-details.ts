@@ -1,4 +1,5 @@
 import { parseProviderMediaId } from './provider-ids'
+import type { RelatedTitle } from './related-titles'
 
 export type ProviderDetails = {
   provider: 'AniList' | 'TMDB'
@@ -9,6 +10,7 @@ export type ProviderDetails = {
   year: string | null
   format: string | null
   durationMinutes: number | null
+  relatedTitles?: RelatedTitle[]
 }
 
 type ProviderReference =

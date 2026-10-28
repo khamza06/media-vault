@@ -1,11 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { getProviderReference, plainProviderDescription } from '../lib/provider-details'
-import { getAniListProviderDetails } from '../lib/anilist-import-enrichment'
+import { findAniListImportMetadata, getAniListProviderDetails } from '../lib/anilist-import-enrichment'
 import { getTmdbProviderDetails } from '../lib/catalog-search'
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 describe('linked provider details', () => {
+  it('does not add relation graph fields to import/metadata refresh requests', async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body)).query).not.toContain('relations')
+      return Response.json({ data: { Media: { id: 20, type: 'ANIME', averageScore: 83 } } })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await findAniListImportMetadata('Fixture', 'Anime', { anilistId: '20' })).toMatchObject({ externalRatingValue: 8.3 })
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
   it('uses known IDs across supported sources and manga-family types', () => {
     expect(getProviderReference({ type: 'Manhwa', externalSource: 'anilist', externalId: 'anilist:20' }))
       .toEqual({ provider: 'anilist', type: 'Manga', id: 20, isMalId: false })
@@ -28,11 +37,13 @@ describe('linked provider details', () => {
   })
   it('loads AniList descriptions by ID without changing an import or personal fields', async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
-      expect(JSON.parse(String(init?.body)).variables).toEqual({ id: 20, type: 'ANIME' })
-      return Response.json({ data: { Media: { id: 20, type: 'ANIME', description: '<b>Synopsis</b>', title: { english: 'Naruto' }, genres: ['Action'], startDate: { year: 2002 }, duration: 23, format: 'TV' } } })
+      const request = JSON.parse(String(init?.body))
+      expect(request.variables).toEqual({ id: 20, type: 'ANIME' })
+      expect(request.query).toContain('relationType(version: 2)')
+      return Response.json({ data: { Media: { id: 20, type: 'ANIME', description: '<b>Synopsis</b>', title: { english: 'Naruto' }, genres: ['Action'], startDate: { year: 2002 }, duration: 23, format: 'TV', relations: { edges: [{ relationType: 'SEQUEL', node: { id: 1735, type: 'ANIME', isAdult: false, title: { romaji: 'Naruto: Shippuuden' } } }] } } } })
     })
     vi.stubGlobal('fetch', fetchMock)
-    expect(await getAniListProviderDetails(20, 'Anime', false)).toMatchObject({ description: 'Synopsis', provider: 'AniList', year: '2002', durationMinutes: 23, url: 'https://anilist.co/anime/20' })
+    expect(await getAniListProviderDetails(20, 'Anime', false)).toMatchObject({ description: 'Synopsis', provider: 'AniList', year: '2002', durationMinutes: 23, url: 'https://anilist.co/anime/20', relatedTitles: [expect.objectContaining({ id: 1735, relation: 'Sequel' })] })
     expect(fetchMock).toHaveBeenCalledOnce()
   })
   it('validates a MAL cross-ID instead of accepting a different work', async () => {

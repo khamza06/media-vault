@@ -42,6 +42,25 @@ make real read-only anime/manga/movie/series searches without signing in.
 Alternative-provider pagination/error paths are mocked; live availability of
 each alternative is not guaranteed by passing the core suite.
 
+## Related Title Browsing
+
+Owned anime/manga with an exact supported AniList or MAL/Jikan reference load
+AniList relations when About this title is expanded. One request supplies the
+description and relation graph; import and metadata-refresh queries do not fetch
+the graph. No request is made per related title.
+
+The panel shows six connections initially and at most 24 after expanding.
+Adult/unknown-age nodes, unsupported types, duplicate IDs and self references are
+excluded. Relation labels come from AniList, not an inferred viewing order.
+Canonical AniList links open externally; Search in Discover links only populate
+the existing title/type search. They do not add a title or change tracking.
+Very short titles keep the provider link rather than opening an unusable search.
+
+TMDB relations, title alias aggregation and automatic sequel tracking are not
+implemented in this increment. Public vault/list pages are unchanged. Unit tests
+cover normalization, safe links, graph bounds, UI disclosure and existing notes
+drafts. Opt-in live provider checks include a real Naruto sequel relation.
+
 A temporary development-only fixture exercised the actual components at
 1440, 1280, 768, 390 and 320 px, including Show more, source/back changes,
 type changes, cancellation, preview Escape focus restoration and opening the

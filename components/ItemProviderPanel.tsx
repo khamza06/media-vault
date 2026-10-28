@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ChevronDown, ExternalLink } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ProviderDetails } from '../lib/provider-details'
+import RelatedTitles from './catalog/RelatedTitles'
 
 type LoadState = { status: 'idle' | 'loading' | 'error'; error?: string }
   | { status: 'ready'; data: ProviderDetails }
@@ -65,6 +66,7 @@ export default function ItemProviderPanel({ itemId, supported }: { itemId: strin
             Open on {state.data.provider}<ExternalLink aria-hidden="true" className="h-4 w-4" />
           </a>
           <p className="text-xs leading-5 text-slate-500">Loaded on demand. This does not overwrite your notes, rating, progress or saved metadata.</p>
+          {state.data.provider === 'AniList' ? <RelatedTitles titles={state.data.relatedTitles ?? []} /> : null}
         </> : null}
       </div>
     </section>

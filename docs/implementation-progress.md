@@ -20,7 +20,7 @@ Live confirmation/recovery and two-account RLS checks remain unverified.
 
 ## Next Increments
 
-1. Related-title browsing, full EN/RU copy and provider cache tuning remain separate follow-ups.
+1. Full EN/RU copy and provider cache tuning remain separate follow-ups.
 2. Keep the schema-heavy activity/calendar/seasons stages separate and reviewed.
 3. Run account-level auth/restore/RLS checks only with the user's explicit opt-in.
 
@@ -337,3 +337,22 @@ preview, with list restore still opt-in. The QA route was removed before build.
 Verification: 312 isolated tests cover pending release, duplicate submission,
 all six action failure paths and refreshed membership. No account/database write
 was run. These are client recovery fixes, not a change to RLS or schema.
+
+## Stage 9A: AniList Related Titles
+
+- The existing on-demand owned-item provider request now includes AniList's
+  relations by exact ID (including verified MAL cross-IDs). Import/enrichment
+  requests retain their smaller query; there is no per-relation fetch.
+- Read-only cards show source/prequel/sequel/adaptation labels, canonical
+  provider links and encoded title/type searches in the existing Discover flow.
+  Six initially, up to 24 expanded; no automatic additions, history or watch order.
+- Adult/unknown-age, malformed, duplicate and self nodes are excluded. Existing
+  personal notes/quick controls and public pages are untouched. TMDB relation
+  browsing and cross-provider alias aggregation remain deferred.
+
+Verification: 320 isolated tests and eight opt-in public provider reads passed,
+including a live Naruto sequel. Browser fixtures across 320/390/768/1280/1440/1920
+px had no horizontal overflow and expansion/search links worked. A list sharing
+form also stayed internally scrollable within a 390x420 short viewport. No real
+save/delete/import or authenticated request was used in browser QA.
+Lint, TypeScript and production build passed after removing the temporary route.

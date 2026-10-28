@@ -4,10 +4,12 @@ import { normalizeGenreList } from './genres'
 import { normalizeAniListAverageScore } from './anilist-values'
 import { parseProviderMediaId } from './provider-ids'
 import { plainProviderDescription, type ProviderDetails } from './provider-details'
+import { normalizeAniListRelations } from './related-titles'
 
 type AniListMediaType = 'ANIME' | 'MANGA'
 
 type AniListMedia = {
+  relations?: unknown
   duration?: number | null
   format?: string | null
   isAdult?: boolean | null
@@ -377,7 +379,7 @@ async function searchAniListMedia(search: string, type: AniListMediaType) {
   }
 }
 
-async function searchAniListMediaById(id: number, type: AniListMediaType, isMalId: boolean) {
+async function searchAniListMediaById(id: number, type: AniListMediaType, isMalId: boolean, includeRelations = false) {
   try {
     const response = await fetch('https://graphql.anilist.co', {
       method: 'POST',
@@ -388,7 +390,11 @@ async function searchAniListMediaById(id: number, type: AniListMediaType, isMalI
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: isMalId ? ANILIST_IMPORT_BY_MAL_ID_QUERY : ANILIST_IMPORT_BY_ID_QUERY,
+        query: (isMalId ? ANILIST_IMPORT_BY_MAL_ID_QUERY : ANILIST_IMPORT_BY_ID_QUERY).replace('startDate { year }',
+          includeRelations ? `startDate { year }
+            relations { edges { relationType(version: 2) node {
+              id type isAdult title { english romaji native } coverImage { large }
+            } } }` : 'startDate { year }'),
         variables: isMalId ? { idMal: id, type } : { id, type },
       }),
     })
@@ -605,7 +611,7 @@ export async function findAniListImportMetadata(
 export async function getAniListProviderDetails(id: number, type: 'Anime' | 'Manga', isMalId: boolean): Promise<ProviderDetails | null> {
   if (!Number.isSafeInteger(id) || id < 1 || id > 2147483647) return null
   const providerType = type === 'Anime' ? 'ANIME' : 'MANGA'
-  const media = await searchAniListMediaById(id, providerType, isMalId)
+  const media = await searchAniListMediaById(id, providerType, isMalId, true)
   if (!media || !Number.isSafeInteger(media.id) || media.id < 1 || media.isAdult || (media.type && media.type !== providerType)
     || (isMalId ? media.idMal !== id : media.id !== id)) return null
   const year = media.startDate?.year
@@ -617,5 +623,6 @@ export async function getAniListProviderDetails(id: number, type: 'Anime' | 'Man
     year: typeof year === 'number' && year > 0 ? String(year) : null,
     format: media.format?.replaceAll('_', ' ') ?? null,
     durationMinutes: typeof media.duration === 'number' && media.duration > 0 ? media.duration : null,
+    relatedTitles: normalizeAniListRelations(media.relations, media.id),
   }
 }

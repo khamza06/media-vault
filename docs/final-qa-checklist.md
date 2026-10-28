@@ -26,6 +26,7 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Review bulk status/favorite/list changes; cancel, then test a small confirmed selection.
 - Simulate a network failure on +1 and confirm rollback and a usable retry.
 - Expand provider details; confirm notes drafts survive loading, retry and preview toggles.
+- On an AniList-linked item, expand related titles; confirm sequel/adaptation labels, provider links and Discover search links without automatic additions.
 - Search two same-title works with different provider IDs; do not mark the remake already saved.
 
 ## Imports and Covers
