@@ -42,8 +42,15 @@ saved view account isolation and the non-mutating Planning picker.
 Backup checks simulate more than 1000 records under a smaller API row cap, later
 page failures, strict owner filters, TMDB movie/TV ID collisions, canonical provider
 IDs, malformed tracking values, explicit preview selection and honest result counts.
-They never restore data into a real vault. Backup v2 list/membership round trips are
-still a planned follow-up, not a passed test.
+They never restore data into a real vault. Backup v2 list/membership tests cover
+private fresh lists, selected identity mapping, malformed graphs, duplicate names,
+partial failures and original addition dates. Live restore/RLS remains manual.
+
+Localized form tests render the shared Add New/full-edit controls in Russian and
+English, retain canonical type/status values, and verify exact Markdown/progress
+payloads, provider identity, duplicate feedback and draft recovery. Unit tests
+inspect option values independently of Radix geometry; real-browser synthetic
+fixtures check the actual custom dropdown and responsive layout without saving.
 
 ## Optional Provider Smoke Tests
 

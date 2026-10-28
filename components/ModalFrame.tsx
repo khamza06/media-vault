@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocale } from './LocaleProvider'
 
 type ModalFrameProps = {
   children: ReactNode
@@ -18,6 +19,7 @@ export default function ModalFrame({
   onClose,
   title,
 }: ModalFrameProps) {
+  const { t } = useLocale()
   useEffect(() => {
     if (!isOpen) {
       return
@@ -50,7 +52,7 @@ export default function ModalFrame({
           <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-200/75">
-                Quick Capture
+                {t('form.quickCapture')}
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">{title}</h2>
               <p className="mt-2 max-w-2xl text-sm text-slate-300">{description}</p>
@@ -59,7 +61,7 @@ export default function ModalFrame({
               type="button"
               onClick={onClose}
               className="flex min-h-12 min-w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
-              aria-label="Close modal"
+              aria-label={t('form.closeModal')}
             >
               X
             </button>

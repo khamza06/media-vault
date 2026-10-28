@@ -429,3 +429,25 @@ Verification: 351 isolated tests, lint, TypeScript and production build passed.
 Six added regressions cover original dates, legacy/mixed rows, compatibility and
 preview rejection. Runtime dependency audit reported zero known vulnerabilities.
 No real restore or account/database write was performed.
+
+## Stage 9D: Add New and Shared Full-edit Form Translation
+
+- Connected form fields, date/file controls, help, type/status display labels
+  and local Add New feedback to the EN/RU dictionaries. Source content and
+  server validation messages are not automatically translated; Russian remains beta.
+- Shared progress labels use the existing media progress mode. Manga/Manhwa/
+  Manhua display chapter labels, books pages, and episodic types episodes.
+  Canonical option values and save payloads remain unchanged.
+- Language changes keep the current form/Markdown draft. External catalog-open
+  events read the current language without reconnecting on each render, while
+  search still depends on the actual query/type/locale rather than translator identity.
+- Date input flex sizing and long cover filenames fit narrow viewports. No new
+  dependency, schema change or public management control was introduced.
+
+Verification: 362 isolated tests passed, including 11 new form regressions.
+Synthetic browser QA checked shared form and Add New at 320/390/768/1280/1440/
+1920px without horizontal overflow, actual Radix options and English/Russian
+switching. No real Save, upload, import, login or database write was run.
+Temporary fixtures were removed before production build.
+Lint passed without warnings, TypeScript and production build passed, and the
+runtime dependency audit reported zero known vulnerabilities.

@@ -5,12 +5,13 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type MediaItemForm from '../components/MediaItemForm'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
+import { t, type MessageKey } from '../lib/i18n'
 
 const mocks = vi.hoisted(() => ({ createItemAction: vi.fn(), refresh: vi.fn(), showToast: vi.fn() }))
 vi.mock('../app/actions/items', () => mocks)
 vi.mock('../app/actions/storage', () => ({ uploadCoverAction: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }) }))
-vi.mock('../components/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en', t: (key: string) => key }) }))
+vi.mock('../components/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en', t: (key: MessageKey) => t('en', key) }) }))
 vi.mock('../components/ToastProvider', () => ({ useToast: () => ({ showToast: mocks.showToast }) }))
 vi.mock('../components/ModalFrame', () => ({ default: ({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) => isOpen ? <div role="dialog">{children}</div> : null }))
 vi.mock('../components/MediaItemForm', () => ({ default: ({ form, onChange, onSubmit, isSubmitting, errorMessage }: ComponentProps<typeof MediaItemForm>) => (

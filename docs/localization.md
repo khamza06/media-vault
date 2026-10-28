@@ -45,5 +45,12 @@ localized action feedback; auth email delivery remains a separate manual check.
 The next coverage increment translated Discover controls, catalog preview and
 owned-item About/Related panels. Source titles, genres, descriptions and
 server/provider error messages retain their source language; no automatic text
-translation or stored-value conversion is performed. Add New/full edit and
-the remaining major pages still have English copy and keep the beta notice.
+translation or stored-value conversion is performed.
+
+Add New and the shared full-edit form now use the dictionaries too, including
+type/status display labels, episode/chapter/page fields, dates, Markdown help,
+file controls and local save/duplicate/network feedback. Canonical option values,
+source titles/genres, provider IDs and exact notes remain unchanged. Server-side
+validation/provider errors can still be English; outer page copy and remaining
+major screens are not fully translated. Keep the beta notice until those passes
+are complete. Switching languages must retain drafts rather than recreate forms.

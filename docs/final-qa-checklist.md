@@ -91,6 +91,7 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Switch English/Russian in Settings, reload, and verify the language persists without garbled text.
 - Test blocked localStorage and failed locale requests; selection should remain usable and retryable.
 - Confirm translated labels never change stored status/type values or notes, and keep the partial-translation beta notice accurate.
+- Check Add New and full edit in English/Russian: chapter/episode/page labels, canonical dropdown values, exact Markdown drafts, save failure recovery and provider identity.
 
 ## Production Readiness
 

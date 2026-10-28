@@ -1,7 +1,7 @@
 'use client'
 
 import { Sparkles } from 'lucide-react'
-import { FormEvent, ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { FormEvent, ReactNode, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { createItemAction } from '../app/actions/items'
@@ -9,6 +9,8 @@ import { uploadCoverAction } from '../app/actions/storage'
 import { OPEN_ADD_MODAL_EVENT, type OpenAddModalDetail } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
 import { catalogCandidateToInput } from '../lib/catalog-view'
+import { t as translate } from '../lib/i18n'
+import { getProgressFieldLabels } from '../lib/media-form-labels'
 import { formatExternalRatingValue, normalizeMediaItemInput, type MediaItemInput } from '../lib/media'
 import { buildQuickImportDraft } from '../lib/quick-import-draft'
 import { mapMediaTypeToCatalogSearchType } from '../lib/search-safety'
@@ -155,7 +157,7 @@ export default function AddModal({
     setTitleSearchError('')
     setIsTitleSearchLoading(false)
     setQuickImportCandidates([])
-    setQuickImportMessage('Best match applied. Review the details and save when ready.')
+    setQuickImportMessage(t('form.matchApplied'))
     setQuickImportTone('success')
     setCoverFile(null)
     setIsOpen(true)
@@ -185,11 +187,17 @@ export default function AddModal({
     }
 
     if (!response.ok) {
-      throw new Error(payload.error ?? 'Search failed.')
+      throw new Error(payload.error ?? translate(locale, 'catalog.searchFail'))
     }
 
     return payload.data ?? []
   }, [locale])
+
+  const openFromExternalEvent = useEffectEvent((event: Event) => {
+    const candidate = (event as CustomEvent<OpenAddModalDetail>).detail?.candidate
+    setIsOpen(true)
+    if (candidate) applyCatalogCandidate(candidate)
+  })
 
   useEffect(() => {
     if (!listenForExternalOpen) {
@@ -197,13 +205,7 @@ export default function AddModal({
     }
 
     function handleExternalOpen(event: Event) {
-      const customEvent = event as CustomEvent<OpenAddModalDetail>
-      const candidate = customEvent.detail?.candidate
-      setIsOpen(true)
-
-      if (candidate) {
-        applyCatalogCandidate(candidate)
-      }
+      openFromExternalEvent(event)
     }
 
     window.addEventListener(OPEN_ADD_MODAL_EVENT, handleExternalOpen as EventListener)
@@ -260,7 +262,7 @@ export default function AddModal({
 
         setTitleSuggestions([])
         setTitleSearchError(
-          error instanceof Error ? error.message : 'No safe matches were found for this title.'
+          error instanceof Error ? error.message : translate(locale, 'form.noSafeMatches')
         )
       } finally {
         if (controller.signal.aborted || titleSearchRequestIdRef.current !== requestId) {
@@ -275,7 +277,7 @@ export default function AddModal({
       window.clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [fetchCatalogSuggestions, form.title, form.type, isOpen])
+  }, [fetchCatalogSuggestions, form.title, form.type, isOpen, locale])
 
   async function fetchServerQuickImport(url: string): Promise<QuickImportResponseData> {
     const response = await fetch('/api/quick-import', {
@@ -292,7 +294,7 @@ export default function AddModal({
     }
 
     if (!response.ok || !payload.data) {
-      throw new Error(payload.error ?? 'Quick import failed.')
+      throw new Error(payload.error ?? t('error.quickImportFailed'))
     }
 
     return payload.data
@@ -328,9 +330,9 @@ export default function AddModal({
       return
     }
 
-    setQuickImportMessage('Quick import completed. Review the details and save when ready.')
+    setQuickImportMessage(t('form.importCompleted'))
     setQuickImportTone('success')
-    showToast('Quick import completed.')
+    showToast(t('form.importToast'))
   }
 
   async function runQuickImport(rawUrl: string) {
@@ -338,7 +340,7 @@ export default function AddModal({
 
     if (!url) {
       setQuickImportCandidates([])
-      setQuickImportMessage('Paste a link first.')
+      setQuickImportMessage(t('form.pasteFirst'))
       setQuickImportTone('error')
       return
     }
@@ -352,13 +354,13 @@ export default function AddModal({
 
     try {
       applyOptimisticDraft(url)
-      setQuickImportMessage('Scanning link...')
+      setQuickImportMessage(t('form.scanPending'))
       setQuickImportTone('success')
 
       const resolvedImport = await fetchServerQuickImport(url)
       applyResolvedQuickImport(resolvedImport)
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Quick import failed.'
+      const message = error instanceof Error ? error.message : t('error.quickImportFailed')
       const draft = applyOptimisticDraft(url)
       setQuickImportCandidates([])
 
@@ -399,8 +401,8 @@ export default function AddModal({
         const uploadResult = await uploadCoverAction(uploadFormData)
 
         if (!uploadResult.success || !uploadResult.url) {
-          setErrorMessage(uploadResult.error ?? 'Failed to upload cover image.')
-          showToast(uploadResult.error ?? 'Failed to upload cover image.', 'error')
+          setErrorMessage(uploadResult.error ?? t('error.uploadCover'))
+          showToast(uploadResult.error ?? t('error.uploadCover'), 'error')
           return
         }
 
@@ -409,17 +411,17 @@ export default function AddModal({
 
       const result = await createItemAction({ ...form, imageUrl, notes: form.notes }, selectedCatalogId)
       if (!result.success) {
-        setErrorMessage(result.error ?? 'Failed to save item.')
-        showToast(result.error ?? 'Failed to save item.', 'error')
+        setErrorMessage(result.error ?? t('error.saveItem'))
+        showToast(result.error ?? t('error.saveItem'), 'error')
         return
       }
 
       setIsOpen(false)
       resetState()
-      showToast(result.alreadyExists ? 'Already in your vault. Existing details were kept.' : 'Item added to your vault.')
+      showToast(result.alreadyExists ? t('form.alreadySaved') : t('toast.itemAdded'))
       router.refresh()
     } catch {
-      setErrorMessage('Could not save this item. Check your connection and try again. Your draft is still here.')
+      setErrorMessage(t('form.saveOffline'))
     } finally {
       submittingRef.current = false
       setIsSubmitting(false)
@@ -436,14 +438,14 @@ export default function AddModal({
           'min-h-11 rounded-full border border-blue-300/20 bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_24px_rgba(59,130,246,0.28)] transition-all duration-300 hover:bg-blue-400'
         }
       >
-        {triggerContent ?? '+ Add New'}
+        {triggerContent ?? t('common.addNew')}
       </button>
 
       <ModalFrame
         isOpen={isOpen}
         onClose={closeModal}
-        title="Add New Entry"
-        description="Save a new anime, manga, movie, or book to your vault."
+        title={t('add.title')}
+        description={t('add.description')}
       >
         <section className="border-b border-slate-800 px-6 py-5">
           <div className="rounded-3xl border border-blue-500/20 bg-blue-500/10 p-4">
@@ -452,11 +454,11 @@ export default function AddModal({
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-200/80">
                   <span className="inline-flex items-center gap-2">
                     <Sparkles className="h-4 w-4" aria-hidden="true" />
-                    Quick Import
+                    {t('form.quickImport')}
                   </span>
                 </p>
                 <p className="mt-2 text-sm text-slate-300">
-                  Paste any link and let the app prefill the form.
+                  {t('form.quickImportDescription')}
                 </p>
               </div>
               {isQuickImporting ? (
@@ -467,11 +469,12 @@ export default function AddModal({
             <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
               <div className="sm:col-span-full">
                 <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                  Quick Import Link
+                  {t('form.quickImportLink')}
                 </p>
               </div>
               <input
                 type="url"
+                aria-label={t('form.quickImportLink')}
                 inputMode="url"
                 autoCapitalize="none"
                 autoCorrect="off"
@@ -497,7 +500,7 @@ export default function AddModal({
               >
                 <span className="inline-flex items-center justify-center gap-2">
                   <Sparkles className="h-4 w-4" aria-hidden="true" />
-                  {isQuickImporting ? 'Scanning Link...' : 'Import Link'}
+                  {isQuickImporting ? t('form.scanningLink') : t('form.importLink')}
                 </span>
               </button>
             </div>
@@ -517,9 +520,9 @@ export default function AddModal({
             {quickImportCandidates.length > 0 ? (
               <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/35 p-4">
                 <div className="mb-3">
-                  <p className="text-sm font-semibold text-white">Possible matches</p>
+                  <p className="text-sm font-semibold text-white">{t('quickImport.suggestionsTitle')}</p>
                   <p className="mt-1 text-xs text-slate-400">
-                    If the automatic guess was not exact, tap the closest result below.
+                    {t('quickImport.suggestionsDescription')}
                   </p>
                 </div>
 
@@ -545,14 +548,12 @@ export default function AddModal({
                         ) : null}
                         {candidate.totalProgress ? (
                           <p className="mt-1 text-[11px] text-slate-500">
-                            {candidate.type === 'Anime' || candidate.type === 'TV Series'
-                              ? `Episodes: ${candidate.totalProgress}`
-                              : `Pages/Chapters: ${candidate.totalProgress}`}
+                            {getProgressFieldLabels(locale, candidate.type).total}: {candidate.totalProgress}
                           </p>
                         ) : null}
                       </div>
                       <span className="shrink-0 rounded-full border border-blue-400/20 px-3 py-1 text-xs font-medium text-blue-100">
-                        Use this
+                        {t('quickImport.applySuggestion')}
                       </span>
                     </button>
                   ))}

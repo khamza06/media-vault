@@ -7,13 +7,13 @@ import { useEffect, useRef, useState } from 'react'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
 import {
   getAllowedStatuses,
-  getCurrentProgressLabel,
   getDefaultStatus,
   formatExternalRatingValue,
-  getTotalProgressLabel,
   mediaTypes,
   type MediaItemInput,
 } from '../lib/media'
+import { translateStatus, translateType } from '../lib/i18n'
+import { getProgressFieldLabels } from '../lib/media-form-labels'
 import { useLocale } from './LocaleProvider'
 import AppSelect from './ui/AppSelect'
 import ActionFeedback from './ui/ActionFeedback'
@@ -51,20 +51,19 @@ export default function MediaItemForm({
   titleSuggestionsError = '',
   titleSuggestionsLoading = false,
 }: MediaItemFormProps) {
-  const { t } = useLocale()
+  const { locale, t } = useLocale()
   const hasSelectedType = mediaTypes.includes(form.type as (typeof mediaTypes)[number])
   const showSuggestions =
     hasSelectedType && (titleSuggestionsLoading || titleSuggestions.length > 0 || Boolean(titleSuggestionsError))
   const statusOptions = hasSelectedType ? getAllowedStatuses(form.type) : []
   const typeSelectOptions = [
-    { label: 'Select a type first', value: '' },
-    ...mediaTypes.map((type) => ({ label: type, value: type })),
+    { label: t('form.selectType'), value: '' },
+    ...mediaTypes.map((type) => ({ label: translateType(locale, type), value: type })),
   ]
   const statusSelectOptions = hasSelectedType
-    ? statusOptions.map((status) => ({ label: status, value: status }))
-    : [{ label: 'Select a type first', value: '' }]
-  const currentProgressLabel = hasSelectedType ? getCurrentProgressLabel(form.type) : 'Current Progress'
-  const totalProgressLabel = hasSelectedType ? getTotalProgressLabel(form.type) : 'Total Count'
+    ? statusOptions.map((status) => ({ label: translateStatus(locale, status), value: status }))
+    : [{ label: t('form.selectType'), value: '' }]
+  const progressLabels = getProgressFieldLabels(locale, form.type)
 
   function getCandidateRatingCopy(candidate: CatalogSearchCandidate) {
     if (!candidate.externalRatingLabel || typeof candidate.externalRatingValue !== 'number') {
@@ -91,9 +90,9 @@ export default function MediaItemForm({
     <form onSubmit={onSubmit} className="space-y-4 px-5 py-5 sm:px-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-200">Type</span>
+          <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.type')}</span>
           <AppSelect
-            ariaLabel="Media type"
+            ariaLabel={t('catalog.mediaType')}
             value={form.type}
             onValueChange={(value) => {
               const nextType = value
@@ -115,9 +114,9 @@ export default function MediaItemForm({
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-200">Status</span>
+          <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.status')}</span>
           <AppSelect
-            ariaLabel="Status"
+            ariaLabel={t('form.status')}
             value={form.status}
             onValueChange={(value) => onChange('status', value)}
             options={statusSelectOptions}
@@ -128,7 +127,7 @@ export default function MediaItemForm({
       </div>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-200">Title</span>
+        <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.title')}</span>
         <input
           type="search"
           inputMode="search"
@@ -145,7 +144,7 @@ export default function MediaItemForm({
             onTitleInputChange?.(event.currentTarget.value)
           }}
           className="glass-panel-soft min-h-12 w-full rounded-2xl px-4 py-3 text-base text-white outline-none transition focus:border-blue-400/40"
-          placeholder={hasSelectedType ? 'Frieren, Dune, Interstellar...' : 'Select type first...'}
+          placeholder={hasSelectedType ? t('form.titlePlaceholder') : t('form.selectTypePlaceholder')}
           disabled={isSubmitting || !hasSelectedType}
         />
       </label>
@@ -153,10 +152,10 @@ export default function MediaItemForm({
       {showSuggestions ? (
         <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-            Database Matches
+            {t('form.databaseMatches')}
           </p>
           {titleSuggestionsLoading ? (
-            <p className="text-sm text-slate-400">Searching for matches...</p>
+            <p className="text-sm text-slate-400">{t('form.searchingMatches')}</p>
           ) : titleSuggestionsError ? (
             <p className="text-sm text-amber-200">{titleSuggestionsError}</p>
           ) : (
@@ -187,7 +186,7 @@ export default function MediaItemForm({
                     <div className="flex items-start justify-between gap-2">
                       <p className="truncate text-sm font-semibold text-white">{candidate.title}</p>
                       <span className="shrink-0 text-[11px] text-slate-400">
-                        {candidate.year || 'Unknown year'}
+                        {candidate.year || t('catalog.unknownYear')}
                       </span>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -198,7 +197,7 @@ export default function MediaItemForm({
                         </p>
                       ) : null}
                       <p className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2 py-1 text-[11px] font-medium text-blue-100">
-                        {candidate.type}
+                        {translateType(locale, candidate.type)}
                       </p>
                       <p className="text-[11px] text-slate-500">{candidate.provider}</p>
                     </div>
@@ -211,7 +210,7 @@ export default function MediaItemForm({
       ) : null}
 
       <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-200">Genres</span>
+        <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.genres')}</span>
         <input
           type="text"
           value={form.genres}
@@ -220,12 +219,12 @@ export default function MediaItemForm({
           placeholder="Action, Drama, Sci-Fi"
           disabled={isSubmitting}
         />
-        <span className="mt-2 block text-xs text-slate-500">Separate genres with commas.</span>
+        <span className="mt-2 block text-xs text-slate-500">{t('form.genreHint')}</span>
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-200">{currentProgressLabel}</span>
+          <span className="mb-2 block text-sm font-medium text-slate-200">{progressLabels.current}</span>
           <input
             type="number"
             min="0"
@@ -239,7 +238,7 @@ export default function MediaItemForm({
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-200">{totalProgressLabel}</span>
+          <span className="mb-2 block text-sm font-medium text-slate-200">{progressLabels.total}</span>
           <input
             type="number"
             min="1"
@@ -253,7 +252,7 @@ export default function MediaItemForm({
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-200">My Rating</span>
+          <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.rating')}</span>
           <input
             type="number"
             min="1"
@@ -270,21 +269,21 @@ export default function MediaItemForm({
 
       {getOfficialScoreCopy() ? (
         <div className="rounded-2xl border border-blue-400/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
-          <span className="font-medium">Official Score:</span> {getOfficialScoreCopy()}
+          <span className="font-medium">{t('form.officialScore')}</span> {getOfficialScoreCopy()}
         </div>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <DateField
           disabled={isSubmitting}
-          label="Started"
+          label={t('form.started')}
           onChange={(value) => onChange('startedAt', value)}
           value={form.startedAt}
         />
 
         <DateField
           disabled={isSubmitting}
-          label="Completed"
+          label={t('form.completed')}
           onChange={(value) => onChange('completedAt', value)}
           value={form.completedAt}
         />
@@ -298,11 +297,11 @@ export default function MediaItemForm({
           className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
           disabled={isSubmitting}
         />
-        <span className="text-sm font-medium text-slate-200">Mark as favorite</span>
+        <span className="text-sm font-medium text-slate-200">{t('form.markFavorite')}</span>
       </label>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-200">Cover Image URL</span>
+        <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.coverImageUrl')}</span>
         <input
           type="url"
           value={form.imageUrl}
@@ -314,16 +313,16 @@ export default function MediaItemForm({
       </label>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-200">Notes</span>
+        <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.notes')}</span>
         <textarea
           value={form.notes}
           onChange={(event) => onChange('notes', event.target.value)}
           className="glass-panel-soft min-h-32 w-full rounded-2xl px-4 py-3 text-base text-white outline-none transition focus:border-blue-400/40"
-          placeholder="Quick thoughts, arc notes, favorite moments..."
+          placeholder={t('form.notesPlaceholder')}
           disabled={isSubmitting}
         />
         <span className="mt-2 block text-xs text-slate-500">
-          Supports Markdown (e.g., **bold**, *italic*, - lists)
+          {t('form.markdownHint')}
         </span>
       </label>
 
@@ -332,7 +331,7 @@ export default function MediaItemForm({
       {coverFileName ? (
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
           <div className="flex items-center justify-between gap-3">
-            <p className="truncate">Selected file: {coverFileName}</p>
+            <p className="min-w-0 truncate">{t('form.selectedFile', { name: coverFileName })}</p>
             {onClearCoverFile ? (
               <button
                 type="button"
@@ -344,7 +343,7 @@ export default function MediaItemForm({
             ) : null}
           </div>
           <p className="mt-2 text-xs text-blue-100/75">
-            Uploaded file will override the URL field when you save.
+            {t('form.uploadOverride')}
           </p>
         </div>
       ) : null}
@@ -378,28 +377,30 @@ function CustomFileField({
   onChange?: (file: File | null) => void
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const { t } = useLocale()
 
   return (
     <div className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-200">Or Upload Cover</span>
+      <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.uploadCover')}</span>
       <input
         ref={inputRef}
         type="file"
+        aria-label={t('form.uploadCover')}
         accept="image/png,image/jpeg,image/webp,image/gif"
         onChange={(event) => onChange?.(event.target.files?.[0] ?? null)}
         className="sr-only"
         disabled={disabled}
       />
-      <div className="glass-panel-soft flex min-h-12 items-center gap-4 rounded-2xl px-4 py-3">
+      <div className="glass-panel-soft flex min-h-12 min-w-0 flex-wrap items-center gap-3 rounded-xl px-4 py-3">
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={disabled}
           className="flex min-h-12 items-center rounded-2xl bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Choose file
+          {t('form.chooseFile')}
         </button>
-        <span className="truncate text-sm text-slate-300">{coverFileName || 'No file selected'}</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-slate-300">{coverFileName || t('form.noFileSelected')}</span>
       </div>
     </div>
   )
@@ -417,6 +418,7 @@ function DateField({
   value: string
 }) {
   const hiddenInputRef = useRef<HTMLInputElement | null>(null)
+  const { t } = useLocale()
   const [displayValue, setDisplayValue] = useState(formatDateDisplay(value))
 
   useEffect(() => {
@@ -441,12 +443,13 @@ function DateField({
       <div className="glass-panel-soft flex min-h-12 items-center gap-3 rounded-2xl px-4 py-3">
         <input
           type="text"
+          aria-label={label}
           inputMode="numeric"
           value={displayValue}
           onChange={(event) => setDisplayValue(event.target.value)}
           onBlur={(event) => commit(event.target.value)}
           placeholder="YYYY-MM-DD"
-          className="w-full bg-transparent text-base text-white outline-none placeholder:text-slate-400"
+          className="min-w-0 w-full bg-transparent text-base text-white outline-none placeholder:text-slate-400"
           disabled={disabled}
         />
         <input
@@ -475,7 +478,7 @@ function DateField({
             input?.showPicker?.()
           }}
           disabled={disabled}
-          aria-label="Open calendar"
+          aria-label={t('form.openCalendar')}
           className="flex min-h-12 min-w-12 shrink-0 items-center justify-center text-slate-300 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           <svg
