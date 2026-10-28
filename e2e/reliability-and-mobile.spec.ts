@@ -45,6 +45,7 @@ test('mobile navigation, Russian persistence and dashboard rendering without hor
   for (const path of ['/', '/discover', '/lists', '/summary', '/stats', '/settings']) {
     await page.goto(path)
     await expect(page.locator('main h1')).toBeVisible()
+    await expect(page.locator('main h1')).not.toHaveText('The vault hit an unexpected error')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
   }
   await page.getByRole('button', { name: 'Русский (beta)', exact: true }).click()
@@ -105,6 +106,8 @@ test('bulk deletion keeps selection after a transport failure and confirms the r
   expect(rows.error).toBeNull()
   await page.goto('/')
   await page.getByRole('searchbox', { name: 'Search', exact: true }).fill(title)
+  await expect(page).toHaveURL(url => url.searchParams.get('q') === title)
+  await expect(page.getByRole('heading', { name: `${title} 1`, exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Select', exact: true }).click()
   await page.getByRole('button', { name: 'Select all visible', exact: true }).click()
   await page.getByRole('button', { name: 'Delete selected', exact: true }).click()

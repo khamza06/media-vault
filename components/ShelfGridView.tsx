@@ -61,6 +61,7 @@ export default function ShelfGridView({
     onComplete() { setSelectionMode(false); setIsBulkDeleteOpen(false) },
   })
   const filters = useMemo(() => getLibraryFiltersFromSearchParams(searchParams), [searchParams])
+  const selectionFilterKey = JSON.stringify(filters)
   const favoritesOnly = searchParams.get('favorites') === '1'
   const currentQuery = searchParams.toString()
   const currentReturnTo = currentQuery ? `${pathname}?${currentQuery}` : pathname
@@ -100,7 +101,7 @@ export default function ShelfGridView({
     if (selectionMode) {
       setSelectedIds(new Set())
     }
-  }, [favoritesOnly, filters, selectionMode, view])
+  }, [favoritesOnly, selectionFilterKey, selectionMode, view])
 
   const filteredItems = useMemo(() => {
     const baseItems = filterAndSortMediaItems(liveItems, filters, {

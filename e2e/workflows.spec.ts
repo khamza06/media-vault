@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { randomUUID } from 'node:crypto'
 import { addManual, authenticate, choose, fixture, loginUI, prefix } from './helpers'
 
 test.beforeEach(() => { fixture() })
@@ -118,4 +119,45 @@ test('large library search includes the oldest record beyond the API row cap', a
   await page.goto('/')
   await page.getByRole('searchbox', { name: 'Search', exact: true }).fill(title)
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()
+})
+
+test('large public profiles, lists and dashboard counts retain every synthetic record', async ({ page, browser }) => {
+  const client = await authenticate(page.context(), 'b')
+  const ids: string[] = []
+  let cursor = ''
+  for (;;) {
+    let query = client.from('items').select('id').eq('user_id', fixture().b).order('id').limit(500)
+    if (cursor) query = query.gt('id', cursor)
+    const result = await query
+    expect(result.error).toBeNull()
+    if (!result.data?.length) break
+    ids.push(...result.data.map(row => row.id)); cursor = result.data.at(-1)!.id
+  }
+  expect(ids.length).toBeGreaterThan(1000)
+  const slug = `qa-large-${randomUUID().slice(0, 8)}`
+  const list = await client.from('lists').insert({ user_id: fixture().b, name: slug, slug, is_public: true }).select('id').single()
+  expect(list.error).toBeNull()
+  for (let offset = 0; offset < ids.length; offset += 250) expect((await client.from('list_items').insert(ids.slice(offset, offset + 250).map(id => ({ user_id: fixture().b, list_id: list.data!.id, item_id: id })))).error).toBeNull()
+  expect((await client.from('profiles').update({ is_public: true }).eq('id', fixture().b)).error).toBeNull()
+  const guest = await browser.newContext()
+  try {
+    const username = `qa-${fixture().run.slice(0, 8)}-b`
+    const origin = new URL(page.url() === 'about:blank' ? process.env.MEDIA_VAULT_E2E_URL! : page.url()).origin
+    for (const path of [`/u/${username}`, `/u/${username}/lists/${slug}`, `/share/${fixture().b}`]) {
+      const response = await guest.request.get(`${origin}${path}`)
+      expect(response.status()).toBe(200)
+      const html = await response.text()
+      expect(html.includes(`${prefix()} oldest sentinel`)).toBe(true)
+      expect(html.includes('Synthetic large-library test')).toBe(false)
+    }
+    await page.goto('/summary')
+    await expect(page.locator('main h1')).toHaveText('Summary')
+    const card = page.getByText('Total Count', { exact: true }).locator('..')
+    await expect(card).toContainText(String(ids.length))
+    await page.goto('/stats')
+    await expect(page.locator('main h1')).not.toHaveText('The vault hit an unexpected error')
+  } finally {
+    await guest.close()
+    await client.from('profiles').update({ is_public: false }).eq('id', fixture().b)
+  }
 })

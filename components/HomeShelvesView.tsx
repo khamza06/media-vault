@@ -81,6 +81,7 @@ export default function HomeShelvesView({
   )
   const accentCacheRef = useRef(new Map<string, string>())
   const filters = useMemo(() => getLibraryFiltersFromSearchParams(searchParams), [searchParams])
+  const selectionFilterKey = JSON.stringify(filters)
   const currentQuery = searchParams.toString()
   const currentReturnTo = currentQuery ? `${pathname}?${currentQuery}` : pathname
 
@@ -129,7 +130,7 @@ export default function HomeShelvesView({
     if (selectionMode) {
       setSelectedIds(new Set())
     }
-  }, [filters, selectionMode, view])
+  }, [selectionFilterKey, selectionMode, view])
 
   useEffect(() => {
     const root = document.documentElement

@@ -20,10 +20,11 @@ import HomeShelvesView from '../components/HomeShelvesView'
 import ShelfGridView from '../components/ShelfGridView'
 import { useBulkDeleteRequest } from '../components/useBulkDeleteRequest'
 import { toMediaItem } from '../lib/media'
-const params = new URLSearchParams()
+let params = new URLSearchParams()
 const items = ['Alpha', 'Beta'].map((title, i) => toMediaItem({ id: `item-${i}`, title, type: 'Anime', status: 'Planning', notes: '  **Keep**\n', progress: 3 }))
 const descriptors = new Map(['showModal', 'close'].map((key) => [key, Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, key)]))
 beforeEach(() => {
+  params = new URLSearchParams()
   mocks.deleteItemsBulkAction.mockResolvedValue({ success: true, deleted: 2, failed: 0, deletedIds: items.map((item) => item.id), error: null })
   Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function (this: HTMLDialogElement) { this.open = true } })
   Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: function (this: HTMLDialogElement) { if (this.open) { this.open = false; queueMicrotask(() => this.dispatchEvent(new Event('close'))) } } })
@@ -48,6 +49,19 @@ function HookHarness() {
   return <><output>{ids.join(',')}</output><output>{complete ? 'Complete' : 'Review'}</output>{request.error ? <p role="alert">{request.error}</p> : null}<button disabled={request.isDeleting} onClick={() => void request.deleteSelected(ids)}>Delete fixture</button></>
 }
 describe('bulk delete client recovery', () => {
+  it.each(['home', 'shelf'])('preserves %s selection when navigation refreshes the same filter values', (view) => {
+    const element = () => view === 'home' ? <HomeShelvesView items={items} listOptions={[]} recommendations={[]} onboardingState={{ itemCount: 2, importedItemCount: 0, isProfilePublic: false, listCount: 0, listsReady: true, profileReady: false, username: null }} /> : <ShelfGridView title="Anime" description="Fixture" items={items} listOptions={[]} />
+    const { rerender } = render(element())
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select all visible' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }))
+    params = new URLSearchParams(params.toString())
+    rerender(element())
+    expect(screen.getByRole('button', { name: 'Delete 2 items' })).toBeTruthy()
+    params = new URLSearchParams({ q: 'Alpha' })
+    rerender(element())
+    expect(screen.getByText('Selected 0 items')).toBeTruthy()
+  })
   it('focuses Cancel and returns focus to Delete selected without deleting anything', () => {
     render(<ShelfGridView title="Anime" description="Fixture" items={items} listOptions={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Select' }))
