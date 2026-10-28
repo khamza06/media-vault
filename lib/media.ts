@@ -315,6 +315,12 @@ export function normalizeGenresInput(value: string) {
 export function normalizeMediaItemInput(
   input: MediaItemInput
 ): { data: NormalizedMediaItemWriteInput | null; error: string | null } {
+  const stringFields = ['title', 'type', 'status', 'progress', 'totalProgress', 'rating',
+    'externalRatingValue', 'externalRatingLabel', 'notes', 'genres', 'startedAt', 'completedAt', 'imageUrl'] as const
+  if (!input || typeof input !== 'object' || typeof input.favorite !== 'boolean'
+    || stringFields.some((field) => typeof input[field] !== 'string')) {
+    return { data: null, error: 'Invalid item data. Please review the form.' }
+  }
   const title = input.title.trim()
 
   if (!title) {
@@ -343,7 +349,7 @@ export function normalizeMediaItemInput(
   const parsedRating = coercePositiveInteger(input.rating, 1)
   const parsedExternalRating =
     input.externalRatingValue.trim().length > 0 ? Number(input.externalRatingValue.trim()) : null
-  const notes = input.notes.trim()
+  const notes = input.notes
   const genres = normalizeGenresInput(input.genres)
   const startedAt = input.startedAt.trim()
   const completedAt = input.completedAt.trim()

@@ -137,3 +137,25 @@ No signed-in browser session or live item writes were used. The temporary QA
 route was removed before the production build.
 
 Next checkpoint: detail-page provider metadata and draft-safe section polish.
+
+## Stage 5A: Catalog Identity and Exact Notes
+
+- Found and fixed the gap between catalog selection and Add New saving: selected
+  provider IDs now reach the existing `external_source` / `external_id` columns.
+  Identity is validated against the chosen media type; title/type edits clear it.
+- Manual additions stay untagged. Jikan uses `jikan`, not the `myanimelist` XML
+  import cleanup tag. No old items are retagged and no cleanup runs automatically.
+- Catalog adds check for an existing owned source/ID/type and return that item
+  without overwriting it. This prevents sequential duplicate adds; without a new
+  unique database index it does not claim atomic cross-tab race protection.
+- Detail queries now read source identity, retaining older-schema compatibility.
+  No new item columns, migrations or RLS changes were made.
+- Full create/edit normalization no longer trims Markdown notes. Malformed form
+  payloads return validation errors. Add New keeps its draft after transport
+  errors, prevents duplicate submits and now actually closes after a successful
+  save (the old close handler saw a stale submitting state).
+
+Verification: 189 isolated tests, lint and production build passed. New mocked
+checks cover provider/type validation, owner-scoped reads/inserts, duplicate
+lookup failures, manual/MAL separation, schema fallbacks, exact notes and Add New
+success/error behavior. No live account, signup email or database write was used.

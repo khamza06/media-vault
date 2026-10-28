@@ -6,6 +6,7 @@ import type { MediaItemRecord, NormalizedMediaItemWriteInput } from '../media'
 import { getDefaultStatus, isMovieType, usesPageProgress } from '../media'
 import { isMissingColumnError, isMissingUserIdError } from './ownership'
 import { createSupabaseServerClient } from '../supabase/server'
+import type { CatalogIdentity } from '../catalog-identity'
 
 const fullItemSelectFieldsWithSource =
   'id, user_id, title, type, status, progress, total_progress, last_progress_at, rating, image_url, notes, started_at, completed_at, favorite, genres, external_rating_label, external_rating_value, external_source, external_id, created_at'
@@ -532,12 +533,21 @@ export async function getItemById(id: string) {
   const user = await requireCurrentUser()
   const supabase = createSupabaseServerClient(user.accessToken)
 
-  const fullResult = await supabase
+  let fullResult = await supabase
     .from('items')
-    .select(fullItemSelectFields)
+    .select(fullItemSelectFieldsWithSource)
     .eq('id', id)
     .eq('user_id', user.id)
     .single()
+
+  if (isExternalSourceColumnError(fullResult.error?.message)) {
+    fullResult = await supabase
+      .from('items')
+      .select(fullItemSelectFields)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+  }
 
   if (!fullResult.error) {
     return fullResult
@@ -586,14 +596,16 @@ export async function getItemById(id: string) {
   return fullResult
 }
 
-export async function createItem(input: NormalizedMediaItemWriteInput) {
+export async function createItem(input: NormalizedMediaItemWriteInput, identity?: CatalogIdentity | null) {
   const user = await requireCurrentUser()
   const supabase = createSupabaseServerClient(user.accessToken)
+  const sourceFields = identity ? { external_source: identity.source, external_id: identity.id } : {}
 
   const ownedInsert = await supabase
     .from('items')
     .insert({
       ...toDatabasePayload(input),
+      ...sourceFields,
       user_id: user.id,
     })
     .select('id')
@@ -608,6 +620,7 @@ export async function createItem(input: NormalizedMediaItemWriteInput) {
       .from('items')
       .insert({
         ...toMetadataInput(input),
+        ...sourceFields,
         user_id: user.id,
       })
       .select('id')
@@ -627,6 +640,7 @@ export async function createItem(input: NormalizedMediaItemWriteInput) {
       .from('items')
       .insert({
         ...toCompatibilityInput(input),
+        ...sourceFields,
         user_id: user.id,
       })
       .select('id')
@@ -639,6 +653,7 @@ export async function createItem(input: NormalizedMediaItemWriteInput) {
       return compatibilityInsert
     }
 
+    if (identity) return compatibilityInsert
     return supabase.from('items').insert(toLegacyInput(input)).select('id').single()
   }
 

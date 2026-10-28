@@ -20,11 +20,13 @@ import {
 } from '../../lib/media'
 import { shelfDefinitions } from '../../lib/shelves'
 import { createSupabaseServerClient } from '../../lib/supabase/server'
+import { getCatalogIdentity } from '../../lib/catalog-identity'
 
 type ActionResult = {
   error: string | null
   itemId?: string
   success: boolean
+  alreadyExists?: boolean
 }
 
 type BulkDeleteActionResult = ActionResult & {
@@ -71,15 +73,28 @@ async function revalidateVaultPaths(itemId?: string) {
   }
 }
 
-export async function createItemAction(input: MediaItemInput): Promise<ActionResult> {
+export async function createItemAction(input: MediaItemInput, catalogId?: string): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { error: 'Sign in to add items to your vault.', success: false }
   const normalized = normalizeMediaItemInput(input)
   if (normalized.error || !normalized.data) {
     return { error: normalized.error ?? 'Invalid input.', success: false }
   }
 
-  const result = await createItem(normalized.data)
+  const identity = catalogId === undefined ? null : getCatalogIdentity(catalogId, input.type)
+  if (catalogId !== undefined && !identity) return { error: 'This catalog selection is invalid. Select the title again.', success: false }
+  if (identity) {
+    const supabase = createSupabaseServerClient(user.accessToken)
+    const sameTypes = ['Manga', 'Manhwa', 'Manhua'].includes(input.type) ? ['Manga', 'Manhwa', 'Manhua'] : [input.type]
+    const existing = await supabase.from('items').select('id').eq('user_id', user.id)
+      .eq('external_source', identity.source).in('external_id', [identity.id, String(catalogId)])
+      .in('type', sameTypes).limit(1).maybeSingle()
+    if (existing.error) return { error: 'Could not check this catalog item. Please try again.', success: false }
+    if (existing.data) return { error: null, itemId: existing.data.id, success: true, alreadyExists: true }
+  }
+  const result = await createItem(normalized.data, identity)
   if (result.error) {
-    return { error: result.error.message, success: false }
+    return { error: 'Could not save this item. Please try again and check your database setup if this continues.', success: false }
   }
 
   await revalidateVaultPaths()
@@ -361,7 +376,7 @@ export async function quickUpdateItemAction(
   }
 
   if (input.notes !== undefined) {
-    payload.notes = input.notes.trim().length > 0 ? input.notes : null
+    payload.notes = input.notes.length > 0 ? input.notes : null
   }
 
   if (Object.keys(payload).length === 0) {

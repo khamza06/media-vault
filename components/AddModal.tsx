@@ -69,10 +69,12 @@ export default function AddModal({
   const { showToast } = useToast()
   const titleSearchSkipRef = useRef(false)
   const titleSearchRequestIdRef = useRef(0)
+  const submittingRef = useRef(false)
 
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [form, setForm] = useState<MediaItemInput>(initialFormState)
+  const [selectedCatalogId, setSelectedCatalogId] = useState<string | undefined>()
   const [isOpen, setIsOpen] = useState(false)
   const [isQuickImporting, setIsQuickImporting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -91,6 +93,7 @@ export default function AddModal({
     setCoverFile(null)
     setErrorMessage('')
     setForm(initialFormState)
+    setSelectedCatalogId(undefined)
     setIsQuickImporting(false)
     setIsSubmitting(false)
     setIsTitleSearchLoading(false)
@@ -117,6 +120,7 @@ export default function AddModal({
   }
 
   function updateField<K extends keyof MediaItemInput>(field: K, value: MediaItemInput[K]) {
+    if (field === 'title' || field === 'type') setSelectedCatalogId(undefined)
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -124,6 +128,7 @@ export default function AddModal({
   }
 
   function applyResolvedForm(data: QuickImportFormData) {
+    setSelectedCatalogId(undefined)
     titleSearchSkipRef.current = true
     titleSearchRequestIdRef.current += 1
     setForm({
@@ -145,6 +150,7 @@ export default function AddModal({
     titleSearchSkipRef.current = true
     titleSearchRequestIdRef.current += 1
     setForm((current) => catalogCandidateToInput(candidate, current.notes))
+    setSelectedCatalogId(candidate.id)
     setTitleSuggestions([])
     setTitleSearchError('')
     setIsTitleSearchLoading(false)
@@ -372,6 +378,7 @@ export default function AddModal({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submittingRef.current) return
 
     const normalized = normalizeMediaItemInput(form)
     if (normalized.error) {
@@ -379,45 +386,44 @@ export default function AddModal({
       return
     }
 
+    submittingRef.current = true
     setIsSubmitting(true)
     setErrorMessage('')
 
-    let imageUrl = form.imageUrl
+    try {
+      let imageUrl = form.imageUrl
 
-    if (coverFile) {
-      const uploadFormData = new FormData()
-      uploadFormData.set('cover', coverFile)
-      const uploadResult = await uploadCoverAction(uploadFormData)
+      if (coverFile) {
+        const uploadFormData = new FormData()
+        uploadFormData.set('cover', coverFile)
+        const uploadResult = await uploadCoverAction(uploadFormData)
 
-      if (!uploadResult.success || !uploadResult.url) {
-        setIsSubmitting(false)
-        setErrorMessage(uploadResult.error ?? 'Failed to upload cover image.')
-        showToast(uploadResult.error ?? 'Failed to upload cover image.', 'error')
+        if (!uploadResult.success || !uploadResult.url) {
+          setErrorMessage(uploadResult.error ?? 'Failed to upload cover image.')
+          showToast(uploadResult.error ?? 'Failed to upload cover image.', 'error')
+          return
+        }
+
+        imageUrl = uploadResult.url
+      }
+
+      const result = await createItemAction({ ...form, imageUrl, notes: form.notes }, selectedCatalogId)
+      if (!result.success) {
+        setErrorMessage(result.error ?? 'Failed to save item.')
+        showToast(result.error ?? 'Failed to save item.', 'error')
         return
       }
 
-      imageUrl = uploadResult.url
+      setIsOpen(false)
+      resetState()
+      showToast(result.alreadyExists ? 'Already in your vault. Existing details were kept.' : 'Item added to your vault.')
+      router.refresh()
+    } catch {
+      setErrorMessage('Could not save this item. Check your connection and try again. Your draft is still here.')
+    } finally {
+      submittingRef.current = false
+      setIsSubmitting(false)
     }
-
-    const payload = {
-      ...form,
-      imageUrl,
-      notes: form.notes,
-    }
-
-    const result = await createItemAction(payload)
-
-    setIsSubmitting(false)
-
-    if (!result.success) {
-      setErrorMessage(result.error ?? 'Failed to save item.')
-      showToast(result.error ?? 'Failed to save item.', 'error')
-      return
-    }
-
-    closeModal()
-    showToast('Item added to your vault.')
-    router.refresh()
   }
 
   return (
