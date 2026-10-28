@@ -11,6 +11,7 @@ import {
 
 import { getOrCreateProfile } from '../actions/profile'
 import MetadataRefreshButton from '../../components/MetadataRefreshButton'
+import LanguageToggle from '../../components/LanguageToggle'
 import ProfileSettingsPanel from '../../components/ProfileSettingsPanel'
 import SetupChecklist from '../../components/onboarding/SetupChecklist'
 import { getCurrentUser } from '../../lib/auth/dal'
@@ -138,11 +139,13 @@ export default async function SettingsPage() {
             title="Vault defaults"
           >
             <div className="grid gap-4">
+              <LanguageToggle />
               <DisabledField label="Default landing page" value="Settings schema required" />
               <DisabledField label="Default sort/filter" value="Settings schema required" />
               <p className="text-sm leading-6 text-slate-400">
-                Preferences are intentionally read-only until there is a dedicated preferences
-                schema. Profile visibility now lives in the durable profiles table.
+                Language and Library view preferences are stored in this browser. The remaining
+                default settings need a dedicated preferences schema. Public visibility is saved
+                separately in your profile.
               </p>
             </div>
           </SettingsCard>

@@ -11,7 +11,10 @@ vi.mock('next/navigation', () => ({ usePathname: () => route.pathname }))
 vi.mock('../components/AddModal', () => ({ default: () => <button>Add New</button> }))
 vi.mock('../components/HeaderCatalogSearch', () => ({ default: () => <input aria-label="Catalog search" /> }))
 vi.mock('../components/LogoutButton', () => ({ default: () => <button>Logout</button> }))
-vi.mock('../components/LocaleProvider', () => ({ useLocale: () => ({ t: (key: string) => key }) }))
+vi.mock('../components/LocaleProvider', async () => {
+  const { t } = await import('../lib/i18n')
+  return { useLocale: () => ({ t: (key: import('../lib/i18n').MessageKey) => t('en', key) }) }
+})
 afterEach(cleanup)
 
 describe('public navigation', () => {

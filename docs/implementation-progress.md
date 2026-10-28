@@ -356,3 +356,25 @@ px had no horizontal overflow and expansion/search links worked. A list sharing
 form also stayed internally scrollable within a 390x420 short viewport. No real
 save/delete/import or authenticated request was used in browser QA.
 Lint, TypeScript and production build passed after removing the temporary route.
+
+## Stage 9B: Russian Dictionary and Navigation Foundation
+
+- Repaired 166 double-decoded Russian dictionary/label lines and enabled strict
+  English/Russian locale support. Added missing navigation/Re-Watching labels
+  while leaving stored type/status values and user notes/titles unchanged.
+- Settings now offers Russian (beta), explicitly explaining partial coverage.
+  Shared header/mobile menus use dictionary labels. Tabs keep bounded text and
+  full accessible names; public/guest headers remain read-only.
+- Server rendering reads the locale cookie instead of forcing English. The
+  language action tolerates blocked browser storage, validates the API response,
+  releases pending state on errors, and allows retry without a stale refresh.
+  Locale API rejects malformed/unsupported bodies and changes only its cookie.
+- Date display respects the selected locale and handles malformed dates without
+  throwing. HTML language follows the active UI, including offline selection.
+
+Verification: 335 isolated tests passed. Browser QA confirmed cookie persistence
+through reload, valid Cyrillic, no horizontal overflow at 320-1920px and a
+reachable mobile Logout at 390x844. Only the local language preference changed;
+no sign-in or database writes were used. Full page-specific translation is not
+complete; see `docs/localization.md` for the next coverage pass.
+Lint, TypeScript and production build passed; temporary browser fixtures were removed.

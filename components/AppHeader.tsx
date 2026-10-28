@@ -9,6 +9,7 @@ import { isPublicVaultRoute } from '../lib/public-routes'
 import AddModal from './AddModal'
 import HeaderCatalogSearch from './HeaderCatalogSearch'
 import LogoutButton from './LogoutButton'
+import { useLocale } from './LocaleProvider'
 
 export default function AppHeader({
   accountLabel,
@@ -18,6 +19,7 @@ export default function AppHeader({
   userId: string | null
 }) {
   const pathname = usePathname()
+  const { t } = useLocale()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false)
   const utilityMenuRef = useRef<HTMLDivElement | null>(null)
@@ -77,7 +79,7 @@ export default function AppHeader({
             href={userId ? '/' : '/login'}
             className="inline-flex min-h-11 items-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-900 hover:text-white"
           >
-            {userId ? 'Back to vault' : 'Open your vault'}
+            {userId ? t('nav.backToVault') : t('nav.openVault')}
           </Link>
         </div>
       </header>
@@ -113,14 +115,14 @@ export default function AppHeader({
               <AddModal
                 listenForExternalOpen
                 triggerClassName="min-h-11 rounded-xl border border-blue-300/20 bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_24px_rgba(59,130,246,0.28)] transition-all duration-300 hover:bg-blue-400"
-                triggerContent="+ Add New"
+                triggerContent={t('common.addNew')}
               />
               <div ref={utilityMenuRef} className="relative">
                 <button
                   type="button"
                   onClick={() => setIsUtilityMenuOpen((current) => !current)}
                   className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-900 hover:text-white"
-                  aria-label="Open utility menu"
+                  aria-label={t('nav.utilityMenu')}
                 >
                   <MoreVertical className="h-5 w-5" />
                 </button>
@@ -132,28 +134,28 @@ export default function AppHeader({
                       onClick={() => setIsUtilityMenuOpen(false)}
                       className="flex min-h-11 items-center rounded-xl px-3 py-2 text-sm text-slate-200 transition hover:bg-white/5 hover:text-white"
                     >
-                      Import
+                      {t('nav.import')}
                     </Link>
                     <Link
                       href="/settings"
                       onClick={() => setIsUtilityMenuOpen(false)}
                       className="mt-1 flex min-h-11 items-center rounded-xl px-3 py-2 text-sm text-slate-200 transition hover:bg-white/5 hover:text-white"
                     >
-                      Settings
+                      {t('nav.settings')}
                     </Link>
                     <Link
                       href="/backup"
                       onClick={() => setIsUtilityMenuOpen(false)}
                       className="mt-1 flex min-h-11 items-center rounded-xl px-3 py-2 text-sm text-slate-200 transition hover:bg-white/5 hover:text-white"
                     >
-                      Backup
+                      {t('nav.backup')}
                     </Link>
                     <Link
                       href="/setup"
                       onClick={() => setIsUtilityMenuOpen(false)}
                       className="mt-1 flex min-h-11 items-center rounded-xl px-3 py-2 text-sm text-slate-200 transition hover:bg-white/5 hover:text-white"
                     >
-                      Setup
+                      {t('nav.setup')}
                     </Link>
                     <div className="mt-1">
                       <LogoutButton className="w-full justify-start rounded-xl border-transparent bg-transparent px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5 hover:text-white" />
@@ -167,7 +169,7 @@ export default function AppHeader({
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
               className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-white shadow-[0_12px_30px_rgba(2,6,23,0.35)] transition hover:border-blue-400/40 hover:bg-slate-900 md:hidden"
-              aria-label="Open menu"
+              aria-label={t('nav.openMenu')}
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -182,19 +184,19 @@ export default function AppHeader({
                 pathname.startsWith('/shelves/')
               }
             >
-              Library
+              {t('nav.library')}
             </NavLink>
             <NavLink href="/summary" isActive={pathname === '/summary'}>
-              Summary
+              {t('nav.summary')}
             </NavLink>
             <NavLink href={profileHref} isActive={pathname === '/discover'}>
-              Discover
+              {t('nav.discover')}
             </NavLink>
             <NavLink href="/lists" isActive={pathname === '/lists'}>
-              Lists
+              {t('nav.lists')}
             </NavLink>
             <NavLink href="/stats" isActive={pathname === '/stats'}>
-              Stats
+              {t('nav.stats')}
             </NavLink>
           </nav>
         </div>
@@ -206,17 +208,17 @@ export default function AppHeader({
             <div className="flex shrink-0 items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                  Navigation
+                  {t('nav.navigation')}
                 </p>
                 <h2 className="mt-1 text-2xl font-semibold tracking-tight text-white">
-                  Open your vault
+                  {t('nav.openVault')}
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-white shadow-[0_12px_30px_rgba(2,6,23,0.35)] transition hover:border-blue-400/40 hover:bg-slate-900"
-                aria-label="Close menu"
+                aria-label={t('nav.closeMenu')}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -226,7 +228,7 @@ export default function AppHeader({
               {userId ? (
                 <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    Signed in
+                    {t('nav.signedIn')}
                   </p>
                   <p className="mt-1 break-words text-sm text-slate-200">{accountLabel}</p>
                 </div>
@@ -242,63 +244,63 @@ export default function AppHeader({
                   }
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
-                  Library
+                  {t('nav.library')}
                 </MobileMenuLink>
                 <MobileMenuLink
                   href="/summary"
                   isActive={pathname === '/summary'}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
-                  Summary
+                  {t('nav.summary')}
                 </MobileMenuLink>
                 <MobileMenuLink
                   href={profileHref}
                   isActive={pathname === '/discover'}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
-                  Discover
+                  {t('nav.discover')}
                 </MobileMenuLink>
                 <MobileMenuLink
                   href="/stats"
                   isActive={pathname === '/stats'}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
-                  Stats
+                  {t('nav.stats')}
                 </MobileMenuLink>
                 <MobileMenuLink
                   href="/lists"
                   isActive={pathname === '/lists'}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
-                  Lists
+                  {t('nav.lists')}
                 </MobileMenuLink>
                 <MobileMenuLink
                   href="/import"
                   isActive={pathname === '/import'}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
-                  Import
+                  {t('nav.import')}
                 </MobileMenuLink>
                 <MobileMenuLink
                   href="/settings"
                   isActive={pathname === '/settings'}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
-                  Settings
+                  {t('nav.settings')}
                 </MobileMenuLink>
                 <MobileMenuLink
                   href="/backup"
                   isActive={pathname === '/backup'}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
-                  Backup
+                  {t('nav.backup')}
                 </MobileMenuLink>
                 <MobileMenuLink
                   href="/setup"
                   isActive={pathname === '/setup'}
                   onNavigate={() => setIsMobileMenuOpen(false)}
                 >
-                  Setup
+                  {t('nav.setup')}
                 </MobileMenuLink>
               </div>
             </div>
@@ -307,7 +309,7 @@ export default function AppHeader({
               <AddModal
                 listenForExternalOpen
                 triggerClassName="w-full min-h-12 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_24px_rgba(59,130,246,0.28)] transition-all duration-300 hover:bg-blue-400"
-                triggerContent="+ Add New"
+                triggerContent={t('common.addNew')}
               />
 
               <LogoutButton className="w-full min-h-12 rounded-xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-medium text-slate-100 transition hover:border-blue-400/30 hover:bg-white/10 hover:text-white" />

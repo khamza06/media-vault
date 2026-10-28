@@ -86,6 +86,9 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Test Library filters and sorting together.
 - Test mobile nav at a narrow viewport.
 - Confirm Logout is reachable from the mobile menu.
+- Switch English/Russian in Settings, reload, and verify the language persists without garbled text.
+- Test blocked localStorage and failed locale requests; selection should remain usable and retryable.
+- Confirm translated labels never change stored status/type values or notes, and keep the partial-translation beta notice accurate.
 
 ## Production Readiness
 

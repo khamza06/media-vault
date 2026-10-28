@@ -95,6 +95,7 @@ Sentry captures production errors.
 - Optional public read-only custom list sharing
 - Stats dashboard with ratings, media mix, status, genres, monthly additions, and insights
 - Settings, onboarding checklist, and auth recovery flows
+- English/Russian (beta) navigation and dictionary-backed controls; translation coverage is still being completed
 
 View preferences and saved filters are stored in this browser per account. They
 are not synced settings or part of a backup. JSON v2 restores selected lists as
