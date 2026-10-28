@@ -1,6 +1,7 @@
 export const catalogSearchTypes = ['anime', 'manga', 'movie', 'series', 'book'] as const
 
 export type CatalogSearchType = (typeof catalogSearchTypes)[number]
+export const MIN_CATALOG_QUERY_LENGTH = 2
 
 const blockedTerms = [
   '18+',
@@ -28,9 +29,12 @@ export function isCatalogSearchType(value: string | null | undefined): value is 
 }
 
 export function containsBlockedSearchTerm(query: string) {
-  const normalized = query.toLowerCase()
+  const normalized = query.normalize('NFKC').toLowerCase()
 
-  return blockedTerms.find((term) => normalized.includes(term)) ?? null
+  return blockedTerms.find((term) => {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`, 'u').test(normalized)
+  }) ?? null
 }
 
 export function getBlockedSearchMessage() {

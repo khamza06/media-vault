@@ -1,6 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { createImportDuplicateTracker } from '../../lib/import-duplicates'
+import { readAllOwnedBackupItems } from '../../lib/data/backup-items'
 
 import { getCurrentUser } from '../../lib/auth/dal'
 import { findAniListImportMetadata } from '../../lib/anilist-import-enrichment'
@@ -1448,11 +1450,9 @@ export async function importAniListItems(
     }
   }
 
-  const existingWithExternalResult = await supabase
-    .from('items')
-    .select('title, type, external_source, external_id')
-    .eq('user_id', user.id)
-    .in('type', [...ANIME_MANGA_TYPES])
+  const existingWithExternalResult = await readAllOwnedBackupItems<ExistingItemLookup & { id: string }>(
+    supabase, user.id, 'id, title, type, external_source, external_id'
+  )
 
   let usedExternalIdColumns = !existingWithExternalResult.error
   let existingRows: ExistingItemLookup[] = existingWithExternalResult.data ?? []
@@ -1468,11 +1468,9 @@ export async function importAniListItems(
       }
     }
 
-    const existingTitleResult = await supabase
-      .from('items')
-      .select('title, type')
-      .eq('user_id', user.id)
-      .in('type', [...ANIME_MANGA_TYPES])
+    const existingTitleResult = await readAllOwnedBackupItems<ExistingItemLookup & { id: string }>(
+    supabase, user.id, 'id, title, type'
+  )
 
     usedExternalIdColumns = false
     existingRows = existingTitleResult.data ?? []
@@ -1488,41 +1486,19 @@ export async function importAniListItems(
     }
   }
 
-  const existingTitleKeys = new Set(
-    existingRows.map(
-      (item) => `${item.type ?? ''}::${normalizeComparableTitle(item.title ?? '')}`
-    )
-  )
-  const existingExternalKeys = new Set(
-    existingRows
-      .filter((item) => item.external_source === 'anilist' && item.external_id)
-      .map((item) => `anilist::${item.external_id}`)
-  )
-  const incomingTitleKeys = new Set<string>()
-  const incomingExternalKeys = new Set<string>()
+  const duplicates = createImportDuplicateTracker(existingRows)
   const importQueue: AniListImportQueueItem[] = []
   let skipped = candidates.length - validatedItems.length
 
   for (const item of validatedItems) {
-    const titleKey = `${item.type}::${normalizeComparableTitle(item.title)}`
-    const externalKey =
-      usedExternalIdColumns && item.externalId ? `anilist::${item.externalId}` : null
-
-    if (
-      existingTitleKeys.has(titleKey) ||
-      incomingTitleKeys.has(titleKey) ||
-      (externalKey !== null &&
-        (existingExternalKeys.has(externalKey) || incomingExternalKeys.has(externalKey)))
-    ) {
+    const identityRow = { title: item.title, type: item.type,
+      external_source: usedExternalIdColumns ? 'anilist' : null,
+      external_id: usedExternalIdColumns ? item.externalId : null }
+    if (duplicates.has(identityRow)) {
       skipped += 1
       continue
     }
-
-    incomingTitleKeys.add(titleKey)
-
-    if (externalKey) {
-      incomingExternalKeys.add(externalKey)
-    }
+    duplicates.add(identityRow)
 
     const row = toFullAniListImportRow(item, user.id)
     importQueue.push({
@@ -1665,10 +1641,9 @@ export async function importCsvItems(candidates: CsvImportCandidate[]): Promise<
     }
   }
 
-  const existingWithExternalResult = await supabase
-    .from('items')
-    .select('title, type, external_source, external_id')
-    .eq('user_id', user.id)
+  const existingWithExternalResult = await readAllOwnedBackupItems<ExistingItemLookup & { id: string }>(
+    supabase, user.id, 'id, title, type, external_source, external_id'
+  )
 
   let usedExternalIdColumns = !existingWithExternalResult.error
   let existingRows: ExistingItemLookup[] = existingWithExternalResult.data ?? []
@@ -1685,10 +1660,9 @@ export async function importCsvItems(candidates: CsvImportCandidate[]): Promise<
       }
     }
 
-    const existingTitleResult = await supabase
-      .from('items')
-      .select('title, type')
-      .eq('user_id', user.id)
+    const existingTitleResult = await readAllOwnedBackupItems<ExistingItemLookup & { id: string }>(
+    supabase, user.id, 'id, title, type'
+  )
 
     usedExternalIdColumns = false
     existingRows = existingTitleResult.data ?? []
@@ -1705,43 +1679,19 @@ export async function importCsvItems(candidates: CsvImportCandidate[]): Promise<
     }
   }
 
-  const existingTitleKeys = new Set(
-    existingRows.map(
-      (item) => `${item.type ?? ''}::${normalizeComparableTitle(item.title ?? '')}`
-    )
-  )
-  const existingExternalKeys = new Set(
-    existingRows
-      .filter((item) => item.external_source && item.external_id)
-      .map((item) => `${item.external_source}::${item.external_id}`)
-  )
-  const incomingTitleKeys = new Set<string>()
-  const incomingExternalKeys = new Set<string>()
+  const duplicates = createImportDuplicateTracker(existingRows)
   const rowsToInsert: ImportRowWithExternalMetadata[] = []
   let skipped = invalid
 
   for (const item of validatedItems) {
-    const titleKey = `${item.type}::${normalizeComparableTitle(item.title)}`
-    const externalKey =
-      usedExternalIdColumns && item.externalSource && item.externalId
-        ? `${item.externalSource}::${item.externalId}`
-        : null
-
-    if (
-      existingTitleKeys.has(titleKey) ||
-      incomingTitleKeys.has(titleKey) ||
-      (externalKey !== null &&
-        (existingExternalKeys.has(externalKey) || incomingExternalKeys.has(externalKey)))
-    ) {
+    const identityRow = { title: item.title, type: item.type,
+      external_source: usedExternalIdColumns ? item.externalSource : null,
+      external_id: usedExternalIdColumns ? item.externalId : null }
+    if (duplicates.has(identityRow)) {
       skipped += 1
       continue
     }
-
-    incomingTitleKeys.add(titleKey)
-
-    if (externalKey) {
-      incomingExternalKeys.add(externalKey)
-    }
+    duplicates.add(identityRow)
 
     const row = toFullCsvImportRow(item, user.id)
     rowsToInsert.push(
@@ -1892,11 +1842,9 @@ export async function importMyAnimeListItems(
     }
   }
 
-  const existingWithExternalResult = await supabase
-    .from('items')
-    .select('title, type, external_source, external_id')
-    .eq('user_id', user.id)
-    .in('type', ['Anime', 'Manga'])
+  const existingWithExternalResult = await readAllOwnedBackupItems<ExistingItemLookup & { id: string }>(
+    supabase, user.id, 'id, title, type, external_source, external_id'
+  )
 
   let usedExternalIdColumns = !existingWithExternalResult.error
   let existingRows: ExistingItemLookup[] = existingWithExternalResult.data ?? []
@@ -1913,11 +1861,9 @@ export async function importMyAnimeListItems(
       }
     }
 
-    const existingTitleResult = await supabase
-      .from('items')
-      .select('title, type')
-      .eq('user_id', user.id)
-      .in('type', ['Anime', 'Manga'])
+    const existingTitleResult = await readAllOwnedBackupItems<ExistingItemLookup & { id: string }>(
+    supabase, user.id, 'id, title, type'
+  )
 
     usedExternalIdColumns = false
     existingRows = existingTitleResult.data ?? []
@@ -1934,41 +1880,19 @@ export async function importMyAnimeListItems(
     }
   }
 
-  const existingTitleKeys = new Set(
-    existingRows.map(
-      (item) => `${item.type ?? ''}::${normalizeComparableTitle(item.title ?? '')}`
-    )
-  )
-  const existingExternalKeys = new Set(
-    existingRows
-      .filter((item) => item.external_source === 'myanimelist' && item.external_id)
-      .map((item) => `myanimelist::${item.external_id}`)
-  )
-  const incomingTitleKeys = new Set<string>()
-  const incomingExternalKeys = new Set<string>()
+  const duplicates = createImportDuplicateTracker(existingRows)
   const importQueue: ImportQueueItem[] = []
   let skipped = candidates.length - validatedItems.length
 
   for (const item of validatedItems) {
-    const titleKey = `${item.type}::${normalizeComparableTitle(item.title)}`
-    const externalKey =
-      usedExternalIdColumns && item.externalId ? `myanimelist::${item.externalId}` : null
-
-    if (
-      existingTitleKeys.has(titleKey) ||
-      incomingTitleKeys.has(titleKey) ||
-      (externalKey !== null &&
-        (existingExternalKeys.has(externalKey) || incomingExternalKeys.has(externalKey)))
-    ) {
+    const identityRow = { title: item.title, type: item.type,
+      external_source: usedExternalIdColumns ? 'myanimelist' : null,
+      external_id: usedExternalIdColumns ? item.externalId : null }
+    if (duplicates.has(identityRow)) {
       skipped += 1
       continue
     }
-
-    incomingTitleKeys.add(titleKey)
-
-    if (externalKey) {
-      incomingExternalKeys.add(externalKey)
-    }
+    duplicates.add(identityRow)
 
     const row = toFullImportRow(item, user.id)
     importQueue.push({

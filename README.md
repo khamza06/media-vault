@@ -131,21 +131,11 @@ npm run dev
 ```
 ## Supabase setup
 
-Run the SQL migrations in `supabase/migrations` in order for the full feature
-set. The key migrations are:
-
-- `20260326_auth_user_ownership.sql` for `items.user_id` and RLS
-- `20260326_item_metadata.sql` for notes, total progress, and timeline fields
-- `20260326_item_favorites.sql` for favorites
-- `20260326_item_genres.sql` for genre tags and stats
-- `20260330_external_ratings.sql` for external scores/source metadata
-- `20260426_custom_lists.sql` for custom lists and list items
-- `20260427_public_profiles.sql` for username-based public profiles
-- `20260427_public_profiles_lists.sql` for public list sharing
-
-The app uses compatibility fallbacks where practical, but production portfolio
-use should apply the migrations so imports, public profiles, lists, and backups
-work with the intended schema.
+See [supabase/README.md](supabase/README.md) for the verified database workflow.
+An **empty** Supabase project needs `supabase/bootstrap.sql` once, followed by
+`supabase/migrations` in order. Existing production must only receive unapplied
+forward migrations. March/April fragments are archived in `supabase/legacy`;
+they are not a replayable baseline and must never be applied to production.
 
 ## Auth redirect setup
 

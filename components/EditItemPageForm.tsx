@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { updateItemAction } from '../app/actions/items'
-import { uploadCoverAction } from '../app/actions/storage'
+import { uploadCoverFile } from '../lib/cover-upload'
 import { useLocale } from './LocaleProvider'
 import type { MediaItem, MediaItemInput } from '../lib/media'
 import { normalizeMediaItemInput } from '../lib/media'
@@ -75,9 +75,7 @@ export default function EditItemPageForm({
       let imageUrl = form.imageUrl
 
       if (coverFile) {
-        const uploadFormData = new FormData()
-        uploadFormData.set('cover', coverFile)
-        const uploadResult = await uploadCoverAction(uploadFormData)
+        const uploadResult = await uploadCoverFile(coverFile)
 
         if (!uploadResult.success || !uploadResult.url) {
           setErrorMessage(uploadResult.error ?? t('error.uploadCover'))

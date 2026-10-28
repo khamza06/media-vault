@@ -5,7 +5,7 @@ import { FormEvent, ReactNode, useCallback, useEffect, useEffectEvent, useRef, u
 import { useRouter } from 'next/navigation'
 
 import { createItemAction } from '../app/actions/items'
-import { uploadCoverAction } from '../app/actions/storage'
+import { uploadCoverFile } from '../lib/cover-upload'
 import { OPEN_ADD_MODAL_EVENT, type OpenAddModalDetail } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
 import { catalogCandidateToInput } from '../lib/catalog-view'
@@ -13,7 +13,7 @@ import { t as translate } from '../lib/i18n'
 import { getProgressFieldLabels } from '../lib/media-form-labels'
 import { formatExternalRatingValue, normalizeMediaItemInput, type MediaItemInput } from '../lib/media'
 import { buildQuickImportDraft } from '../lib/quick-import-draft'
-import { mapMediaTypeToCatalogSearchType } from '../lib/search-safety'
+import { MIN_CATALOG_QUERY_LENGTH, mapMediaTypeToCatalogSearchType } from '../lib/search-safety'
 import { useLocale } from './LocaleProvider'
 import MediaItemForm from './MediaItemForm'
 import ModalFrame from './ModalFrame'
@@ -226,7 +226,7 @@ export default function AddModal({
     const query = form.title.trim()
     const searchType = mapMediaTypeToCatalogSearchType(form.type)
 
-    if (!searchType || query.length < 3) {
+    if (!searchType || query.length < MIN_CATALOG_QUERY_LENGTH) {
       titleSearchRequestIdRef.current += 1
       setTitleSuggestions([])
       setIsTitleSearchLoading(false)
@@ -396,9 +396,7 @@ export default function AddModal({
       let imageUrl = form.imageUrl
 
       if (coverFile) {
-        const uploadFormData = new FormData()
-        uploadFormData.set('cover', coverFile)
-        const uploadResult = await uploadCoverAction(uploadFormData)
+        const uploadResult = await uploadCoverFile(coverFile)
 
         if (!uploadResult.success || !uploadResult.url) {
           setErrorMessage(uploadResult.error ?? t('error.uploadCover'))

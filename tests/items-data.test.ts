@@ -18,6 +18,25 @@ beforeEach(() => {
 })
 
 describe('item data identity', () => {
+  it('keeps provider identity when only the progress timestamp is missing', async () => {
+    mocks.single.mockResolvedValueOnce({ data: null, error: { message: 'column last_progress_at does not exist' } })
+    await getItemById('item')
+    expect(mocks.select.mock.calls[1][0]).toContain('external_source, external_id')
+    expect(mocks.select.mock.calls[1][0]).not.toContain('last_progress_at')
+    expect(mocks.eq.mock.calls.filter(([field]) => field === 'user_id')).toHaveLength(2)
+  })
+  it('drops only missing optional metadata across successive compatibility failures', async () => {
+    mocks.single.mockResolvedValueOnce({ data: null, error: { message: 'column last_progress_at does not exist' } })
+      .mockResolvedValueOnce({ data: null, error: { message: 'column external_rating_label does not exist' } })
+    await getItemById('item')
+    expect(mocks.select.mock.calls[2][0]).toContain('external_source, external_id')
+    expect(mocks.eq.mock.calls.filter(([field]) => field === 'user_id')).toHaveLength(3)
+  })
+  it('fails closed when the ownership column is missing', async () => {
+    mocks.single.mockResolvedValueOnce({ data: null, error: { message: 'column user_id does not exist' } })
+    expect((await getItemById('item')).error).toBeTruthy()
+    expect(mocks.select).toHaveBeenCalledTimes(1)
+  })
   it('inserts identity into existing columns with the authenticated owner, not user input', async () => {
     await createItem(input, { source: 'anilist', id: '20' })
     expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({ user_id: 'owner', external_source: 'anilist', external_id: '20', notes: '  **Notes**\n', progress: 0 }))

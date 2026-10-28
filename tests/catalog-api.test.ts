@@ -20,6 +20,13 @@ beforeEach(() => {
 })
 
 describe('catalog API validation', () => {
+  it.each(['My Hero Academia', 'Re', 'Re:Zero', 'Berserk'])('allows legitimate title %s in fast and full search', async (query) => {
+    mocks.searchCatalogByMediaType.mockResolvedValue([])
+    expect((await search(request({ query, type: 'anime' }))).status).toBe(200)
+    expect(mocks.searchCatalogByMediaType).toHaveBeenCalled()
+    expect((await search(request({ query, type: 'anime', mode: 'full' }))).status).toBe(200)
+    expect(mocks.searchCatalogPage).toHaveBeenCalledWith(query, 'anime', 'en', 'primary', 1)
+  })
   it('keeps fast requests compatible and limited to five suggestions', async () => {
     mocks.searchCatalogByMediaType.mockResolvedValue(Array.from({ length: 8 }, (_, index) => ({ id: index })))
     const response = await search(request({ query: 'naruto', type: 'anime' }))
@@ -41,8 +48,8 @@ describe('catalog API validation', () => {
     expect((await search(request({ query: 'inception', type: 'movie', mode: 'full', source: 'jikan' }))).status).toBe(400)
   })
   it('returns helpful short-query copy without calling providers', async () => {
-    const response = await search(request({ query: 'na', type: 'anime' }))
-    expect(await response.json()).toMatchObject({ data: [], message: expect.stringContaining('3 characters') })
+    const response = await search(request({ query: 'n', type: 'anime' }))
+    expect(await response.json()).toMatchObject({ data: [], message: expect.stringContaining('2 characters') })
     expect(mocks.searchCatalogByMediaType).not.toHaveBeenCalled()
   })
   it('blocks guests for search and details', async () => {

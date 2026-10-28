@@ -81,7 +81,8 @@ export function mapBackupItemIds(selected: Pick<VaultExportItem, 'id' | 'type' |
     if (matches.length !== 1) continue
     const match = matches[0]
     // Do not attach a same-title remake with a conflicting known provider ID.
-    if (key && match.external_source?.toLowerCase() === item.external_source?.toLowerCase() && match.external_id && getBackupExternalKey(match) !== key) continue
+    const matchKey = getBackupExternalKey(match)
+    if (key && matchKey && matchKey !== key) continue
     result.set(item.id, match.id)
   }
   return result

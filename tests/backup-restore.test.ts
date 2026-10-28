@@ -17,6 +17,16 @@ beforeEach(() => {
   mocks.result = { data: [{ id: 'restored' }], error: null }
 })
 describe('backup restore safety', () => {
+  it('restores a distinct provider work with the same title as an existing identified item', async () => {
+    mocks.readAllOwnedBackupItems.mockResolvedValue({ data: [{ id: 'existing', title: backup.title, type: backup.type, external_source: 'anilist', external_id: '99' }], error: null })
+    expect(await restoreBackupItemsAction([backup])).toMatchObject({ restored: 1, skipped: 0 })
+    expect(mocks.insert.mock.calls[0][0][0].external_id).toBe('20')
+  })
+  it('retains distinct same-title works inside a single restore batch', async () => {
+    mocks.result = { data: [{ id: 'one' }, { id: 'two' }], error: null }
+    expect(await restoreBackupItemsAction([backup, { ...backup, external_id: '99' }])).toMatchObject({ restored: 2, skipped: 0 })
+    expect(mocks.insert.mock.calls[0][0]).toHaveLength(2)
+  })
   it('preserves the original valid addition date instead of shifting monthly Stats to the restore month', async () => {
     const createdAt = '2021-03-14T09:26:53.000Z'
     expect(await restoreBackupItemsAction([{ ...backup, created_at: createdAt }])).toMatchObject({ restored: 1, success: true })

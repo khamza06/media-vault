@@ -17,6 +17,7 @@ import { getProgressFieldLabels } from '../lib/media-form-labels'
 import { useLocale } from './LocaleProvider'
 import AppSelect from './ui/AppSelect'
 import ActionFeedback from './ui/ActionFeedback'
+import { validateCoverFile } from '../lib/storage'
 
 type MediaItemFormProps = {
   coverFileName?: string
@@ -377,6 +378,7 @@ function CustomFileField({
   onChange?: (file: File | null) => void
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
   const { t } = useLocale()
 
   return (
@@ -387,7 +389,13 @@ function CustomFileField({
         type="file"
         aria-label={t('form.uploadCover')}
         accept="image/png,image/jpeg,image/webp,image/gif"
-        onChange={(event) => onChange?.(event.target.files?.[0] ?? null)}
+        onChange={(event) => {
+          const file = event.target.files?.[0] ?? null
+          const error = file ? validateCoverFile(file) : null
+          setFileError(error)
+          onChange?.(error ? null : file)
+          if (error) event.target.value = ''
+        }}
         className="sr-only"
         disabled={disabled}
       />
@@ -402,6 +410,8 @@ function CustomFileField({
         </button>
         <span className="min-w-0 flex-1 truncate text-sm text-slate-300">{coverFileName || t('form.noFileSelected')}</span>
       </div>
+      <p className="mt-2 text-xs text-slate-400">JPG, PNG, WEBP, GIF · ≤ 5 MB</p>
+      {fileError && <p role="alert" className="mt-2 text-sm text-red-300">{fileError}</p>}
     </div>
   )
 }

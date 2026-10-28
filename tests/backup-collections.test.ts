@@ -42,7 +42,15 @@ describe('backup v2 contract and ID mapping', () => {
   it('does not guess ambiguous or conflicting same-title work identities', () => {
     expect(mapBackupItemIds([item], [{ ...item, id: newId }, { ...item, id: otherId }]).size).toBe(0)
     expect(mapBackupItemIds([item], [{ ...item, id: newId, external_id: '99' }]).size).toBe(0)
+    expect(mapBackupItemIds([item], [{ ...item, id: newId, external_source: 'myanimelist' }]).size).toBe(0)
     expect(mapBackupItemIds([item], [{ ...item, id: newId, external_source: null }, { ...item, id: otherId, external_source: null }]).size).toBe(0)
+  })
+  it('maps two same-title works to their distinct restored IDs for list membership', () => {
+    const second = { ...item, id: otherId, external_id: '99' }
+    const secondNewId = '55555555-5555-4555-8555-555555555555'
+    const mapped = mapBackupItemIds([item, second], [{ ...item, id: newId }, { ...second, id: secondNewId }])
+    expect(mapped.get(oldId)).toBe(newId)
+    expect(mapped.get(otherId)).toBe(secondNewId)
   })
   it('deduplicates aliases and counts unselected/unresolved links without mutating the backup', () => {
     const input = { ...list, item_ids: [oldId, otherId, newId] }

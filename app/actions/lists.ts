@@ -49,11 +49,11 @@ const UUID_PATTERN =
 const LIST_SLUG_PATTERN = /^[a-z0-9_-]{3,60}$/
 
 function getSchemaSetupMessage() {
-  return 'Custom lists need the SQL migration first: supabase/migrations/20260426_custom_lists.sql'
+  return 'Custom lists need the SQL migration first: supabase/README.md'
 }
 
 function getListSharingSetupMessage() {
-  return 'Public list sharing needs the SQL migration first: supabase/migrations/20260427_public_profiles_lists.sql'
+  return 'Public list sharing needs the SQL migration first: supabase/README.md'
 }
 
 function normalizeListInput(input: { description?: string | null; name?: string | null }) {

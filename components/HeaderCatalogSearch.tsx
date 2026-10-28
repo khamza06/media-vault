@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { dispatchOpenAddModal } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
 import { formatExternalRatingValue } from '../lib/media'
-import { type CatalogSearchType, catalogSearchTypes } from '../lib/search-safety'
+import { MIN_CATALOG_QUERY_LENGTH, type CatalogSearchType, catalogSearchTypes } from '../lib/search-safety'
 import { useLocale } from './LocaleProvider'
 import AppSelect from './ui/AppSelect'
 
@@ -98,7 +98,7 @@ export default function HeaderCatalogSearch() {
   useEffect(() => {
     const trimmedQuery = query.trim()
 
-    if (!searchType || trimmedQuery.length < 3) {
+    if (!searchType || trimmedQuery.length < MIN_CATALOG_QUERY_LENGTH) {
       searchRequestIdRef.current += 1
       setResults(null)
       setHasSearched(false)
@@ -246,10 +246,10 @@ export default function HeaderCatalogSearch() {
   }
 
   function renderResultsContent() {
-    if (trimmedQuery.length < 3) {
+    if (trimmedQuery.length < MIN_CATALOG_QUERY_LENGTH) {
       return (
         <div className="px-4 py-4 text-sm text-slate-300">
-          Type at least 3 characters to search global databases.
+          Type at least 2 characters to search global databases.
         </div>
       )
     }

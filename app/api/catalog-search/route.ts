@@ -9,6 +9,7 @@ import { getRequestLocale } from '../../../lib/i18n-server'
 import { resolveLocale } from '../../../lib/i18n'
 import { buildQuickImportSearchTerms } from '../../../lib/quick-import-parser'
 import {
+  MIN_CATALOG_QUERY_LENGTH,
   containsBlockedSearchTerm,
   getBlockedSearchMessage,
   isCatalogSearchType,
@@ -56,10 +57,10 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Search titles must be 200 characters or fewer.' }, { status: 400 })
   }
 
-  if (!query || query.length < 3) {
+  if (!query || query.length < MIN_CATALOG_QUERY_LENGTH) {
     return Response.json({
       data: [],
-      message: 'Type at least 3 characters to search global databases.',
+      message: 'Type at least 2 characters to search global databases.',
     })
   }
 

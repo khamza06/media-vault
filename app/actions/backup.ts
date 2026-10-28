@@ -1,9 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { createImportDuplicateTracker } from '../../lib/import-duplicates'
 
 import { getCurrentUser } from '../../lib/auth/dal'
-import { createBackupPayload, getBackupExternalKey, getBackupTrackingError, type VaultExportItem } from '../../lib/backup'
+import { createBackupPayload, getBackupTrackingError, type VaultExportItem } from '../../lib/backup'
 import { readAllOwnedBackupItems } from '../../lib/data/backup-items'
 import { getItemsForBackupExport } from '../../lib/data/items'
 import { getCollectionsForBackupExport } from '../../lib/data/backup-collections'
@@ -91,14 +92,6 @@ function isMissingColumnError(message?: string | null) {
         /Could not find the .* column/i.test(message) ||
         /schema cache/i.test(message))
   )
-}
-
-function normalizeComparableTitle(value: string) {
-  return value
-    .normalize('NFKC')
-    .trim()
-    .toLocaleLowerCase('en-US')
-    .replace(/\s+/g, ' ')
 }
 
 function sanitizeText(value: unknown, options?: { maxLength?: number; preserveWhitespace?: boolean }) {
@@ -372,41 +365,19 @@ export async function restoreBackupItemsAction(
     }
   }
 
-  const existingTitleKeys = new Set(
-    existingRows.map(
-      (item) => `${item.type ?? ''}::${normalizeComparableTitle(item.title ?? '')}`
-    )
-  )
-  const existingExternalKeys = new Set(
-    existingRows.map(getBackupExternalKey).filter((key): key is string => key !== null)
-  )
-  const incomingTitleKeys = new Set<string>()
-  const incomingExternalKeys = new Set<string>()
+  const duplicates = createImportDuplicateTracker(existingRows)
   const rowsToInsert: RestoreInsertRowWithExternalMetadata[] = []
   let skipped = 0
 
   for (const item of validatedItems) {
-    const titleKey = `${item.type}::${normalizeComparableTitle(item.title)}`
-    const externalKey =
-      usedExternalIdColumns
-        ? getBackupExternalKey({ type: item.type, external_source: item.externalSource, external_id: item.externalId })
-        : null
-
-    if (
-      existingTitleKeys.has(titleKey) ||
-      incomingTitleKeys.has(titleKey) ||
-      (externalKey !== null &&
-        (existingExternalKeys.has(externalKey) || incomingExternalKeys.has(externalKey)))
-    ) {
+    const identityRow = { title: item.title, type: item.type,
+      external_source: usedExternalIdColumns ? item.externalSource : null,
+      external_id: usedExternalIdColumns ? item.externalId : null }
+    if (duplicates.has(identityRow)) {
       skipped += 1
       continue
     }
-
-    incomingTitleKeys.add(titleKey)
-
-    if (externalKey) {
-      incomingExternalKeys.add(externalKey)
-    }
+    duplicates.add(identityRow)
 
     const row = toRestoreInsertRow(item, user.id)
     rowsToInsert.push(

@@ -29,6 +29,13 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe('Discover interactions', () => {
+  it('searches two-character titles after the same debounce', async () => {
+    const loadPage = vi.fn(async (input: CatalogPageRequest) => pageFor(input))
+    render(<CatalogDiscover ownedItems={[]} lists={[]} loadPage={loadPage} />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search titles' }), { target: { value: 'Re' } })
+    await flushSearch()
+    expect(loadPage.mock.lastCall?.[0].query).toBe('Re')
+  })
   it('debounces typing and keeps focused input, without Enter or blur', async () => {
     const loadPage = vi.fn(async (input: CatalogPageRequest) => pageFor(input))
     render(<CatalogDiscover ownedItems={[]} lists={[]} loadPage={loadPage} />)

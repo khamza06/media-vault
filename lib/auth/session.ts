@@ -87,22 +87,9 @@ async function readSession(): Promise<AuthSession | null> {
     }
   }
 
-  const refreshed = await supabase.auth.refreshSession({
-    refresh_token: refreshToken,
-  })
-
-  if (refreshed.error || !refreshed.data.session || !refreshed.data.user) {
-    return null
-  }
-
-  // Server Component renders can read cookies but cannot modify them in Next 16.
-  // We still return the refreshed session for the current request and leave
-  // cookie persistence to Server Actions and Route Handlers.
-  return {
-    accessToken: refreshed.data.session.access_token,
-    refreshToken: refreshed.data.session.refresh_token,
-    user: refreshed.data.user,
-  }
+  // Proxy refreshes and persists both tokens before rendering. Never rotate a
+  // refresh token in a Server Component, where Set-Cookie cannot be written.
+  return null
 }
 
 export const getAuthSession = cache(readSession)

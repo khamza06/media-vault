@@ -7,6 +7,15 @@ export const ALLOWED_COVER_MIME_TYPES = [
   'image/gif',
 ] as const
 
+export function validateCoverFile(file: { size: number; type: string }) {
+  if (!Number.isSafeInteger(file.size) || file.size <= 0) return 'Choose an image file first.'
+  if (file.size > MAX_COVER_FILE_SIZE) return 'Cover image must be 5 MB or smaller.'
+  if (!ALLOWED_COVER_MIME_TYPES.includes(file.type as (typeof ALLOWED_COVER_MIME_TYPES)[number])) {
+    return 'Only JPG, PNG, WEBP, and GIF covers are supported.'
+  }
+  return null
+}
+
 export function getPublicCoverPath(url: string) {
   const marker = `/storage/v1/object/public/${MEDIA_COVERS_BUCKET}/`
   const markerIndex = url.indexOf(marker)

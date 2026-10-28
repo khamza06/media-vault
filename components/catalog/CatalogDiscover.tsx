@@ -8,7 +8,7 @@ import type { CatalogSearchCandidate, CatalogSearchPage, CatalogSearchSource } f
 import { fetchCatalogPage } from '../../lib/catalog-client'
 import { getOwnedCatalogItem, mergeCatalogPages, type CatalogOwnedItem } from '../../lib/catalog-view'
 import { mediaCardGridClassName } from '../../lib/media-card-grid'
-import { catalogSearchTypes, isCatalogSearchType, mapCatalogSearchTypeToMediaType } from '../../lib/search-safety'
+import { MIN_CATALOG_QUERY_LENGTH, catalogSearchTypes, isCatalogSearchType, mapCatalogSearchTypeToMediaType } from '../../lib/search-safety'
 import { translateType } from '../../lib/i18n'
 import CoverPlaceholder from '../CoverPlaceholder'
 import { useLocale } from '../LocaleProvider'
@@ -74,7 +74,7 @@ export default function CatalogDiscover({ ownedItems, lists, loadPage = fetchCat
       if (trimmedQuery) url.searchParams.set('q', trimmedQuery)
       else url.searchParams.delete('q')
       window.history.replaceState(null, '', `${url.pathname}${url.search}`)
-      if (trimmedQuery.length < 3) {
+      if (trimmedQuery.length < MIN_CATALOG_QUERY_LENGTH) {
         setIsLoading(false)
         setError('')
         return
@@ -116,7 +116,7 @@ export default function CatalogDiscover({ ownedItems, lists, loadPage = fetchCat
 
       {error ? <ActionFeedback tone="error"><p>{error}</p><button type="button" onClick={() => setRetry((value) => value + 1)} className="mt-3 min-h-11 rounded-xl border border-slate-700 bg-slate-950 px-4">{t('catalog.tryAgain')}</button></ActionFeedback> : null}
       {isLoading ? <ActionFeedback tone="pending">{t('catalog.searching', { provider: source === 'primary' ? primaryLabel : source })}</ActionFeedback> : null}
-      {trimmedQuery.length < 3 ? (
+      {trimmedQuery.length < MIN_CATALOG_QUERY_LENGTH ? (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center">
           <h2 className="text-xl font-semibold">{t('catalog.emptyHeading')}</h2><p className="mt-2 text-sm leading-6 text-slate-400">{t('catalog.shortQuery')}</p>
         </section>

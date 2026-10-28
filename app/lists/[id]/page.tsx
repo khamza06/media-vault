@@ -56,7 +56,7 @@ function ListsSetupCard() {
         Editor, then refresh this page:
       </p>
       <p className="mt-3 rounded-xl border border-amber-400/20 bg-slate-950 px-4 py-3 text-sm text-amber-100">
-        supabase/migrations/20260426_custom_lists.sql
+        supabase/README.md
       </p>
     </section>
   )

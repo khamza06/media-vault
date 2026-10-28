@@ -1,3 +1,5 @@
+> Historical design document. Do not execute its SQL instructions. Use `supabase/README.md` for current setup and migrations.
+
 # Public Profile and Public List Setup
 
 Media Vault supports username-based public profiles at:
@@ -14,7 +16,7 @@ owner has enabled `profiles.is_public = true`.
 Run this Supabase migration:
 
 ```text
-supabase/migrations/20260427_public_profiles.sql
+supabase/legacy/20260427_public_profiles.sql
 ```
 
 It creates:
@@ -97,7 +99,7 @@ Media Vault supports read-only public custom list URLs:
 Run this migration after the profile migration:
 
 ```text
-supabase/migrations/20260427_public_profiles_lists.sql
+supabase/legacy/20260427_public_profiles_lists.sql
 ```
 
 It adds these fields to `public.lists`:
@@ -122,8 +124,8 @@ default, and deleting a list still does not delete media items from the vault.
 
 ## Public List Testing Checklist
 
-1. Run `supabase/migrations/20260427_public_profiles.sql`.
-2. Run `supabase/migrations/20260427_public_profiles_lists.sql`.
+1. Run `supabase/legacy/20260427_public_profiles.sql`.
+2. Run `supabase/legacy/20260427_public_profiles_lists.sql`.
 3. Visit `/settings`, set a username, and enable Public Vault.
 4. Visit `/lists`, open sharing settings for a custom list, set a slug, and make it public.
 5. Open `/u/[username]` and confirm the Public Lists section shows only public lists.

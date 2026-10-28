@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({ getCurrentUser: vi.fn(), from: vi.fn(), insert
 vi.mock('../lib/auth/dal', () => mocks)
 vi.mock('../lib/supabase/server', () => ({ createSupabaseServerClient: () => ({ from: mocks.from }) }))
 vi.mock('../lib/anilist-import-enrichment', () => mocks)
+vi.mock('../lib/data/backup-items', () => ({ readAllOwnedBackupItems: async (_client: unknown, userId: string) => { mocks.eq('user_id', userId); return mocks.from().in() } }))
 vi.mock('../lib/data/storage', () => ({ deleteOwnedCoverByPublicUrl: vi.fn() }))
 vi.mock('next/cache', () => mocks)
 
@@ -65,10 +66,11 @@ describe('AniList selected import', () => {
     expect(mocks.findAniListImportMetadata).not.toHaveBeenCalled()
   })
 
-  it('skips duplicates within one selected batch', async () => {
+  it('skips matching identities but preserves distinct IDs with the same title', async () => {
+    mocks.insert.mockReturnValueOnce({ select: async () => ({ data: [{ id: 'one' }, { id: 'two' }], error: null }) })
     const result = await importAniListItems([candidate, { ...candidate, title: 'Alternate title' }, { ...candidate, external_id: '99', title: '  FIXTURE ANIME  ' }])
-    expect(result).toMatchObject({ imported: 1, skipped: 2, failed: 0 })
-    expect(mocks.insert.mock.calls[0][0]).toHaveLength(1)
+    expect(result).toMatchObject({ imported: 2, skipped: 1, failed: 0 })
+    expect(mocks.insert.mock.calls[0][0]).toHaveLength(2)
   })
 
   it('skips items already in the owner vault instead of overwriting them', async () => {
@@ -95,6 +97,23 @@ describe('AniList selected import', () => {
     const result = await importMyAnimeListItems([{ title: 'MAL fixture', type: 'anime', external_source: 'myanimelist', external_id: '1', notes, progress: 3 }])
     expect(result.imported).toBe(1)
     expect(mocks.insert).toHaveBeenCalledWith([expect.objectContaining({ external_source: 'myanimelist', external_id: '1', external_url: 'https://myanimelist.net/anime/1', notes, progress: 3 })])
+  })
+  it('keeps distinct same-title MAL works and distinguishes anime/manga IDs', async () => {
+    mocks.insert.mockReturnValueOnce({ select: async () => ({ data: [{ id: 'one' }, { id: 'two' }, { id: 'three' }], error: null }) })
+    const base = { title: 'Same', external_source: 'myanimelist' as const, notes }
+    expect(await importMyAnimeListItems([
+      { ...base, type: 'anime', external_id: '1' },
+      { ...base, type: 'anime', external_id: '2' },
+      { ...base, type: 'manga', external_id: '1' },
+    ])).toMatchObject({ imported: 3, skipped: 0 })
+    expect(mocks.insert.mock.calls[0][0]).toHaveLength(3)
+  })
+  it('keeps distinct same-title CSV identities but still skips manual duplicates', async () => {
+    mocks.insert.mockReturnValueOnce({ select: async () => ({ data: [{ id: 'one' }, { id: 'two' }], error: null }) })
+    const base = { title: 'Same', type: 'movie' as const, external_source: 'tmdb', notes }
+    expect(await importCsvItems([
+      { ...base, external_id: '1' }, { ...base, external_id: '2' }, { ...base, external_id: null, external_source: null },
+    ])).toMatchObject({ imported: 2, skipped: 1 })
   })
 
   it('does not tag a generic CSV row as an AniList or MAL import', async () => {

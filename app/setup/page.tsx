@@ -31,7 +31,7 @@ export default async function SetupPage() {
           <div className="min-w-0">
             <p className="text-sm text-slate-400">Ownership status</p>
             <p className="mt-2 text-2xl font-semibold text-white">
-              {isReady ? 'Ready' : 'Compatibility mode'}
+              {isReady ? 'Ownership column available' : 'Ownership column missing'}
             </p>
           </div>
           <span
@@ -41,20 +41,21 @@ export default async function SetupPage() {
                 : 'border-amber-500/30 bg-amber-500/15 text-amber-100'
             }`}
           >
-            {isReady ? 'RLS active' : 'Migration still pending'}
+            {isReady ? 'Authorization tests required' : 'Schema review required'}
           </span>
         </div>
       </section>
 
       <section className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <Card title="1. Apply the SQL migration">
+        <Card title="1. Database setup">
           <p className="text-sm text-slate-300">
-            Open the Supabase SQL editor and run the migration from:
+            Follow the verified operator workflow in the repository. Existing databases
+            need only unapplied forward migrations. Never replay archived SQL.
           </p>
-          <CodeBlock>supabase/migrations/20260326_auth_user_ownership.sql</CodeBlock>
+          <CodeBlock>supabase/README.md</CodeBlock>
           <p className="mt-4 text-sm text-slate-400">
-            This adds `user_id`, creates an index, enables row-level security, and limits
-            access to the signed-in user.
+            Column availability alone does not verify RLS. Check access using separate
+            owner, other-user, and anonymous sessions after a schema change.
           </p>
         </Card>
 
@@ -92,46 +93,11 @@ https://media-vault.app/auth/confirm`}</CodeBlock>
           </ul>
         </Card>
 
-        <Card title="5. Optional cover uploads">
+        <Card title="5. Covers and tracking">
           <p className="text-sm text-slate-300">
-            If you want to upload cover files instead of pasting image URLs, also run:
-          </p>
-          <CodeBlock>supabase/migrations/20260326_storage_media_covers.sql</CodeBlock>
-          <p className="mt-4 text-sm text-slate-400">
-            This creates a public `media-covers` bucket and allows authenticated users to
-            manage only files inside their own folder.
-          </p>
-        </Card>
-
-        <Card title="6. Optional item metadata">
-          <p className="text-sm text-slate-300">
-            To unlock notes, total progress, and timeline fields in the UI, also run:
-          </p>
-          <CodeBlock>supabase/migrations/20260326_item_metadata.sql</CodeBlock>
-          <p className="mt-4 text-sm text-slate-400">
-            This adds `notes`, `total_progress`, `started_at`, and `completed_at` to the
-            `items` table.
-          </p>
-        </Card>
-
-        <Card title="7. Optional favorites">
-          <p className="text-sm text-slate-300">
-            To unlock favorites, quick starring, and favorites filters, also run:
-          </p>
-          <CodeBlock>supabase/migrations/20260326_item_favorites.sql</CodeBlock>
-          <p className="mt-4 text-sm text-slate-400">
-            This adds a `favorite` boolean to each item and powers the favorites UI.
-          </p>
-        </Card>
-
-        <Card title="8. Optional genres">
-          <p className="text-sm text-slate-300">
-            To unlock genre tags, genre search, and genre stats, also run:
-          </p>
-          <CodeBlock>supabase/migrations/20260326_item_genres.sql</CodeBlock>
-          <p className="mt-4 text-sm text-slate-400">
-            This adds a `genres` text array to each item and powers genre chips, search,
-            and stats panels.
+            The verified schema includes private notes, progress dates, favorites, genres,
+            and the media-covers bucket. Covers support JPG, PNG, WEBP, and GIF up to 5 MB.
+            Upload permissions are limited to the signed-in owner&apos;s folder.
           </p>
         </Card>
       </section>

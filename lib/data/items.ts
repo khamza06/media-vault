@@ -533,71 +533,24 @@ export async function getItemsForBackupExport() {
   return { data: null, error: { message: 'Backup export requires a supported owned-item schema.' } }
 }
 
-export async function getItemById(id: string) {
+export async function getItemById(id: string): Promise<{ data: MediaItemRecord | null; error: { message: string } | null }> {
   const user = await requireCurrentUser()
   const supabase = createSupabaseServerClient(user.accessToken)
-
-  let fullResult = await supabase
-    .from('items')
-    .select(fullItemSelectFieldsWithSource)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
-
-  if (isExternalSourceColumnError(fullResult.error?.message)) {
-    fullResult = await supabase
-      .from('items')
-      .select(fullItemSelectFields)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+  let fields = fullItemSelectFieldsWithSource.split(', ')
+  const optional = ['last_progress_at', 'external_source', 'external_id', 'total_progress',
+    'notes', 'started_at', 'completed_at', 'favorite', 'genres',
+    'external_rating_label', 'external_rating_value']
+  for (;;) {
+    const result = await supabase.from('items').select(fields.join(', '))
+      .eq('id', id).eq('user_id', user.id).single()
+    if (!result.error) return { ...result, data: result.data as unknown as MediaItemRecord }
+    // Drop only the named missing optional column, keeping identity and ownership.
+    const missing = optional.find((column) => fields.includes(column) &&
+      isMissingColumnError(result.error?.message, column) &&
+      /does not exist|could not find/i.test(result.error?.message ?? ''))
+    if (!missing) return { ...result, data: null }
+    fields = fields.filter((field) => field !== missing)
   }
-
-  if (!fullResult.error) {
-    return fullResult
-  }
-
-  if (isExtendedSchemaError(fullResult.error.message)) {
-    const metadataResult = await supabase
-      .from('items')
-      .select(metadataItemSelectFields)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
-
-    if (!metadataResult.error) {
-      return metadataResult
-    }
-
-    if (
-      metadataResult.error.message &&
-      !isMetadataColumnError(metadataResult.error.message) &&
-      !isMissingUserIdError(metadataResult.error.message)
-    ) {
-      return metadataResult
-    }
-
-    const compatibilityResult = await supabase
-      .from('items')
-      .select(compatibilityItemSelectFields)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
-
-    if (!compatibilityResult.error || !isMetadataColumnError(compatibilityResult.error?.message)) {
-      return compatibilityResult
-    }
-  }
-
-  if (isMissingUserIdError(fullResult.error.message)) {
-    return supabase.from('items').select(legacyItemSelectFields).eq('id', id).single()
-  }
-
-  if (isMetadataColumnError(fullResult.error.message)) {
-    return supabase.from('items').select(legacyItemSelectFields).eq('id', id).single()
-  }
-
-  return fullResult
 }
 
 export async function createItem(input: NormalizedMediaItemWriteInput, identity?: CatalogIdentity | null) {
