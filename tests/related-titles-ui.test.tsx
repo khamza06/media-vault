@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it , vi } from 'vitest'
+vi.mock('../components/LocaleProvider', async () => {
+  const { t } = await import('../lib/i18n')
+  return { useLocale: () => ({ locale: 'en', t: (key: import('../lib/i18n').MessageKey, vars?: Record<string, string | number>) => t('en', key, vars) }) }
+})
 import RelatedTitles from '../components/catalog/RelatedTitles'
 import type { RelatedTitle } from '../lib/related-titles'
 const titles: RelatedTitle[] = Array.from({ length: 8 }, (_, index) => ({ id: index + 1, title: `Sequel ${index + 1}`, type: 'Anime', relation: 'Sequel', coverUrl: null, url: `https://anilist.co/anime/${index + 1}` }))

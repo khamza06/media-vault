@@ -41,3 +41,9 @@ browser checks switch English/Russian, reload, and verify server language and
 responsive navigation without a real login or database write. Remaining work:
 page-specific Library/Discover/Import/Backup/Lists/Settings copy and consistent
 localized action feedback; auth email delivery remains a separate manual check.
+
+The next coverage increment translated Discover controls, catalog preview and
+owned-item About/Related panels. Source titles, genres, descriptions and
+server/provider error messages retain their source language; no automatic text
+translation or stored-value conversion is performed. Add New/full edit and
+the remaining major pages still have English copy and keep the beta notice.

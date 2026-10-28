@@ -4,7 +4,10 @@ import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(window.location.search) }))
-vi.mock('../components/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en' }) }))
+vi.mock('../components/LocaleProvider', async () => {
+  const { t } = await import('../lib/i18n')
+  return { useLocale: () => ({ locale: 'en', t: (key: import('../lib/i18n').MessageKey, vars?: Record<string, string | number>) => t('en', key, vars) }) }
+})
 vi.mock('../components/lists/AddToListButton', () => ({ default: () => null }))
 import CatalogDiscover from '../components/catalog/CatalogDiscover'
 import CatalogPreview from '../components/catalog/CatalogPreview'

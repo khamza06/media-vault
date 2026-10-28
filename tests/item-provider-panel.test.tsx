@@ -3,6 +3,10 @@
 import type { ComponentProps } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+vi.mock('../components/LocaleProvider', async () => {
+  const { t } = await import('../lib/i18n')
+  return { useLocale: () => ({ locale: 'en', t: (key: import('../lib/i18n').MessageKey, vars?: Record<string, string | number>) => t('en', key, vars) }) }
+})
 import type AppSelect from '../components/ui/AppSelect'
 const mocks = vi.hoisted(() => ({ quickUpdateItemAction: vi.fn(), refresh: vi.fn() }))
 vi.mock('../app/actions/items', () => mocks)

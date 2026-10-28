@@ -395,3 +395,22 @@ A temporary Next route plus local public-data mock verified a real cache hit,
 HTTP-200 error expiration, fresh retry and a subsequent hit, with distinct route
 request IDs. Mock/route removed after testing; no authentication or database write.
 Lint, TypeScript and production build passed with the QA route removed.
+
+## Stage 9C: Catalog and Provider Panel Translation
+
+- Translated Discover controls, result/empty/loading copy, native preview dialog,
+  About and related-title labels. Type/relation labels change only in display;
+  request/filter values, provider identities and existing add-form payloads remain
+  unchanged. Provider text and source errors are not automatically translated.
+- Missing-cover labels accept optional display text without changing the raw
+  media type used for icon selection. Default Library/public behavior is preserved.
+- English behavior and Strict Mode dialog lifecycle retain their regression
+  checks. Russian tests cover search parameters, owned matching, relation links,
+  preview-to-add dispatch and unsupported provider IDs.
+
+Verification: 345 isolated tests passed. Synthetic browser QA checked Russian
+preview at 320/390/768/1280/1440/1920px with no page overflow. Preview opened the
+existing Add New form with source data unchanged and empty personal notes;
+Save was not clicked. Add New/full editing remain a separate translation pass,
+not a completed part of this increment.
+Lint, TypeScript and production build passed after the temporary route was removed.
