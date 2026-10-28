@@ -14,6 +14,8 @@ describe('catalog pagination', () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { variables: { page: number; perPage: number } }
       expect(body.variables.perPage).toBe(20)
+      expect(body.variables).not.toHaveProperty('country')
+      expect(JSON.parse(String(init?.body)).query).not.toContain('countryOfOrigin:')
       const media = Array.from({ length: 20 }, (_, index) => ({ id: (body.variables.page - 1) * 20 + index + 1, title: { english: 'Fixture' }, type: 'ANIME', averageScore: 83 }))
       return Response.json({ data: { Page: { media, pageInfo: { hasNextPage: body.variables.page === 1 } } } })
     })

@@ -6,7 +6,7 @@ import type { Locale } from './i18n'
 import type { QuickImportTypeHint } from './quick-import-parser'
 import { plainProviderDescription, type ProviderDetails } from './provider-details'
 import { discardInvalidProviderCache, publicProviderCacheOptions } from './provider-cache'
-import { mapCatalogSearchTypeToMediaType, type CatalogSearchType } from './search-safety'
+import { isMangaCatalogSearchType, mapCatalogSearchTypeToMediaType, type CatalogSearchType } from './search-safety'
 
 const ANILIST_ANIME_FORMATS = new Set([
   'MOVIE',
@@ -19,6 +19,7 @@ const ANILIST_ANIME_FORMATS = new Set([
 ])
 
 type CatalogSearchOptions = {
+  countryOfOrigin?: 'KR' | 'CN'
   page?: number
   pageSize?: number
   includeDetails?: boolean
@@ -796,10 +797,10 @@ export async function searchAniListCandidates(
         },
         body: JSON.stringify({
           query: `
-            query QuickImportCandidates($search: String!, $type: MediaType, $page: Int!, $perPage: Int!) {
+            query QuickImportCandidates($search: String!, $type: MediaType, $page: Int!, $perPage: Int!${options.countryOfOrigin ? ', $country: CountryCode!' : ''}) {
               Page(page: $page, perPage: $perPage) {
                 pageInfo { hasNextPage }
-                media(search: $search, type: $type, isAdult: false, sort: SEARCH_MATCH) {
+                media(search: $search, type: $type${options.countryOfOrigin ? ', countryOfOrigin: $country, format_not: NOVEL' : ''}, isAdult: false, sort: SEARCH_MATCH) {
                   description(asHtml: false)
                   chapters
                   countryOfOrigin
@@ -830,6 +831,7 @@ export async function searchAniListCandidates(
           variables: {
             search: searchTerm,
             type: typeHint,
+            ...(options.countryOfOrigin ? { country: options.countryOfOrigin } : {}),
             page: options.page ?? 1,
             perPage: getPageSize(options),
           },
@@ -992,7 +994,7 @@ export async function searchJikanCandidates(
                 subtitle: item.type ?? 'Jikan',
                 title,
                 totalProgress: totalProgress === '0' ? '' : totalProgress,
-                type: isAnime ? 'Anime' : 'Manga',
+                type: isAnime ? 'Anime' : item.type?.toLowerCase() === 'manhwa' ? 'Manhwa' : item.type?.toLowerCase() === 'manhua' ? 'Manhua' : 'Manga',
                 year: item.year ? String(item.year) : null,
               },
               searchTerms
@@ -1209,12 +1211,12 @@ export async function searchOpenLibraryCandidates(searchTerms: string[], options
 
 export async function searchCatalogPage(query: string, type: CatalogSearchType, locale: Locale, source: CatalogSearchSource = 'primary', page = 1): Promise<CatalogSearchPage> {
   let hasMore = false
-  const options: CatalogSearchOptions = { page, pageSize: 20, includeDetails: false, strict: true, onPageInfo: (next) => { hasMore = next } }
+  const options: CatalogSearchOptions = { countryOfOrigin: getCatalogCountry(type), page, pageSize: 20, includeDetails: false, strict: true, onPageInfo: (next) => { hasMore = next } }
   const terms = [query]
   const hint = type === 'anime' ? 'ANIME' : 'MANGA'
   let provider: CatalogProvider
   let data: CatalogSearchCandidate[]
-  if ((type === 'anime' || type === 'manga') && source !== 'primary') {
+  if ((type === 'anime' || isMangaCatalogSearchType(type)) && source !== 'primary') {
     if (source === 'jikan') {
       provider = 'Jikan'
       data = await searchJikanCandidates(terms, hint, locale, options)
@@ -1225,7 +1227,7 @@ export async function searchCatalogPage(query: string, type: CatalogSearchType, 
       provider = 'Shikimori'
       data = await searchShikimoriCandidates(terms, hint, options)
     }
-  } else if (type === 'anime' || type === 'manga') {
+  } else if (type === 'anime' || isMangaCatalogSearchType(type)) {
     provider = 'AniList'
     data = await searchAniListCandidates(terms, hint, options)
   } else if (type === 'movie' || type === 'series') {
@@ -1235,10 +1237,22 @@ export async function searchCatalogPage(query: string, type: CatalogSearchType, 
     provider = 'OpenLibrary'
     data = await searchOpenLibraryCandidates(terms, options)
   }
-  return { data: data.filter((candidate) => !candidate.isAdult), hasMore, page, provider }
+  return { data: filterSelectedSubtype(data, type).filter((candidate) => !candidate.isAdult), hasMore, page, provider }
+}
+
+function getCatalogCountry(type: CatalogSearchType) {
+  return type === 'manhwa' ? 'KR' : type === 'manhua' ? 'CN' : undefined
+}
+
+function filterSelectedSubtype(candidates: CatalogSearchCandidate[], selectedType: CatalogSearchType) {
+  if (selectedType !== 'manhwa' && selectedType !== 'manhua') return candidates
+  const type = mapCatalogSearchTypeToMediaType(selectedType)
+  return candidates.filter(candidate => candidate.type === type)
 }
 
 function lockCandidateType(candidates: CatalogSearchCandidate[], selectedType: CatalogSearchType) {
+  // A subtype is established by provider metadata, never by relabelling unrelated works.
+  if (selectedType === 'manhwa' || selectedType === 'manhua') return filterSelectedSubtype(candidates, selectedType)
   const lockedType = mapCatalogSearchTypeToMediaType(selectedType)
 
   return candidates.map((candidate) => ({
@@ -1284,12 +1298,13 @@ async function searchAnimeMangaWithFallbacks(
 ) {
   const providerErrors: CatalogSearchProviderError[] = []
   const aniList = await runCatalogProvider('AniList', () =>
-    searchAniListCandidates(searchTerms, typeHint),
+    searchAniListCandidates(searchTerms, typeHint, { countryOfOrigin: getCatalogCountry(selectedType) }),
     providerErrors
   )
 
-  if (aniList.length > 0) {
-    return lockCandidateType(aniList.slice(0, 8), selectedType)
+  const primaryCandidates = filterSelectedSubtype(aniList, selectedType)
+  if (primaryCandidates.length > 0) {
+    return lockCandidateType(primaryCandidates.slice(0, 8), selectedType)
   }
 
   const [jikan, kitsu, shikimori] = await Promise.all([
@@ -1297,7 +1312,7 @@ async function searchAnimeMangaWithFallbacks(
     runCatalogProvider('Kitsu', () => searchKitsuCandidates(searchTerms, typeHint, locale)),
     runCatalogProvider('Shikimori', () => searchShikimoriCandidates(searchTerms, typeHint)),
   ])
-  const fallbackCandidates = rankCandidates([...jikan, ...kitsu, ...shikimori]).slice(0, 8)
+  const fallbackCandidates = rankCandidates(filterSelectedSubtype([...jikan, ...kitsu, ...shikimori], selectedType)).slice(0, 8)
 
   if (fallbackCandidates.length === 0 && providerErrors.length > 0) {
     const [firstError] = providerErrors
@@ -1320,7 +1335,7 @@ export async function searchCatalogByMediaType(
     return searchAnimeMangaWithFallbacks(searchTerms, 'ANIME', selectedType, locale)
   }
 
-  if (selectedType === 'manga') {
+  if (isMangaCatalogSearchType(selectedType)) {
     return searchAnimeMangaWithFallbacks(searchTerms, 'MANGA', selectedType, locale)
   }
 

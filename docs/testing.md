@@ -75,6 +75,20 @@ and Radix menus. No real deletion or list addition is used for these checks.
 
 ## Optional Provider Smoke Tests
 
+`recommendation-carousel.test.tsx` covers arrow boundaries, resizing, reduced
+motion, keyboard scrolling, native touch/wheel preservation and suppression of
+card clicks after mouse dragging. `catalog-subtypes.test.ts` covers native
+AniList country filters, verified fallback subtype classification, provider IDs
+and empty filtered pages with further results. Header/API tests cover distinct
+Manhwa/Manhua values through suggestions, Discover links and Add New capture.
+
+`e2e/carousel-and-search-types.spec.ts` uses the existing disposable-account
+harness. Its carousel scenarios require a synthetic library with multiple
+highly rated anime to obtain enough live recommendations for horizontal overflow.
+It exercises real mouse dragging, horizontal wheel input, arrow/keyboard edge
+states and Chromium touch gestures, plus desktop/mobile live subtype searches.
+Physical touchpads, Safari/iOS and other real devices remain separate manual checks.
+
 ```sh
 npm run test:providers
 ```

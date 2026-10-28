@@ -20,6 +20,13 @@ beforeEach(() => {
 })
 
 describe('catalog API validation', () => {
+  it.each(['manhwa', 'manhua'])('supports %s in fast suggestions and full search, including fallback pages', async type => {
+    mocks.searchCatalogByMediaType.mockResolvedValue([])
+    expect((await search(request({ query: 'Fixture', type }))).status).toBe(200)
+    expect(mocks.searchCatalogByMediaType).toHaveBeenCalledWith(expect.any(Array), type, 'en')
+    expect((await search(request({ query: 'Fixture', type, mode: 'full', source: 'jikan', page: 2 }))).status).toBe(200)
+    expect(mocks.searchCatalogPage).toHaveBeenCalledWith('Fixture', type, 'en', 'jikan', 2)
+  })
   it.each(['My Hero Academia', 'Re', 'Re:Zero', 'Berserk'])('allows legitimate title %s in fast and full search', async (query) => {
     mocks.searchCatalogByMediaType.mockResolvedValue([])
     expect((await search(request({ query, type: 'anime' }))).status).toBe(200)

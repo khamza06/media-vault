@@ -37,6 +37,10 @@ function getTypeLabel(type: CatalogSearchType) {
       return 'Anime'
     case 'manga':
       return 'Manga'
+    case 'manhwa':
+      return 'Manhwa'
+    case 'manhua':
+      return 'Manhua'
     case 'movie':
       return 'Movie'
     case 'series':

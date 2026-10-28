@@ -15,12 +15,13 @@ describe('live public catalog providers', () => {
     expect(result.data.every(item => item.id.startsWith('openlibrary:/works/'))).toBe(true)
   })
   it.each([
-    ['anime', 'naruto'], ['manga', 'berserk'], ['movie', 'inception'], ['series', 'breaking bad'],
+    ['anime', 'naruto'], ['manga', 'berserk'], ['manhwa', 'Solo Leveling'], ['manhua', 'Soul Land'], ['movie', 'inception'], ['series', 'breaking bad'],
   ] as const)('%s search returns real results for %s', async (type, query) => {
     const result = await searchCatalogPage(query, type, 'en')
     expect(result.data.length).toBeGreaterThan(0)
     expect(result.data.length).toBeLessThanOrEqual(20)
     expect(result.data.some((item) => typeof item.externalRatingValue === 'number' && item.externalRatingValue > 0 && item.externalRatingValue <= 10)).toBe(true)
+    if (type === 'manhwa' || type === 'manhua') expect(result.data.every(item => item.type === (type === 'manhwa' ? 'Manhwa' : 'Manhua'))).toBe(true)
   })
 
   it.each([[20, 'Anime'], [30002, 'Manga']] as const)('loads linked AniList metadata for %s', async (id, type) => {

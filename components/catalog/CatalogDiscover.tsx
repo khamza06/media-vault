@@ -8,7 +8,7 @@ import type { CatalogSearchCandidate, CatalogSearchPage, CatalogSearchSource } f
 import { fetchCatalogPage } from '../../lib/catalog-client'
 import { getOwnedCatalogItem, mergeCatalogPages, type CatalogOwnedItem } from '../../lib/catalog-view'
 import { mediaCardGridClassName } from '../../lib/media-card-grid'
-import { MIN_CATALOG_QUERY_LENGTH, catalogSearchTypes, isCatalogSearchType, mapCatalogSearchTypeToMediaType } from '../../lib/search-safety'
+import { MIN_CATALOG_QUERY_LENGTH, catalogSearchTypes, isCatalogSearchType, isMangaCatalogSearchType, mapCatalogSearchTypeToMediaType } from '../../lib/search-safety'
 import { translateType } from '../../lib/i18n'
 import CoverPlaceholder from '../CoverPlaceholder'
 import { useLocale } from '../LocaleProvider'
@@ -28,7 +28,7 @@ export default function CatalogDiscover({ ownedItems, lists, loadPage = fetchCat
   const typeParam = params.get('type')
   const type = isCatalogSearchType(typeParam) ? typeParam : 'anime'
   const sourceParam = params.get('source')
-  const canChooseSources = type === 'anime' || type === 'manga'
+  const canChooseSources = type === 'anime' || isMangaCatalogSearchType(type)
   const source: CatalogSearchSource = canChooseSources && ['jikan', 'kitsu', 'shikimori'].includes(sourceParam ?? '') ? sourceParam as CatalogSearchSource : 'primary'
   const [query, setQuery] = useState(urlQuery)
   const searchRef = useRef<HTMLInputElement>(null)

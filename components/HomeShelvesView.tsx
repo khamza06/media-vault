@@ -28,6 +28,7 @@ import BulkItemActions from './BulkItemActions'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
 import ContinueShelf from './ContinueShelf'
 import DiscoverRecommendationCard from './DiscoverRecommendationCard'
+import RecommendationCarousel from './RecommendationCarousel'
 import LibraryFilterControls from './LibraryFilterControls'
 import SetupChecklist, { type SetupChecklistState } from './onboarding/SetupChecklist'
 import { useToast } from './ToastProvider'
@@ -549,7 +550,7 @@ export default function HomeShelvesView({
         </div>
 
         {visibleRecommendations.length > 0 ? (
-          <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2 md:gap-4">
+          <RecommendationCarousel itemCount={visibleRecommendations.length}>
             {visibleRecommendations.map((recommendation) => (
               <DiscoverRecommendationCard
                 key={`${recommendation.provider}-${recommendation.title}`}
@@ -559,7 +560,7 @@ export default function HomeShelvesView({
                 recommendation={recommendation}
               />
             ))}
-          </div>
+          </RecommendationCarousel>
         ) : (
           <section className="glass-panel-soft flex min-h-[180px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-white/10 px-6 text-center">
             <Sparkles className="h-8 w-8 text-slate-500" />

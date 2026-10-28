@@ -1,4 +1,4 @@
-export const catalogSearchTypes = ['anime', 'manga', 'movie', 'series', 'book'] as const
+export const catalogSearchTypes = ['anime', 'manga', 'manhwa', 'manhua', 'movie', 'series', 'book'] as const
 
 export type CatalogSearchType = (typeof catalogSearchTypes)[number]
 export const MIN_CATALOG_QUERY_LENGTH = 2
@@ -28,6 +28,10 @@ export function isCatalogSearchType(value: string | null | undefined): value is 
   return catalogSearchTypes.includes(value as CatalogSearchType)
 }
 
+export function isMangaCatalogSearchType(type: string) {
+  return type === 'manga' || type === 'manhwa' || type === 'manhua'
+}
+
 export function containsBlockedSearchTerm(query: string) {
   const normalized = query.normalize('NFKC').toLowerCase()
 
@@ -47,6 +51,10 @@ export function mapCatalogSearchTypeToMediaType(type: CatalogSearchType) {
       return 'Anime'
     case 'manga':
       return 'Manga'
+    case 'manhwa':
+      return 'Manhwa'
+    case 'manhua':
+      return 'Manhua'
     case 'movie':
       return 'Movie'
     case 'series':
@@ -63,9 +71,11 @@ export function mapMediaTypeToCatalogSearchType(type: string): CatalogSearchType
     case 'Anime':
       return 'anime'
     case 'Manga':
-    case 'Manhwa':
-    case 'Manhua':
       return 'manga'
+    case 'Manhwa':
+      return 'manhwa'
+    case 'Manhua':
+      return 'manhua'
     case 'Movie':
       return 'movie'
     case 'TV Series':

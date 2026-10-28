@@ -6,12 +6,18 @@ still return at most five results and use the same Add New form.
 
 ## Full Search
 
-- Starts after three characters and a 400 ms typing debounce.
+- Starts after two characters and a 400 ms typing debounce.
 - Returns up to 20 results per provider page, with Show more.
 - Query, media type and chosen source are stored in the URL. Browser navigation
   resets the provider cursor to page one; bulk selection is not involved.
 - AniList is the default anime/manga source. Jikan, Kitsu and Shikimori can be
   chosen explicitly. These are existing integrations, not new APIs or account sync.
+- Manhwa and Manhua have distinct search values in both the header and Discover.
+  AniList searches manga with `countryOfOrigin: KR` or `CN`, excluding novels.
+  Those filters are omitted entirely for ordinary Anime/Manga requests; passing
+  null filters to AniList can unexpectedly return no results. Subtype results
+  are checked against provider metadata, including Jikan's `type`, Kitsu's
+  `subtype` and Shikimori's `kind`; unrelated works are never relabelled.
 - Movie/series use TMDB and books use Open Library.
 - Only the selected source is queried in full search. Results from other sources
   are not automatically aggregated; source changes start a new result set.

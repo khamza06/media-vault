@@ -13,6 +13,7 @@ import {
   containsBlockedSearchTerm,
   getBlockedSearchMessage,
   isCatalogSearchType,
+  isMangaCatalogSearchType,
   type CatalogSearchType,
 } from '../../../lib/search-safety'
 
@@ -20,6 +21,8 @@ function getCatalogProviderPlan(type: CatalogSearchType) {
   switch (type) {
     case 'anime':
     case 'manga':
+    case 'manhwa':
+    case 'manhua':
       return ['AniList', 'Jikan', 'Kitsu', 'Shikimori']
     case 'movie':
     case 'series':
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
   if (fullSearch && (
     typeof page !== 'number' || !Number.isInteger(page) || page < 1 || page > 500 ||
     typeof source !== 'string' || !['primary', 'jikan', 'kitsu', 'shikimori'].includes(source) ||
-    (source !== 'primary' && searchType !== 'anime' && searchType !== 'manga')
+    (source !== 'primary' && searchType !== 'anime' && !isMangaCatalogSearchType(searchType))
   )) {
     return Response.json({ error: 'Invalid search source or page.' }, { status: 400 })
   }
