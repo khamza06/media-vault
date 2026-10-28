@@ -48,7 +48,7 @@ test('mobile menu focus, single capture dialog and short-screen scrolling preser
   await expect(capture.locator('details')).not.toHaveAttribute('open')
   await capture.locator('summary').focus()
   await page.keyboard.press('Enter')
-  await expect(capture.getByRole('textbox', { name: 'Quick Import Link', exact: true })).toBeVisible()
+  await expect(capture.getByRole('textbox', { name: 'URL or media title', exact: true })).toBeVisible()
   await capture.locator('summary').focus()
   await page.keyboard.press('Enter')
   await expect(capture.locator('details')).not.toHaveAttribute('open')

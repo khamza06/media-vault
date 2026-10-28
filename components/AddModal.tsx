@@ -8,16 +8,15 @@ import { createItemAction } from '../app/actions/items'
 import { uploadCoverFile } from '../lib/cover-upload'
 import { OPEN_ADD_MODAL_EVENT, type OpenAddModalDetail } from '../lib/add-modal-events'
 import type { CatalogSearchCandidate } from '../lib/catalog-types'
-import { catalogCandidateToInput } from '../lib/catalog-view'
-import { t as translate } from '../lib/i18n'
+import { t as translate, translateType } from '../lib/i18n'
 import { getProgressFieldLabels } from '../lib/media-form-labels'
-import { formatExternalRatingValue, normalizeMediaItemInput, type MediaItemInput } from '../lib/media'
-import { buildQuickImportDraft } from '../lib/quick-import-draft'
-import { MIN_CATALOG_QUERY_LENGTH, mapMediaTypeToCatalogSearchType } from '../lib/search-safety'
+import { formatExternalRatingValue, getAllowedStatuses, normalizeMediaItemInput, type MediaItemInput } from '../lib/media'
+import { MIN_CATALOG_QUERY_LENGTH, catalogSearchTypes, isCatalogSearchType, mapCatalogSearchTypeToMediaType, mapMediaTypeToCatalogSearchType, type CatalogSearchType } from '../lib/search-safety'
 import { useLocale } from './LocaleProvider'
 import MediaItemForm from './MediaItemForm'
 import ModalFrame from './ModalFrame'
 import { useToast } from './ToastProvider'
+import AppSelect from './ui/AppSelect'
 
 const initialFormState: MediaItemInput = {
   completedAt: '',
@@ -36,23 +35,9 @@ const initialFormState: MediaItemInput = {
   type: '',
 }
 
-type QuickImportFormData = Pick<
-  MediaItemInput,
-  | 'externalRatingLabel'
-  | 'externalRatingValue'
-  | 'genres'
-  | 'imageUrl'
-  | 'notes'
-  | 'status'
-  | 'title'
-  | 'totalProgress'
-  | 'type'
->
-
 type QuickImportResponseData = {
   candidates?: CatalogSearchCandidate[]
-  form: QuickImportFormData
-  warning?: string | null
+  warnings?: string[]
 }
 
 type AddModalProps = {
@@ -72,6 +57,7 @@ export default function AddModal({
   const titleSearchSkipRef = useRef(false)
   const titleSearchRequestIdRef = useRef(0)
   const submittingRef = useRef(false)
+  const quickRequest = useRef<{ id: number; controller?: AbortController; pending: boolean }>({ id: 0, pending: false })
 
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const uploadedCoverRef = useRef<{ file: File; url: string } | null>(null)
@@ -86,12 +72,17 @@ export default function AddModal({
   const [quickImportMessage, setQuickImportMessage] = useState('')
   const [quickImportTone, setQuickImportTone] = useState<'error' | 'success' | null>(null)
   const [quickImportUrl, setQuickImportUrl] = useState('')
+  const [quickImportType, setQuickImportType] = useState<CatalogSearchType | ''>('')
   const [titleSuggestions, setTitleSuggestions] = useState<CatalogSearchCandidate[]>([])
   const [titleSearchError, setTitleSearchError] = useState('')
 
-  const quickImportPlaceholder = 'https://any-site.com/title-page.html'
+  useEffect(() => () => { quickRequest.current.controller?.abort() }, [])
+
+  const quickImportPlaceholder = t('smartImport.placeholder')
 
   const resetState = useCallback(() => {
+    quickRequest.current.controller?.abort()
+    quickRequest.current = { id: quickRequest.current.id + 1, pending: false }
     titleSearchRequestIdRef.current += 1
     setCoverFile(null)
     setErrorMessage('')
@@ -104,6 +95,7 @@ export default function AddModal({
     setQuickImportMessage('')
     setQuickImportTone(null)
     setQuickImportUrl('')
+    setQuickImportType('')
     setTitleSuggestions([])
     setTitleSearchError('')
   }, [])
@@ -130,29 +122,17 @@ export default function AddModal({
     }))
   }
 
-  function applyResolvedForm(data: QuickImportFormData) {
-    setSelectedCatalogId(undefined)
-    titleSearchSkipRef.current = true
-    titleSearchRequestIdRef.current += 1
-    setForm({
-      ...initialFormState,
-      externalRatingLabel: data.externalRatingLabel,
-      externalRatingValue: data.externalRatingValue,
-      genres: data.genres,
-      imageUrl: data.imageUrl,
-      notes: data.notes,
-      status: data.status,
-      title: data.title,
-      totalProgress: data.totalProgress,
-      type: data.type,
-    })
-    setTitleSuggestions([])
-  }
-
   function applyCatalogCandidate(candidate: CatalogSearchCandidate) {
     titleSearchSkipRef.current = true
     titleSearchRequestIdRef.current += 1
-    setForm((current) => catalogCandidateToInput(candidate, current.notes))
+    setForm(current => ({
+      ...current,
+      title: candidate.title, type: candidate.type, genres: candidate.genres,
+      imageUrl: candidate.imageUrl, totalProgress: candidate.totalProgress || current.totalProgress,
+      externalRatingLabel: candidate.externalRatingLabel ?? '',
+      externalRatingValue: typeof candidate.externalRatingValue === 'number' ? String(candidate.externalRatingValue) : '',
+      status: getAllowedStatuses(candidate.type).some(status => status === current.status) ? current.status : candidate.status,
+    }))
     setSelectedCatalogId(candidate.id)
     setTitleSuggestions([])
     setTitleSearchError('')
@@ -160,7 +140,6 @@ export default function AddModal({
     setQuickImportCandidates([])
     setQuickImportMessage(t('form.matchApplied'))
     setQuickImportTone('success')
-    setCoverFile(null)
     setIsOpen(true)
   }
 
@@ -280,13 +259,14 @@ export default function AddModal({
     }
   }, [fetchCatalogSuggestions, form.title, form.type, isOpen, locale])
 
-  async function fetchServerQuickImport(url: string): Promise<QuickImportResponseData> {
+  async function fetchServerQuickImport(url: string, signal: AbortSignal): Promise<QuickImportResponseData> {
     const response = await fetch('/api/quick-import', {
       method: 'POST',
+      signal,
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ locale, url }),
+      body: JSON.stringify({ locale, url, type: quickImportType }),
     })
 
     const payload = (await response.json()) as {
@@ -301,41 +281,17 @@ export default function AddModal({
     return payload.data
   }
 
-  function applyOptimisticDraft(rawUrl: string) {
-    const draft = buildQuickImportDraft(rawUrl)
-
-    if (!draft) {
-      return null
-    }
-
-    applyResolvedForm(draft.form)
-    setCoverFile(null)
-    return draft
-  }
-
   function applyResolvedQuickImport(data: QuickImportResponseData) {
-    applyResolvedForm(data.form)
-    setCoverFile(null)
     setQuickImportCandidates(data.candidates ?? [])
-
-    const hasStrongMetadata =
-      Boolean(data.form.imageUrl) ||
-      Boolean(data.form.totalProgress) ||
-      Boolean(data.form.genres) ||
-      (data.candidates?.length ?? 0) > 0
-
-    if (data.warning && !hasStrongMetadata) {
-      setQuickImportMessage(data.warning)
-      setQuickImportTone('error')
-      return
-    }
-
-    setQuickImportMessage(t('form.importCompleted'))
-    setQuickImportTone('success')
-    showToast(t('form.importToast'))
+    const warning = data.warnings?.includes('exact-unavailable') ? t('smartImport.exactUnavailable')
+      : data.warnings?.some(code => ['metadata-unavailable', 'robots-denied'].includes(code)) ? t('smartImport.pageUnavailable')
+      : data.warnings?.includes('provider-unavailable') ? t('smartImport.providerUnavailable') : ''
+    setQuickImportMessage([warning, (data.candidates?.length ?? 0) ? t('smartImport.choose') : t('smartImport.noMatches')].filter(Boolean).join(' '))
+    setQuickImportTone((data.candidates?.length ?? 0) ? 'success' : 'error')
   }
 
   async function runQuickImport(rawUrl: string) {
+    if (quickRequest.current.pending) return
     const url = rawUrl.trim()
 
     if (!url) {
@@ -345,6 +301,9 @@ export default function AddModal({
       return
     }
 
+    const controller = new AbortController()
+    const id = quickRequest.current.id + 1
+    quickRequest.current = { id, controller, pending: true }
     setIsQuickImporting(true)
     setQuickImportCandidates([])
     setQuickImportMessage('')
@@ -353,26 +312,20 @@ export default function AddModal({
     setQuickImportUrl(url)
 
     try {
-      applyOptimisticDraft(url)
       setQuickImportMessage(t('form.scanPending'))
       setQuickImportTone('success')
 
-      const resolvedImport = await fetchServerQuickImport(url)
+      const resolvedImport = await fetchServerQuickImport(url, AbortSignal.any([controller.signal, AbortSignal.timeout(23000)]))
+      if (quickRequest.current.id !== id || controller.signal.aborted) return
       applyResolvedQuickImport(resolvedImport)
     } catch (error) {
       const message = error instanceof Error ? error.message : t('error.quickImportFailed')
-      const draft = applyOptimisticDraft(url)
+      if (quickRequest.current.id !== id || controller.signal.aborted) return
       setQuickImportCandidates([])
-
-      if (draft) {
-        setQuickImportMessage(draft.warning)
-        setQuickImportTone('error')
-      } else {
-        setQuickImportMessage(message)
-        setQuickImportTone('error')
-      }
+      setQuickImportMessage(`${message} ${t('smartImport.manualFallback')}`)
+      setQuickImportTone('error')
     } finally {
-      setIsQuickImporting(false)
+      if (quickRequest.current.id === id) { quickRequest.current.pending = false; setIsQuickImporting(false) }
     }
   }
 
@@ -463,19 +416,25 @@ export default function AddModal({
 
             <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
               <div className="sm:col-span-full">
+                <label className="mb-2 block text-sm font-medium text-slate-300">{t('smartImport.typeHint')}</label>
+                <AppSelect ariaLabel={t('smartImport.typeHint')} value={quickImportType} onValueChange={value => setQuickImportType(isCatalogSearchType(value) ? value : '')} disabled={isSubmitting || isQuickImporting} options={[{ value: '', label: t('smartImport.anyType') }, ...catalogSearchTypes.map(value => ({ value, label: translateType(locale, mapCatalogSearchTypeToMediaType(value)) }))]} />
+              </div>
+              <div className="sm:col-span-full">
                 <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
                   {t('form.quickImportLink')}
                 </p>
               </div>
               <input
-                type="url"
+                type="text"
                 aria-label={t('form.quickImportLink')}
-                inputMode="url"
+                inputMode="search"
+                maxLength={2048}
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
                 value={quickImportUrl}
                 onChange={(event) => setQuickImportUrl(event.target.value)}
+                onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void runQuickImport(quickImportUrl) } }}
                 onPaste={(event) => {
                   event.preventDefault()
                   const pastedUrl = event.clipboardData.getData('text')
@@ -528,15 +487,22 @@ export default function AddModal({
                       key={candidate.id}
                       type="button"
                       onClick={() => applyCatalogCandidate(candidate)}
-                      className="flex min-h-14 items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-left transition hover:border-blue-400/40 hover:bg-slate-900"
+                      aria-label={t('smartImport.useMatch', { title: candidate.title })}
+                      className="flex min-h-14 min-w-0 items-start gap-3 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-left transition hover:border-blue-400/40 hover:bg-slate-900"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">{candidate.title}</p>
-                        <p className="mt-1 truncate text-xs text-slate-400">
-                          {[candidate.provider, candidate.subtitle, candidate.year]
+                      {candidate.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={candidate.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-20 w-12 shrink-0 rounded-lg object-cover" />
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-semibold text-white">{candidate.title}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {[translateType(locale, candidate.type), candidate.provider, candidate.subtitle, candidate.year]
                             .filter(Boolean)
                             .join(' / ')}
                         </p>
+                        {!!candidate.alternativeTitles?.length && <p className="mt-1 line-clamp-2 break-words text-xs text-slate-400">{candidate.alternativeTitles.filter(title => title !== candidate.title).slice(0, 4).join(' / ')}</p>}
+                        <p className="mt-2 text-xs font-semibold text-blue-200">{t(candidate.identification?.confidence === 'exact' ? 'smartImport.exact' : candidate.identification?.confidence === 'high' ? 'smartImport.high' : candidate.identification?.confidence === 'low' ? 'smartImport.low' : 'smartImport.possible')}</p>
                         {getCandidateRatingCopy(candidate) ? (
                           <p className="mt-1 text-[11px] font-medium text-blue-200">
                             {getCandidateRatingCopy(candidate)}
@@ -547,10 +513,8 @@ export default function AddModal({
                             {getProgressFieldLabels(locale, candidate.type).total}: {candidate.totalProgress}
                           </p>
                         ) : null}
+                        <span className="mt-2 inline-flex text-xs font-medium text-blue-100">{t('quickImport.applySuggestion')}</span>
                       </div>
-                      <span className="shrink-0 rounded-full border border-blue-400/20 px-3 py-1 text-xs font-medium text-blue-100">
-                        {t('quickImport.applySuggestion')}
-                      </span>
                     </button>
                   ))}
                 </div>

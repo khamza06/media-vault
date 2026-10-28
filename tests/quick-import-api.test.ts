@@ -1,0 +1,50 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+vi.mock('server-only', () => ({}))
+const mocks = vi.hoisted(() => ({ getCurrentUser: vi.fn(), resolveQuickImport: vi.fn(), rpc: vi.fn() }))
+vi.mock('../lib/auth/dal', () => mocks)
+vi.mock('../lib/quick-import-resolver', () => mocks)
+vi.mock('../lib/supabase/server', () => ({ createSupabaseServerClient: () => ({ rpc: mocks.rpc }) }))
+vi.mock('../lib/i18n-server', () => ({ getRequestLocale: async () => 'en' }))
+import { POST } from '../app/api/quick-import/route'
+const request = (body: unknown) => new Request('https://media-vault.app/api/quick-import', { method: 'POST', body: JSON.stringify(body) })
+beforeEach(() => { vi.resetAllMocks(); mocks.getCurrentUser.mockResolvedValue({ id: 'owner', accessToken: 'synthetic' }); mocks.rpc.mockResolvedValue({ data: true, error: null }); mocks.resolveQuickImport.mockResolvedValue({ candidates: [], requiresSelection: true }) })
+describe('identification API boundary', () => {
+  it.each([null, [], 'text', { url: 15 }, { query: 'x' }, { url: 'x'.repeat(2049) }, { query: 'Naruto', type: 'unsupported' }])('validates body %j before external providers', async body => {
+    expect((await POST(request(body))).status).toBe(400)
+    expect(mocks.resolveQuickImport).not.toHaveBeenCalled()
+  })
+  it('requires authentication', async () => {
+    mocks.getCurrentUser.mockResolvedValue(null)
+    expect((await POST(request({ query: 'ナルト' }))).status).toBe(401)
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it('limits request body size', async () => expect((await POST(request({ query: 'x'.repeat(9000) }))).status).toBe(413))
+  it('enforces durable quota and Retry-After before all provider requests', async () => {
+    mocks.rpc.mockResolvedValue({ data: false, error: null })
+    const response = await POST(request({ query: 'Naruto' }))
+    expect(response.status).toBe(429)
+    expect(response.headers.get('Retry-After')).toBe('600')
+    expect(mocks.resolveQuickImport).not.toHaveBeenCalled()
+  })
+  it('fails closed when the quota service is unavailable', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'internal failure' } })
+    const response = await POST(request({ query: 'Naruto' }))
+    expect(response.status).toBe(503)
+    expect(JSON.stringify(await response.json())).not.toContain('internal failure')
+    expect(mocks.resolveQuickImport).not.toHaveBeenCalled()
+  })
+  it('fails closed on quota transport rejection without exposing internal errors', async () => {
+    mocks.rpc.mockRejectedValue(new Error('Internal connection string must remain private'))
+    const response = await POST(request({ query: 'Naruto' }))
+    expect(response.status).toBe(503)
+    expect(JSON.stringify(await response.json())).not.toContain('Internal connection')
+    expect(mocks.resolveQuickImport).not.toHaveBeenCalled()
+  })
+  it('supports native titles and explicit media type with no caching', async () => {
+    const response = await POST(request({ query: '나 혼자만 레벨업', type: 'manhwa', locale: 'ru' }))
+    expect(response.status).toBe(200)
+    expect(mocks.resolveQuickImport).toHaveBeenCalledWith('나 혼자만 레벨업', 'ru', 'manhwa')
+    expect(response.headers.get('Cache-Control')).toBe('no-store')
+    expect(mocks.rpc).toHaveBeenCalledWith('consume_quick_import_quota')
+  })
+})

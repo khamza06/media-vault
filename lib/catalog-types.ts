@@ -10,6 +10,9 @@ export type CatalogSearchPage = {
 }
 
 export type CatalogSearchCandidate = {
+  alternativeTitles?: string[]
+  authors?: string[]
+  identification?: { confidence: 'exact' | 'high' | 'possible' | 'low'; score: number; signals: string[] }
   description: string
   externalRatingLabel?: string | null
   externalRatingValue?: number | null

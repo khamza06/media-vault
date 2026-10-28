@@ -1,0 +1,96 @@
+import { test, expect, type Page } from '@playwright/test'
+import { authenticate, choose, fixture } from './helpers'
+
+async function openCapture(page: Page) {
+  await page.goto('/')
+  if ((await page.viewportSize())!.width < 768) {
+    await page.getByRole('button', { name: 'Open menu', exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: '+ Add New', exact: true }).click()
+  } else await page.getByRole('button', { name: '+ Add New', exact: true }).filter({ visible: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.locator('summary').click()
+  return dialog
+}
+
+test('smart import requires a selection, preserves personal drafts, saves stable identity and does not overwrite duplicates', async ({ page }) => {
+  const client = await authenticate(page.context())
+  const dialog = await openCapture(page)
+  await choose(page, 'Media type', 'Anime', dialog)
+  await dialog.getByRole('textbox', { name: /^Notes/ }).fill('  PRIVATE SMART IMPORT **notes**\n')
+  await dialog.getByLabel('Current Episode', { exact: true }).fill('5')
+  await dialog.getByLabel('My Rating', { exact: true }).fill('9')
+  await choose(page, 'Status', 'Watching', dialog)
+  await choose(page, 'Identify media type', 'Anime', dialog)
+  await dialog.getByRole('textbox', { name: 'URL or media title', exact: true }).fill('ナルト')
+  const reply = page.waitForResponse(response => response.url().endsWith('/api/quick-import'))
+  await dialog.getByRole('button', { name: 'Find matches', exact: true }).click()
+  const response = await reply
+  expect(response.status()).toBe(200)
+  const payload = await response.json()
+  const match = payload.data.candidates.find((row: { id: string }) => row.id === 'anilist:20')
+  expect(match).toBeTruthy()
+  await expect(dialog.getByRole('searchbox', { name: 'Title', exact: true })).toHaveValue('')
+  await dialog.getByRole('button', { name: `Use match: ${match.title}`, exact: true }).click()
+  await expect(dialog.getByLabel('Current Episode', { exact: true })).toHaveValue('5')
+  await expect(dialog.getByLabel('My Rating', { exact: true })).toHaveValue('9')
+  await expect(dialog.getByRole('textbox', { name: /^Notes/ })).toHaveValue('  PRIVATE SMART IMPORT **notes**\n')
+  await dialog.getByRole('button', { name: 'Save Item', exact: true }).click()
+  await expect(dialog).not.toBeVisible()
+  const saved = await client.from('items').select('id,notes,progress,rating,status').eq('user_id', fixture().a).eq('external_source', 'anilist').eq('external_id', '20').single()
+  expect(saved.error).toBeNull()
+  expect(saved.data).toMatchObject({ notes: '  PRIVATE SMART IMPORT **notes**\n', progress: 5, rating: 9, status: 'Watching' })
+  const again = await openCapture(page)
+  await again.getByRole('textbox', { name: 'URL or media title', exact: true }).fill('https://anilist.co/anime/20/not-the-real-title')
+  await again.getByRole('button', { name: 'Find matches', exact: true }).click()
+  await expect(again.getByText('Exact provider ID', { exact: true }).first()).toBeVisible()
+  await again.getByRole('button', { name: /^Use match:/ }).first().click()
+  await again.getByRole('textbox', { name: /^Notes/ }).fill('This duplicate draft must not overwrite stored notes')
+  await again.getByRole('button', { name: 'Save Item', exact: true }).click()
+  await expect(again).not.toBeVisible()
+  const after = await client.from('items').select('id,notes,progress,rating,status').eq('user_id', fixture().a).eq('external_source', 'anilist').eq('external_id', '20')
+  expect(after.data).toEqual([saved.data])
+})
+
+test('mobile unsafe and unsupported URLs offer honest manual fallback without losing a draft', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await authenticate(page.context())
+  const dialog = await openCapture(page)
+  const notes = dialog.getByRole('textbox', { name: /^Notes/ })
+  await notes.fill('PRIVATE MOBILE DRAFT')
+  const input = dialog.getByRole('textbox', { name: 'URL or media title', exact: true })
+  await input.fill('http://127.0.0.1/latest/meta-data')
+  await dialog.getByRole('button', { name: 'Find matches', exact: true }).click()
+  await expect(dialog.getByText(/This URL cannot be fetched safely/)).toBeVisible()
+  await expect(notes).toHaveValue('PRIVATE MOBILE DRAFT')
+  await input.fill('https://example.org/unavailable-379bb612')
+  await choose(page, 'Identify media type', 'Book', dialog)
+  await dialog.getByRole('button', { name: 'Find matches', exact: true }).click()
+  await expect(dialog.getByText(/This page could not be read/)).toBeVisible()
+  await expect(notes).toHaveValue('PRIVATE MOBILE DRAFT')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
+  await input.fill('Dune')
+  await input.press('Enter')
+  await expect(dialog.getByRole('button', { name: /^Use match:/ }).first()).toBeVisible()
+  await dialog.getByRole('button', { name: 'Close modal', exact: true }).click()
+})
+
+test('quota is atomic, owner-isolated, unavailable to anonymous callers and enforced by the API', async ({ page, browser }) => {
+  const client = await authenticate(page.context(), 'b')
+  const results = await Promise.all(Array.from({ length: 31 }, () => client.rpc('consume_quick_import_quota')))
+  expect(results.every(row => row.error === null)).toBe(true)
+  expect(results.filter(row => row.data === true)).toHaveLength(30)
+  expect(results.filter(row => row.data === false)).toHaveLength(1)
+  const response = await page.request.post('/api/quick-import', { data: { query: 'Naruto' } })
+  expect(response.status()).toBe(429)
+  expect(response.headers()['retry-after']).toBe('600')
+  const other = await browser.newContext()
+  try {
+    const ownerA = await authenticate(other)
+    expect((await ownerA.rpc('consume_quick_import_quota')).data).toBe(true)
+    expect((await ownerA.schema('media_vault_private').from('quick_import_usage').select('*')).error).toBeTruthy()
+  } finally { await other.close() }
+  const anonymous = await browser.newContext()
+  try {
+    expect((await anonymous.request.post('/api/quick-import', { data: { query: 'Naruto' } })).status()).toBe(401)
+  } finally { await anonymous.close() }
+})

@@ -90,7 +90,7 @@ export async function createItemAction(input: MediaItemInput, catalogId?: string
     const supabase = createSupabaseServerClient(user.accessToken)
     const sameTypes = ['Manga', 'Manhwa', 'Manhua'].includes(input.type) ? ['Manga', 'Manhwa', 'Manhua'] : [input.type]
     const existing = await supabase.from('items').select('id').eq('user_id', user.id)
-      .eq('external_source', identity.source).in('external_id', [identity.id, String(catalogId)])
+      .in('external_source', identity.source === 'jikan' ? ['jikan', 'myanimelist'] : [identity.source]).in('external_id', [identity.id, String(catalogId)])
       .in('type', sameTypes).limit(1).maybeSingle()
     if (existing.error) return { error: 'Could not check this catalog item. Please try again.', success: false }
     if (existing.data) return { error: null, itemId: existing.data.id, success: true, alreadyExists: true }

@@ -7,6 +7,7 @@ import type { QuickImportTypeHint } from './quick-import-parser'
 import { plainProviderDescription, type ProviderDetails } from './provider-details'
 import { discardInvalidProviderCache, publicProviderCacheOptions } from './provider-cache'
 import { isMangaCatalogSearchType, mapCatalogSearchTypeToMediaType, type CatalogSearchType } from './search-safety'
+import { normalizeMediaTitle } from './title-identification'
 
 const ANILIST_ANIME_FORMATS = new Set([
   'MOVIE',
@@ -19,6 +20,10 @@ const ANILIST_ANIME_FORMATS = new Set([
 ])
 
 type CatalogSearchOptions = {
+  language?: string
+  signal?: AbortSignal
+  anilistId?: number
+  malId?: number
   countryOfOrigin?: 'KR' | 'CN'
   page?: number
   pageSize?: number
@@ -69,8 +74,8 @@ function normalizeExternalRating(value: number | string | null | undefined) {
   return Math.round(parsed * 10) / 10
 }
 
-function getTmdbLanguage() {
-  return 'en-US'
+function getTmdbLanguage(language?: string) {
+  return language && ['en-US', 'ru-RU', 'ja-JP', 'ko-KR', 'zh-CN', 'zh-TW'].includes(language) ? language : 'en-US'
 }
 
 function getTmdbApiKey() {
@@ -106,13 +111,7 @@ function getPreferredAniListTitle(
 }
 
 function normalizeComparableText(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\u0400-\u04ff]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return normalizeMediaTitle(value)
 }
 
 function compactComparableText(value: string) {
@@ -191,7 +190,7 @@ function dedupeCandidates(candidates: CatalogSearchCandidate[]) {
   const unique: CatalogSearchCandidate[] = []
 
   for (const candidate of candidates) {
-    const key = `${compactComparableText(candidate.title)}::${candidate.type}`
+    const key = candidate.id
 
     if (seen.has(key)) {
       continue
@@ -218,7 +217,7 @@ function buildCandidate(
   candidate: Omit<CatalogSearchCandidate, 'score'>,
   searchTerms: string[]
 ): CatalogSearchCandidate {
-  const baseScore = scoreCandidateTitle(candidate.title, searchTerms)
+  const baseScore = Math.max(...[candidate.title, ...(candidate.alternativeTitles ?? [])].map(title => scoreCandidateTitle(title, searchTerms)))
   const metadataBonus = Math.min(
     0.08,
     (candidate.imageUrl ? 0.02 : 0) +
@@ -415,10 +414,11 @@ async function fetchProviderJson<T>(
 }
 
 function fetchCatalogJson<T>(provider: CatalogProvider, input: string, init: RequestInit, options: CatalogSearchOptions) {
-  return options.strict ? fetchProviderJson<T>(provider, input, init).then((payload) => {
+  const request = { ...init, ...(options.signal ? { signal: options.signal } : {}) }
+  return options.strict ? fetchProviderJson<T>(provider, input, request).then((payload) => {
     throwProviderGraphQLError(provider, payload)
     return payload
-  }) : safeFetchJson<T>(input, init)
+  }) : safeFetchJson<T>(input, request)
 }
 
 function throwProviderGraphQLError(provider: CatalogProvider, payload: unknown) {
@@ -524,7 +524,8 @@ export async function searchShikimoriCandidates(
               externalRatingLabel: 'MyAnimeList',
               externalRatingValue: normalizeExternalRating(item.score),
               genres: '',
-              id: `shikimori:${endpoint}:${item.id}`,
+                id: `shikimori:${endpoint}:${item.id}`,
+                alternativeTitles: [item.name, item.russian].filter((title): title is string => Boolean(title)),
                 imageUrl,
                 provider: 'Shikimori',
                 status: isAnime ? 'Planning' : 'Reading',
@@ -676,9 +677,10 @@ export async function searchTmdbCandidatesByType(
         status_message?: string
       }>(
         'TMDB',
-        `https://api.themoviedb.org/3/search/${mediaType}?api_key=${apiKey}&language=${getTmdbLanguage()}&include_adult=false&page=${options.page ?? 1}&query=${encodeURIComponent(searchTerm)}`,
+        `https://api.themoviedb.org/3/search/${mediaType}?api_key=${apiKey}&language=${getTmdbLanguage(options.language)}&include_adult=false&page=${options.page ?? 1}&query=${encodeURIComponent(searchTerm)}`,
         {
           cache: 'no-store',
+          signal: options.signal,
           headers: {
             Accept: 'application/json',
           },
@@ -713,6 +715,7 @@ export async function searchTmdbCandidatesByType(
           return buildCandidate(
             {
               description: item.overview ?? '',
+              alternativeTitles: [item.original_title, item.original_name].filter((title): title is string => Boolean(title)),
               externalRatingLabel: 'TMDB',
               externalRatingValue: normalizeExternalRating(
                 details?.vote_average ?? item.vote_average ?? null
@@ -762,6 +765,7 @@ export async function searchAniListCandidates(
             pageInfo?: { hasNextPage?: boolean }
             media?: Array<{
               description?: string | null
+              synonyms?: string[] | null
               chapters?: number | null
               countryOfOrigin?: string | null
               coverImage?: {
@@ -772,6 +776,7 @@ export async function searchAniListCandidates(
               format?: string | null
               genres?: string[] | null
               id: number
+              idMal?: number | null
               isAdult?: boolean | null
               averageScore?: number | null
               startDate?: {
@@ -790,6 +795,7 @@ export async function searchAniListCandidates(
         errors?: Array<{ message?: string; status?: number }>
       }>('AniList', 'https://graphql.anilist.co', {
         method: 'POST',
+        signal: options.signal,
         cache: 'no-store',
         headers: {
           Accept: 'application/json',
@@ -797,10 +803,12 @@ export async function searchAniListCandidates(
         },
         body: JSON.stringify({
           query: `
-            query QuickImportCandidates($search: String!, $type: MediaType, $page: Int!, $perPage: Int!${options.countryOfOrigin ? ', $country: CountryCode!' : ''}) {
+            query QuickImportCandidates($search: String, $type: MediaType, $page: Int!, $perPage: Int!${options.countryOfOrigin ? ', $country: CountryCode!' : ''}${options.anilistId ? ', $id: Int!' : ''}${options.malId ? ', $malId: Int!' : ''}) {
               Page(page: $page, perPage: $perPage) {
                 pageInfo { hasNextPage }
-                media(search: $search, type: $type${options.countryOfOrigin ? ', countryOfOrigin: $country, format_not: NOVEL' : ''}, isAdult: false, sort: SEARCH_MATCH) {
+                media(search: $search, type: $type${options.anilistId ? ', id: $id' : ''}${options.malId ? ', idMal: $malId' : ''}${options.countryOfOrigin ? ', countryOfOrigin: $country, format_not: NOVEL' : ''}, isAdult: false, sort: SEARCH_MATCH) {
+                  idMal
+                  synonyms
                   description(asHtml: false)
                   chapters
                   countryOfOrigin
@@ -829,7 +837,7 @@ export async function searchAniListCandidates(
             }
           `,
           variables: {
-            search: searchTerm,
+            ...(options.anilistId ? { id: options.anilistId } : options.malId ? { malId: options.malId } : { search: searchTerm }),
             type: typeHint,
             ...(options.countryOfOrigin ? { country: options.countryOfOrigin } : {}),
             page: options.page ?? 1,
@@ -843,6 +851,8 @@ export async function searchAniListCandidates(
 
       const candidates = (payload.data?.Page?.media ?? [])
         .map((media) => {
+          if (options.anilistId && media.id !== options.anilistId) return null
+          if (options.malId && media.idMal !== options.malId) return null
           const title = getPreferredAniListTitle(media.title)
 
           if (!title) {
@@ -858,6 +868,7 @@ export async function searchAniListCandidates(
           return buildCandidate(
             {
               description: media.description ?? '',
+              alternativeTitles: [...Object.values(media.title ?? {}), ...(media.synonyms ?? [])].filter((title): title is string => Boolean(title)).slice(0, 24),
               externalRatingLabel: media.averageScore ? 'AniList' : null,
               externalRatingValue:
                 typeof media.averageScore === 'number'
@@ -979,6 +990,7 @@ export async function searchJikanCandidates(
             return buildCandidate(
               {
               description: item.synopsis ?? '',
+              alternativeTitles: [item.title, item.title_english, item.title_japanese, ...(item.title_synonyms ?? [])].filter((title): title is string => Boolean(title)).slice(0, 24),
               externalRatingLabel: item.score ? 'MyAnimeList' : null,
               externalRatingValue: normalizeExternalRating(item.score),
               genres: sanitizeGenres(genres),
@@ -1099,6 +1111,7 @@ export async function searchKitsuCandidates(
             return buildCandidate(
               {
                 description: attributes?.synopsis ?? '',
+                alternativeTitles: [...Object.values(attributes?.titles ?? {}), ...(attributes?.abbreviatedTitles ?? [])].filter((title): title is string => Boolean(title)).slice(0, 24),
                 isAdult: attributes?.nsfw ?? false,
                 genres: '',
                 id: `kitsu:${endpoint}:${item.id}`,
@@ -1155,6 +1168,8 @@ export async function searchOpenLibraryCandidates(searchTerms: string[], options
           first_publish_year?: number | null
           key?: string | null
           title?: string | null
+          author_name?: string[]
+          alternative_title?: string[]
         }>
       }>(
         'OpenLibrary',
@@ -1188,6 +1203,8 @@ export async function searchOpenLibraryCandidates(searchTerms: string[], options
               externalRatingValue: null,
               genres: '',
               id: `openlibrary:${item.key ?? title}`,
+              authors: item.author_name?.slice(0, 8),
+              alternativeTitles: item.alternative_title?.slice(0, 16),
               imageUrl: item.cover_i
                 ? `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`
                 : '',

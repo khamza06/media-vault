@@ -16,6 +16,12 @@ const media = [
 ]
 
 describe('catalog subtype search', () => {
+  it('verifies exact AniList and MAL IDs in the returned payload before accepting metadata', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { Page: { media: [{ id: 21, idMal: 30, title: { english: 'Unrelated' } }] } } })))
+    const { searchAniListCandidates } = await import('../lib/catalog-search')
+    expect(await searchAniListCandidates([''], 'ANIME', { anilistId: 20 })).toEqual([])
+    expect(await searchAniListCandidates([''], 'ANIME', { malId: 20 })).toEqual([])
+  })
   it.each([['manhwa', 'KR', 'Manhwa', 'anilist:2'], ['manhua', 'CN', 'Manhua', 'anilist:3']] as const)('filters %s at AniList and preserves provider identities in fast/full results', async (type, country, displayType, id) => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body))

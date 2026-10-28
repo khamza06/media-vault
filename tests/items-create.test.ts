@@ -43,6 +43,12 @@ describe('catalog item creation', () => {
     expect(await createItemAction(form, 'anilist:20')).toMatchObject({ alreadyExists: true, itemId: 'existing' })
     expect(mocks.createItem).not.toHaveBeenCalled()
   })
+  it('recognizes the same MAL identity from Jikan without overwriting an XML-imported item', async () => {
+    mocks.maybeSingle.mockResolvedValue({ data: { id: 'existing-mal' }, error: null })
+    expect(await createItemAction({ ...form, progress: '10', notes: 'A new draft must not replace stored notes' }, 'jikan:anime:20')).toMatchObject({ alreadyExists: true, itemId: 'existing-mal' })
+    expect(mocks.in).toHaveBeenCalledWith('external_source', ['jikan', 'myanimelist'])
+    expect(mocks.createItem).not.toHaveBeenCalled()
+  })
   it('does not insert when duplicate lookup fails', async () => {
     mocks.maybeSingle.mockResolvedValue({ data: null, error: { message: 'Private database detail' } })
     expect(await createItemAction(form, 'anilist:20')).toMatchObject({ success: false })
