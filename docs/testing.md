@@ -57,6 +57,13 @@ clean URL keys, active-chip removal, owner-card return URLs, completion group
 counts and canonical density preferences. Synthetic browser checks cover actual
 Radix status selection, URL updates, clearing, table mode and long Russian copy.
 
+Card/tool localization tests cover all three owner-card layouts, exact canonical
+item callbacks, bulk-mode action hiding, progress labels, default public cover
+placeholders and unchanged non-compact list triggers. Saved-view tests preserve
+names/links/drafts across language changes and report session-only saving when
+storage fails. Planning-picker tests run in Strict Mode and check empty/guest/
+selection states without adding or updating items.
+
 ## Optional Provider Smoke Tests
 
 ```sh

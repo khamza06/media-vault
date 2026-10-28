@@ -471,3 +471,25 @@ no page/control overflow, verified real Radix selection (`status=Completed`),
 reset and table mode, and switched back to English without changing filters.
 No item save/progress/list/delete action, authentication or live database write
 was used. Temporary fixtures were removed; runtime audit found zero known issues.
+
+## Stage 9F: Owner Cards and Saved-view/Planning Tools
+
+- Translated owner-card type/status/progress display, rating/selection/action
+  labels and accessible placeholder/progress names. English progress formatting
+  and canonical item callbacks are unchanged; source titles/genres/notes remain exact.
+- Dense card list triggers use a compact text-only variant: the Russian label
+  fits at 320px without collapsing its icon to zero width. Other list triggers,
+  detail variants, list dialogs and all list actions retain their existing behavior.
+- Translated saved-view and Planning-picker copy, including session-only storage
+  feedback and empty states. Saved names/filters/URLs/drafts survive language
+  changes. The picker only previews existing Planning items; it does not mutate them.
+- Public cover placeholders retain defaults without needing a locale context.
+  No public route gains actions, and no schema/API/auth policy is changed.
+
+Verification: 384 isolated tests, lint without warnings, TypeScript and production
+build passed. Fifteen added tests cover card layouts/selection/busy behavior,
+unchanged default triggers, storage failures, guest/empty/single-title picker
+states and Strict Mode. Synthetic browser QA at 320-1920px verified dialog/card
+fit, saved-view links and EN/RU switching. Only a scoped synthetic browser
+preference was saved and cleared via UI; no real account/item/list write was run.
+Temporary fixtures were removed. Runtime dependency audit found zero known issues.

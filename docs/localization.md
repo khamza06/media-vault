@@ -60,5 +60,15 @@ shared filters and active chips, result counts, view/density controls, Continue,
 completion counts and filtered empty states. Display options are generated
 separately from the canonical filter model: locale changes must never rename
 URL keys, status/type values, saved view modes or source provider identities.
-The legacy `MediaLibrary` component, item-card copy, bulk dialogs, saved-view/
-Planning-picker copy, onboarding and public-grid filters remain separate passes.
+Owner cards now translate type/status/progress display, selection labels and
+accessible names while retaining source titles/genres and exact tracking data.
+Saved-view and Planning-picker copy is translated too; names and stored filter
+values remain untouched. Picker suggestions never add or update an item.
+Dense owner-card list triggers use a text-only compact presentation so the
+Russian label fits narrow two-column grids; other list triggers retain defaults.
+
+The legacy `MediaLibrary` component, bulk dialogs, Add to list dialogs,
+onboarding and public-grid filters remain separate passes. Saved-view validation
+errors from the preference store can still be English; do not translate them by
+matching arbitrary error strings. Public cover placeholders keep their existing
+default labels and gain no private controls.

@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import ShelfItemCard from '../components/ShelfItemCard'
 import { toMediaItem } from '../lib/media'
 import { getMediaCardGridClassName, mediaCardGridClassName } from '../lib/media-card-grid'
+import { t, type MessageKey } from '../lib/i18n'
+vi.mock('../components/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en', t: (key: MessageKey, vars?: Record<string, string | number>) => t('en', key, vars) }) }))
 
 vi.mock('../components/lists/AddToListButton', () => ({ default: () => <button type="button">List</button> }))
 const item = toMediaItem({ id: 'fixture', title: 'A long manga title', status: 'Reading', type: 'Manga', progress: 12, total_progress: 24 })

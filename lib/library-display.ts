@@ -1,6 +1,7 @@
 import { t, translateStatus, translateType, type Locale, type MessageKey } from './i18n'
 import { libraryCoverOptions, libraryRatingOptions, librarySortOptions, librarySourceOptions, libraryStatusOptions, libraryTypeOptions } from './library-filters'
 import type { MediaShelfKey } from './media'
+import { getShelfDefinitionBySlug } from './shelves'
 
 function labelOptions<V extends string>(locale: Locale, options: readonly { label: string; value: V }[], keys: Partial<Record<V, MessageKey>>) {
   return options.map((option) => {
@@ -31,4 +32,10 @@ const shelfKeys = {
 export function getShelfDisplay(locale: Locale, key: MediaShelfKey) {
   const [label, description] = shelfKeys[key]
   return { label: t(locale, label), description: t(locale, description) }
+}
+
+export function getSavedViewLocationLabel(locale: Locale, pathname: string) {
+  if (pathname === '/') return t(locale, 'nav.library')
+  const shelf = getShelfDefinitionBySlug(pathname.split('/').at(-1) ?? '')
+  return shelf ? t(locale, 'savedViews.shelf', { name: getShelfDisplay(locale, shelf.key).label }) : t(locale, 'savedViews.genericShelf')
 }

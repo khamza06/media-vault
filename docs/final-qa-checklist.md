@@ -93,6 +93,7 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Confirm translated labels never change stored status/type values or notes, and keep the partial-translation beta notice accurate.
 - Check Add New and full edit in English/Russian: chapter/episode/page labels, canonical dropdown values, exact Markdown drafts, save failure recovery and provider identity.
 - Check Library/shelf filters in English/Russian: canonical URL values, chip removal, reset, density preference and filter-preserving item links.
+- Check owner-card actions/labels, saved-view names/links and the non-mutating Planning picker in English/Russian, including narrow screens and blocked storage.
 
 ## Production Readiness
 

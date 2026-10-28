@@ -20,6 +20,9 @@ type AddToListButtonProps = {
   itemTitle: string
   lists: AddToListOption[]
   variant?: 'card' | 'detail'
+  buttonLabel?: string
+  buttonAriaLabel?: string
+  compact?: boolean
 }
 
 export default function AddToListButton({
@@ -27,6 +30,9 @@ export default function AddToListButton({
   itemTitle,
   lists,
   variant = 'card',
+  buttonLabel,
+  buttonAriaLabel,
+  compact = false,
 }: AddToListButtonProps) {
   const router = useRouter()
   const { showToast } = useToast()
@@ -97,7 +103,7 @@ export default function AddToListButton({
   const buttonClassName =
     variant === 'detail'
       ? 'glass-panel-soft inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white'
-      : 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/90 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-blue-500 hover:text-white'
+      : `inline-flex min-h-11 min-w-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900/90 py-2 text-xs font-medium text-slate-200 transition hover:border-blue-500 hover:text-white ${compact ? 'gap-1 px-2' : 'gap-2 px-3'}`
 
   return (
     <>
@@ -109,10 +115,10 @@ export default function AddToListButton({
           setError(null)
         }}
         className={buttonClassName}
-        aria-label={`Add ${itemTitle} to a custom list`}
+        aria-label={buttonAriaLabel ?? `Add ${itemTitle} to a custom list`}
       >
-        <ListPlus className="h-4 w-4" />
-        <span>{variant === 'detail' ? 'Add to list' : 'List'}</span>
+        {compact && variant === 'card' ? null : <ListPlus className="h-4 w-4" />}
+        <span>{buttonLabel ?? (variant === 'detail' ? 'Add to list' : 'List')}</span>
       </button>
 
       {isOpen ? (
