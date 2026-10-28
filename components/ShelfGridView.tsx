@@ -15,6 +15,8 @@ import {
 } from '../lib/library-filters'
 import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
 import { getMediaCardGridClassName } from '../lib/media-card-grid'
+import { applyBulkItemChange } from '../lib/bulk-item-changes'
+import BulkItemActions from './BulkItemActions'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
 import LibraryFilterControls from './LibraryFilterControls'
 import { useToast } from './ToastProvider'
@@ -101,6 +103,7 @@ export default function ShelfGridView({
   }, [favoritesOnly, filters, liveItems, showSourceFilter])
 
   async function handleIncrement(item: MediaItem) {
+    if (busyIds[item.id]) return
     const nextProgress =
       typeof item.totalProgress === 'number' && item.totalProgress > 0
         ? Math.min(item.progress + 1, item.totalProgress)
@@ -138,21 +141,24 @@ export default function ShelfGridView({
       )
     )
 
-    const result = await incrementProgressAction(item.id)
-
-    setBusyIds((current) => {
-      const next = { ...current }
-      delete next[item.id]
-      return next
-    })
-
-    if (result.success) {
-      showToast(`Progress updated: ${item.title}`)
-      return
+    try {
+      const result = await incrementProgressAction(item.id)
+      if (result.success) {
+        showToast(`Progress updated: ${item.title}`)
+        return
+      }
+      setLiveItems((current) => current.map((candidate) => (candidate.id === item.id ? item : candidate)))
+      showToast(result.error ?? 'Failed to update progress.', 'error')
+    } catch {
+      setLiveItems((current) => current.map((candidate) => (candidate.id === item.id ? item : candidate)))
+      showToast('Could not update progress. Check your connection and try again.', 'error')
+    } finally {
+      setBusyIds((current) => {
+        const next = { ...current }
+        delete next[item.id]
+        return next
+      })
     }
-
-    setLiveItems((current) => current.map((candidate) => (candidate.id === item.id ? item : candidate)))
-    showToast(result.error ?? 'Failed to update progress.', 'error')
   }
 
   function toggleSelection(item: MediaItem) {
@@ -240,7 +246,7 @@ export default function ShelfGridView({
             Favorites only
           </button>
           <BulkSelectionToolbar
-            isDeleting={isBulkDeleting}
+            isDeleting={isBulkDeleting || Object.keys(busyIds).length > 0}
             isSelectionMode={selectionMode}
             onCancelSelection={cancelSelectionMode}
             onClearSelection={() => setSelectedIds(new Set())}
@@ -257,6 +263,9 @@ export default function ShelfGridView({
             visibleCount={filteredItems.length}
           />
         </div>
+        {selectionMode ? <BulkItemActions items={liveItems.filter((item) => selectedIds.has(item.id))}
+          lists={listOptions} onDone={cancelSelectionMode}
+          onUpdated={(change, ids) => setLiveItems((current) => applyBulkItemChange(current, change, ids))} /> : null}
       </section>
 
       {filteredItems.length === 0 ? (

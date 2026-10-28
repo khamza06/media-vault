@@ -18,6 +18,7 @@ type AppSelectProps = {
   onValueChange: (value: string) => void
   options: readonly AppSelectOption[]
   placeholder?: string
+  portalContainer?: HTMLElement | null
   size?: 'compact' | 'default'
   value: string
 }
@@ -44,6 +45,7 @@ export default function AppSelect({
   onValueChange,
   options,
   placeholder,
+  portalContainer,
   size = 'default',
   value,
 }: AppSelectProps) {
@@ -62,7 +64,7 @@ export default function AppSelect({
           <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
         </Select.Icon>
       </Select.Trigger>
-      <Select.Portal>
+      <Select.Portal container={portalContainer}>
         <Select.Content
           className={mergeClassNames(defaultContentClassName, contentClassName)}
           position="popper"

@@ -200,3 +200,28 @@ Next checkpoint: collection cover previews and safe bulk list/status/favorite ac
 Verification: 216 isolated tests, lint and production build passed. Added tests
 for cover limits/ownership, optional/fallback reads, guest access, missing owned
 items/lists and duplicate conflicts. No migration or live vault write was run.
+
+## Stage 6B: Reviewed Bulk Changes
+
+- Owner Library/home/shelf selection now offers Add to list, Change status and
+  Favorite settings. Each opens a review dialog before saving; destructive bulk
+  delete remains a separate existing confirmation.
+- Status/favorite writes validate up to 500 UUIDs, authenticate, read owned rows,
+  skip unchanged/incompatible/missing items, and update only owned eligible IDs.
+  Payloads contain only status or favorite, never notes/progress/rating/metadata.
+  Returned row IDs drive optimistic UI updates and honest partial-result counts.
+- Bulk list additions reuse the existing membership action. Dialogs keep selection
+  on errors, prevent duplicate submissions and remain open while a write is pending.
+- Radix selects accept an optional portal container so dropdowns stay inside a
+  native modal's top layer, without changing existing filter dropdown behavior.
+- Fixed Home/Shelf +1 transport failures leaving progress permanently busy.
+  Rollback and busy cleanup now run on network errors; selection waits for +1.
+
+Verification: 230 isolated tests cover owner scope, partial results, invalid input,
+unchanged fields, retries, duplicate submission and progress rollback. Synthetic
+browser checks at 320/390/768/1280/1440/1920 px confirmed no overflow, functional
+in-dialog dropdowns, Escape/focus return and exact notes draft preservation.
+No Apply/Save button was used against a live account. The temporary QA route was
+removed; public pages and schema remain unchanged.
+
+Next checkpoint: account-scoped saved filter views and a Planning title picker.

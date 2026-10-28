@@ -38,7 +38,7 @@ export function BulkSelectionToolbar({
         <button
           type="button"
           onClick={onStartSelection}
-          disabled={visibleCount === 0}
+          disabled={visibleCount === 0 || isDeleting}
           className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Select
