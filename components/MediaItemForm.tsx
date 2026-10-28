@@ -118,8 +118,13 @@ export default function MediaItemForm({
           <span className="mb-2 block text-sm font-medium text-slate-200">{t('form.status')}</span>
           <AppSelect
             ariaLabel={t('form.status')}
-            value={form.status}
-            onValueChange={(value) => onChange('status', value)}
+            value={hasSelectedType ? (form.status || getDefaultStatus(form.type)) : ''}
+            onValueChange={(value) => {
+              // Radix's hidden native select may emit an empty value when its
+              // options change after choosing a type. Keep a valid default.
+              onChange('status', hasSelectedType && !statusOptions.includes(value as typeof statusOptions[number])
+                ? getDefaultStatus(form.type) : value)
+            }}
             options={statusSelectOptions}
             className="glass-panel-soft min-h-12 w-full rounded-2xl px-4 py-3 text-base text-white outline-none transition focus:border-blue-400/40"
             disabled={isSubmitting || !hasSelectedType}

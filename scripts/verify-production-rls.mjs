@@ -20,7 +20,11 @@ async function visibility(c, expected, name) {
   check(`${name}: public membership`, await ids(c, 'list_items', f.goodLink), expected ? [f.goodLink] : [])
 }
 try {
-  for (const [c, key] of [[a, 'a'], [b, 'b']]) must(await c.auth.signInWithPassword({ email: `p0-${f[key]}@example.invalid`, password: f.password }))
+  for (const [c, key] of [[a, 'a'], [b, 'b']]) {
+    const email = f[`${key}Email`] ?? `p0-${f[key]}@example.invalid`
+    if (!['p0', 'qa'].some(prefix => email === `${prefix}-${f[key]}@example.invalid`)) throw new Error('Only synthetic invalid-domain accounts are allowed.')
+    must(await c.auth.signInWithPassword({ email, password: f.password }))
+  }
   check('owner reads private item', await ids(a, 'items', f.itemA), [f.itemA])
   await visibility(anon, false, 'anonymous/private profile')
   await visibility(b, false, 'other user/private profile')
@@ -52,7 +56,9 @@ try {
   must(await a.from('items').update({ progress: 1 }).eq('id', f.itemA).select('id').single())
   check('owner write preserves notes', must(await a.from('items').select('notes,progress').eq('id', f.itemA))[0], { notes: 'P0 synthetic note', progress: 1 })
   if (f.siteUrl) {
-    for (const path of [`/u/p0-${f.run.slice(0, 8)}`, `/u/p0-${f.run.slice(0, 8)}/lists/p0-${f.run.slice(0, 8)}`, `/public/${f.a}`, `/share/${f.a}`]) {
+    const username = f.publicUsername ?? `p0-${f.run.slice(0, 8)}`
+    const slug = f.publicListSlug ?? `p0-${f.run.slice(0, 8)}`
+    for (const path of [`/u/${username}`, `/u/${username}/lists/${slug}`, `/public/${f.a}`, `/share/${f.a}`]) {
       const response = await fetch(new URL(path, f.siteUrl), { signal: AbortSignal.timeout(20000), cache: 'no-store' })
       const body = await response.text()
       check(`public page succeeds: ${path.split('/')[1]}`, response.status, 200)

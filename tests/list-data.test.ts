@@ -7,15 +7,16 @@ vi.mock('../lib/supabase/server', () => ({ createSupabaseServerClient: () => ({ 
 import { getCustomLists } from '../lib/data/lists'
 
 function from(table: string) {
-  let fields = ''
+  let fields = '', cursor = ''
   const query = {
     select: (value: string) => { fields = value; mocks.select(table, value); return query },
     eq: (key: string, value: string) => { mocks.eq(table, key, value); return query },
-    in: () => query, overrideTypes: () => query,
-    order: async () => ({ data: [{ id: 'list', name: 'Favorites' }], error: null }),
-    then: (resolve: (value: unknown) => void) => Promise.resolve(fields.includes('items(') && mocks.coverError
+    in: () => query, limit: () => query, gt: (_key: string, value: string) => { cursor = value; return query },
+    order: () => query,
+    overrideTypes: async () => cursor ? { data: [], error: null } : table === 'lists'
+      ? { data: [{ id: 'list', name: 'Favorites' }], error: null } : fields.includes('items(') && mocks.coverError
       ? { data: null, error: { message: 'Could not find a relationship' } }
-      : { data: [{ list_id: 'list', items: { image_url: 'https://example.com/cover.png', user_id: 'owner' } }], error: null }).then(resolve),
+      : { data: [{ id: 'link', list_id: 'list', items: { image_url: 'https://example.com/cover.png', user_id: 'owner' } }], error: null },
   }
   return query
 }
@@ -24,20 +25,20 @@ describe('optional list collage reads', () => {
   it('loads owned covers in the same membership read only when requested', async () => {
     const result = await getCustomLists({ includeCovers: true })
     expect(result.lists[0]).toMatchObject({ itemCount: 1, coverUrls: ['https://example.com/cover.png'] })
-    expect(mocks.select).toHaveBeenCalledWith('list_items', 'list_id, items(image_url, user_id)')
+    expect(mocks.select).toHaveBeenCalledWith('list_items', 'id, list_id, items(image_url, user_id)')
     expect(mocks.eq).toHaveBeenCalledWith('list_items', 'user_id', 'owner')
   })
   it('keeps the normal list picker query lightweight', async () => {
     const result = await getCustomLists()
     expect(result.lists[0]).not.toHaveProperty('coverUrls')
-    expect(mocks.select).toHaveBeenCalledWith('list_items', 'list_id')
+    expect(mocks.select).toHaveBeenCalledWith('list_items', 'id, list_id')
   })
   it('falls back to counts rather than breaking lists if the embed is unavailable', async () => {
     mocks.coverError = true
     const result = await getCustomLists({ includeCovers: true })
     expect(result).toMatchObject({ schemaReady: true, error: null })
     expect(result.lists[0].itemCount).toBe(1)
-    expect(mocks.select).toHaveBeenCalledWith('list_items', 'list_id')
+    expect(mocks.select).toHaveBeenCalledWith('list_items', 'id, list_id')
   })
   it('does not fetch any previews for guests', async () => {
     mocks.getCurrentUser.mockResolvedValue(null)

@@ -74,6 +74,7 @@ export default function AddModal({
   const submittingRef = useRef(false)
 
   const [coverFile, setCoverFile] = useState<File | null>(null)
+  const uploadedCoverRef = useRef<{ file: File; url: string } | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [form, setForm] = useState<MediaItemInput>(initialFormState)
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | undefined>()
@@ -396,7 +397,9 @@ export default function AddModal({
       let imageUrl = form.imageUrl
 
       if (coverFile) {
-        const uploadResult = await uploadCoverFile(coverFile)
+        const uploadResult = uploadedCoverRef.current?.file === coverFile
+          ? { success: true, url: uploadedCoverRef.current.url, error: null }
+          : await uploadCoverFile(coverFile)
 
         if (!uploadResult.success || !uploadResult.url) {
           setErrorMessage(uploadResult.error ?? t('error.uploadCover'))
@@ -405,6 +408,7 @@ export default function AddModal({
         }
 
         imageUrl = uploadResult.url
+        uploadedCoverRef.current = { file: coverFile, url: imageUrl }
       }
 
       const result = await createItemAction({ ...form, imageUrl, notes: form.notes }, selectedCatalogId)

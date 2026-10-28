@@ -114,7 +114,7 @@ function parseAnimeEntry(entry: Element): ImportCandidate | null {
     external_source: 'myanimelist',
     external_id: externalId,
     external_url: buildMyAnimeListUrl('anime', externalId),
-    notes: '',
+    notes: entry.getElementsByTagName('my_comments').item(0)?.textContent ?? '',
   }
 }
 
@@ -136,7 +136,7 @@ function parseMangaEntry(entry: Element): ImportCandidate | null {
     external_source: 'myanimelist',
     external_id: externalId,
     external_url: buildMyAnimeListUrl('manga', externalId),
-    notes: '',
+    notes: entry.getElementsByTagName('my_comments').item(0)?.textContent ?? '',
   }
 }
 

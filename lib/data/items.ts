@@ -7,8 +7,8 @@ import { getDefaultStatus, isMovieType, usesPageProgress } from '../media'
 import { isMissingColumnError, isMissingUserIdError } from './ownership'
 import { createSupabaseServerClient } from '../supabase/server'
 import type { CatalogIdentity } from '../catalog-identity'
-import { readAllOwnedBackupItems } from './backup-items'
-import { getPublicItemsByUserId, publicItemRecords, publicItemSelectFields } from './public-items'
+import { readAllOwnedBackupItems, readAllOwnedBackupRows } from './backup-items'
+import { getPublicItemsByUserId, publicItemRecords, publicItemSelectFields, sortRecentItems } from './public-items'
 export { getPublicItemsByUserId } from './public-items'
 
 const fullItemSelectFieldsWithSource =
@@ -81,9 +81,24 @@ export type DiscoveryHubItemsResult = {
   totalCount: number
 }
 
-type GenreRowsResult = {
-  data: Array<{ genres?: string[] | null }> | null
-  error: { message?: string | null } | null
+type DiscoveryPage = { data: MediaItemRecord[] | null; error: { message: string } | null; count: number | null }
+type DiscoveryPageQuery = {
+  order: (field: string, options: { ascending: boolean }) => DiscoveryPageQuery
+  range: (from: number, to: number) => PromiseLike<DiscoveryPage>
+}
+
+async function readDiscoveryPages(input: unknown): Promise<DiscoveryPage> {
+  // Keep every filter/order from the caller; UUID is a stable final tie-breaker.
+  const query = (input as DiscoveryPageQuery).order('id', { ascending: true })
+  const rows: MediaItemRecord[] = []
+  let count: number | null = null
+  for (;;) {
+    const result = await query.range(rows.length, rows.length + 499)
+    if (result.error) return { ...result, data: null }
+    count = result.count
+    if (!result.data?.length) return { data: rows, error: null, count }
+    rows.push(...result.data)
+  }
 }
 
 function isExtendedSchemaError(message?: string | null) {
@@ -355,16 +370,6 @@ function isLegacyWriteFallbackError(message?: string | null) {
   )
 }
 
-function orderFullQuery<T extends OrderableQuery<T>>(query: T): T {
-  return query
-    .order('last_progress_at', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false })
-}
-
-function orderCompatibilityQuery<T extends OrderableQuery<T>>(query: T): T {
-  return query.order('created_at', { ascending: false })
-}
-
 async function getExistingOwnedProgressSnapshot(
   supabase: ReturnType<typeof createSupabaseServerClient>,
   userId: string,
@@ -428,93 +433,16 @@ function buildOwnedPayload(
 export async function getItems() {
   const user = await requireCurrentUser()
   const supabase = createSupabaseServerClient(user.accessToken)
-
-  const sourceResult = await orderFullQuery(
-    supabase.from('items').select(fullItemSelectFieldsWithSource).eq('user_id', user.id)
-  )
-
-  if (!sourceResult.error) {
-    return sourceResult
+  const selections = [fullItemSelectFieldsWithSource, metadataItemSelectFieldsWithSource,
+    fullItemSelectFields, metadataItemSelectFields, compatibilityItemSelectFields, legacyItemSelectFields]
+  for (const fields of selections) {
+    const result = await readAllOwnedBackupItems<MediaItemRecord>(supabase, user.id, fields)
+    if (!result.error) return { ...result, data: sortRecentItems(result.data ?? []) }
+    const message = result.error.message
+    if (isMissingUserIdError(message) || (!isExtendedSchemaError(message) &&
+      !isMetadataColumnError(message) && !isExternalSourceColumnError(message))) return result
   }
-
-  if (sourceResult.error.message && isExtendedSchemaError(sourceResult.error.message)) {
-    const metadataSourceResult = await orderCompatibilityQuery(
-      supabase.from('items').select(metadataItemSelectFieldsWithSource).eq('user_id', user.id)
-    )
-
-    if (!metadataSourceResult.error) {
-      return metadataSourceResult
-    }
-
-    if (
-      metadataSourceResult.error.message &&
-      !isExternalSourceColumnError(metadataSourceResult.error.message) &&
-      !isMetadataColumnError(metadataSourceResult.error.message) &&
-      !isMissingUserIdError(metadataSourceResult.error.message)
-    ) {
-      return metadataSourceResult
-    }
-  }
-
-  if (
-    sourceResult.error.message &&
-    !isExternalSourceColumnError(sourceResult.error.message)
-  ) {
-    const shouldReturnSourceError =
-      !isExtendedSchemaError(sourceResult.error.message) &&
-      !isMetadataColumnError(sourceResult.error.message) &&
-      !isMissingUserIdError(sourceResult.error.message)
-
-    if (shouldReturnSourceError) {
-      return sourceResult
-    }
-  }
-
-  const fullResult = await orderFullQuery(
-    supabase.from('items').select(fullItemSelectFields).eq('user_id', user.id)
-  )
-
-  if (!fullResult.error) {
-    return fullResult
-  }
-
-  if (isExtendedSchemaError(fullResult.error.message)) {
-    const metadataResult = await orderCompatibilityQuery(
-      supabase.from('items').select(metadataItemSelectFields).eq('user_id', user.id)
-    )
-
-    if (!metadataResult.error) {
-      return metadataResult
-    }
-
-    if (
-      metadataResult.error.message &&
-      !isMetadataColumnError(metadataResult.error.message) &&
-      !isMissingUserIdError(metadataResult.error.message)
-    ) {
-      return metadataResult
-    }
-
-    const compatibilityResult = await orderCompatibilityQuery(
-      supabase.from('items').select(compatibilityItemSelectFields).eq('user_id', user.id)
-    )
-
-    if (!compatibilityResult.error || !isMetadataColumnError(compatibilityResult.error?.message)) {
-      return compatibilityResult
-    }
-  }
-
-  if (isMissingUserIdError(fullResult.error.message)) {
-    return supabase.from('items').select(legacyItemSelectFields).order('created_at', { ascending: false })
-  }
-
-  if (isMetadataColumnError(fullResult.error.message)) {
-    return orderCompatibilityQuery(
-      supabase.from('items').select(legacyItemSelectFields).eq('user_id', user.id)
-    )
-  }
-
-  return fullResult
+  return { data: null, error: { message: 'Library requires a supported owned-item schema.' } }
 }
 
 export async function getItemsForBackupExport() {
@@ -859,10 +787,10 @@ export async function getDiscoveryHubItemsByUserId(
 
   if (!isOwner) {
     if (totalResult.error) return { data: null, error: totalResult.error, filteredCount: 0, totalCount: 0 }
-    const result = await applyDiscoveryFilters(
+    const result = await readDiscoveryPages(applyDiscoveryFilters(
       supabase.from('public_items').select(publicItemSelectFields, { count: 'exact' }).eq('user_id', userId),
       filters, { supportsNotes: false }
-    )
+    ))
     return { data: result.error ? null : publicItemRecords(result.data), error: result.error,
       filteredCount: result.count ?? 0, totalCount }
   }
@@ -880,7 +808,7 @@ export async function getDiscoveryHubItemsByUserId(
       supportsStartedAt: true,
     }
   )
-  const fullResult = await fullQuery
+  const fullResult = await readDiscoveryPages(fullQuery)
 
   if (!fullResult.error) {
     return {
@@ -905,7 +833,7 @@ export async function getDiscoveryHubItemsByUserId(
         supportsStartedAt: true,
       }
     )
-    const metadataResult = await metadataQuery
+    const metadataResult = await readDiscoveryPages(metadataQuery)
 
     if (!metadataResult.error) {
       return {
@@ -942,7 +870,7 @@ export async function getDiscoveryHubItemsByUserId(
         supportsStartedAt: true,
       }
     )
-    const compatibilityResult = await compatibilityQuery
+    const compatibilityResult = await readDiscoveryPages(compatibilityQuery)
 
     if (!compatibilityResult.error) {
       return {
@@ -967,7 +895,7 @@ export async function getDiscoveryHubItemsByUserId(
           supportsStartedAt: false,
         }
       )
-      const legacyResult = await legacyQuery
+      const legacyResult = await readDiscoveryPages(legacyQuery)
 
       return {
         data: (legacyResult.data ?? []) as MediaItemRecord[],
@@ -989,7 +917,7 @@ export async function getDiscoveryHubItemsByUserId(
         supportsStartedAt: false,
       }
     )
-    const legacyResult = await legacyQuery
+    const legacyResult = await readDiscoveryPages(legacyQuery)
 
     return {
       data: (legacyResult.data ?? []) as MediaItemRecord[],
@@ -1015,10 +943,9 @@ export async function getDiscoveryHubGenresByUserId(
   const supabase =
     isOwner ? createSupabaseServerClient(viewer.accessToken) : createSupabaseServerClient()
 
-  const fullResult: GenreRowsResult = await supabase
-    .from(isOwner ? 'items' : 'public_items')
-    .select('genres')
-    .eq('user_id', userId)
+  const fullResult = await readAllOwnedBackupRows<{ id: string; genres?: string[] | null }>(
+    supabase, userId, 'id, genres', isOwner ? 'items' : 'public_items'
+  )
 
   if (!fullResult.error) {
     return normalizeDiscoveryHubGenres(fullResult.data)

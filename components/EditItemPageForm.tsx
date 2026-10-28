@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -48,6 +48,8 @@ export default function EditItemPageForm({
   const [errorMessage, setErrorMessage] = useState('')
   const [form, setForm] = useState<MediaItemInput>(() => createFormState(item))
   const [coverFile, setCoverFile] = useState<File | null>(null)
+  const uploadedCoverRef = useRef<{ file: File; url: string } | null>(null)
+  const submittingRef = useRef(false)
 
   function updateField<K extends keyof MediaItemInput>(
     field: K,
@@ -61,6 +63,7 @@ export default function EditItemPageForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submittingRef.current) return
 
     const normalized = normalizeMediaItemInput(form)
     if (normalized.error) {
@@ -68,6 +71,7 @@ export default function EditItemPageForm({
       return
     }
 
+    submittingRef.current = true
     setIsSubmitting(true)
     setErrorMessage('')
 
@@ -75,7 +79,9 @@ export default function EditItemPageForm({
       let imageUrl = form.imageUrl
 
       if (coverFile) {
-        const uploadResult = await uploadCoverFile(coverFile)
+        const uploadResult = uploadedCoverRef.current?.file === coverFile
+          ? { success: true, url: uploadedCoverRef.current.url, error: null }
+          : await uploadCoverFile(coverFile)
 
         if (!uploadResult.success || !uploadResult.url) {
           setErrorMessage(uploadResult.error ?? t('error.uploadCover'))
@@ -84,6 +90,7 @@ export default function EditItemPageForm({
         }
 
         imageUrl = uploadResult.url
+        uploadedCoverRef.current = { file: coverFile, url: imageUrl }
       }
 
       const result = await updateItemAction(
@@ -108,6 +115,7 @@ export default function EditItemPageForm({
       setErrorMessage(t('error.updateItem'))
       showToast(t('error.updateItem'), 'error')
     } finally {
+      submittingRef.current = false
       setIsSubmitting(false)
     }
   }

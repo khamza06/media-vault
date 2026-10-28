@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useEffectEvent, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocale } from './LocaleProvider'
 
@@ -20,20 +20,41 @@ export default function ModalFrame({
   title,
 }: ModalFrameProps) {
   const { t } = useLocale()
+  const titleId = useId()
+  const descriptionId = useId()
+  const contentRef = useRef<HTMLDivElement>(null)
+  const close = useEffectEvent(onClose)
   useEffect(() => {
     if (!isOpen) {
       return
     }
+    const previousFocus = document.activeElement as HTMLElement | null
+    const frame = window.requestAnimationFrame(() => contentRef.current?.focus())
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        onClose()
+        close()
+      }
+      if (event.key === 'Tab' && contentRef.current) {
+        const focusable = [...contentRef.current.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([type="hidden"]), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]')]
+          .filter(element => element.getClientRects().length > 0)
+        const first = focusable[0], last = focusable.at(-1)
+        if (!first) { event.preventDefault(); contentRef.current.focus(); return }
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === contentRef.current)) {
+          event.preventDefault(); last?.focus()
+        } else if (!event.shiftKey && (document.activeElement === last || !contentRef.current.contains(document.activeElement))) {
+          event.preventDefault(); first.focus()
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.cancelAnimationFrame(frame)
+      previousFocus?.focus()
+    }
+  }, [isOpen])
 
   if (typeof window === 'undefined' || !isOpen) {
     return null
@@ -46,6 +67,12 @@ export default function ModalFrame({
     >
       <div className="flex min-h-full items-start justify-center">
         <div
+          ref={contentRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={descriptionId}
+          tabIndex={-1}
           className="glass-panel surface-highlight flex w-full max-w-3xl flex-col overflow-hidden rounded-[30px]"
           onClick={(event) => event.stopPropagation()}
         >
@@ -54,8 +81,8 @@ export default function ModalFrame({
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-200/75">
                 {t('form.quickCapture')}
               </p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">{title}</h2>
-              <p className="mt-2 max-w-2xl text-sm text-slate-300">{description}</p>
+              <h2 id={titleId} className="mt-2 text-2xl font-bold tracking-tight text-white">{title}</h2>
+              <p id={descriptionId} className="mt-2 max-w-2xl text-sm text-slate-300">{description}</p>
             </div>
             <button
               type="button"

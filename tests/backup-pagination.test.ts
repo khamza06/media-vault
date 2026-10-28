@@ -4,7 +4,8 @@ vi.mock('server-only', () => ({}))
 vi.mock('../lib/auth/dal', () => mocks)
 vi.mock('../lib/supabase/server', () => ({ createSupabaseServerClient: () => client }))
 import { readAllOwnedBackupItems, readAllOwnedBackupRows } from '../lib/data/backup-items'
-import { getItemsForBackupExport } from '../lib/data/items'
+import { getItemsForBackupExport, getItems } from '../lib/data/items'
+import { getPublicItemsByUserId } from '../lib/data/public-items'
 
 function from() {
   let cursor = ''; let fields = ''
@@ -30,6 +31,11 @@ beforeEach(() => {
   mocks.rows = Array.from({ length: 1251 }, (_, index) => ({ id: `item-${String(index).padStart(5, '0')}`, title: 'Fixture', type: 'Anime', status: 'Planning' }))
 })
 describe('complete owned backup reads', () => {
+  it('loads the complete normal library and public projection beyond the server row cap', async () => {
+    expect((await getItems()).data).toHaveLength(1251)
+    expect((await getPublicItemsByUserId('owner')).data).toHaveLength(1251)
+    expect(mocks.eq.mock.calls.every(([key, value]) => key === 'user_id' && value === 'owner')).toBe(true)
+  })
   it.each(['lists', 'list_items'] as const)('keyset-pages %s with an owner filter on every page', async (table) => {
     const fromTable = vi.fn((name: string) => { expect(name).toBe(table); return from() })
     const scopedClient = { from: fromTable } as unknown as Parameters<typeof readAllOwnedBackupRows>[0]

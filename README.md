@@ -129,6 +129,31 @@ Never commit real secrets. Use Vercel Environment Variables for production.
 npm install
 npm run dev
 ```
+
+### Browser QA
+
+`npm test` runs isolated regression tests. `npm run test:providers` makes
+read-only calls to the real public catalogs. `npm run test:e2e` runs Playwright
+against a running production build or an explicitly selected deployment.
+
+Install the pinned browser runner with `npm ci` and `npx playwright install chromium`.
+Browser E2E is intentionally opt-in: set `MEDIA_VAULT_E2E=1`,
+`MEDIA_VAULT_E2E_URL`, and `MEDIA_VAULT_E2E_FIXTURE` in the process environment.
+The fixture JSON requires `run`, `a`, `b` UUIDs and a disposable `password`.
+Accounts must be separately provisioned as confirmed
+`qa-<a UUID>@example.invalid` and `qa-<b UUID>@example.invalid` with that password.
+Never use an existing person's account or a service-role client.
+
+The suite creates synthetic items, lists, covers, and a 1002-record library.
+It also submits signup/recovery requests using invalid-domain fixture addresses.
+An operator must delete only the generated accounts/records and their cover
+folders after verifying results. Tests do not manage real accounts or reset a DB.
+No cookies, passwords or traces are saved. Local browser artifacts are ignored
+by Git and should not be published. The offline test runs on the deployed HTTPS
+origin because the app deliberately disables service workers locally. Native OS
+PWA installation and mailbox delivery are outside the automated test coverage.
+AniList account-list preview uses a clearly marked synthetic provider fixture;
+its selected save uses the real Server Action and ordinary database authorization.
 ## Supabase setup
 
 See [supabase/README.md](supabase/README.md) for the verified database workflow.

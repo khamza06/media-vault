@@ -66,6 +66,12 @@ describe('localized item forms keep their tracking contract', () => {
     expect(screen.getByRole('spinbutton', { name: 'Текущая серия' })).toBeTruthy()
     expect((screen.getByRole('textbox', { name: /Заметки/ }) as HTMLTextAreaElement).value).toBe(notes)
   })
+  it('keeps a valid status when the hidden select emits an empty reset during a type change', () => {
+    render(<LocaleProvider locale="en"><DraftForm /></LocaleProvider>)
+    fireEvent.change(screen.getByRole('combobox', { name: 'Media type' }), { target: { value: 'Anime' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), { target: { value: '' } })
+    expect((screen.getByRole('combobox', { name: 'Status' }) as HTMLSelectElement).value).toBe('Planning')
+  })
   it('changes display language without replacing a draft or its exact Markdown', async () => {
     const view = render(<LocaleProvider locale="ru"><DraftForm /></LocaleProvider>)
     fireEvent.change(screen.getByRole('textbox', { name: /Заметки/ }), { target: { value: notes + '\n**Draft**  ' } })

@@ -9,6 +9,11 @@ import { getAniListProviderDetails } from '../../lib/anilist-import-enrichment'
 nextEnv.loadEnvConfig(process.cwd(), true)
 
 describe('live public catalog providers', () => {
+  it('book search returns Open Library works with stable identities', async () => {
+    const result = await searchCatalogPage('dune', 'book', 'en')
+    expect(result.data.length).toBeGreaterThan(0)
+    expect(result.data.every(item => item.id.startsWith('openlibrary:/works/'))).toBe(true)
+  })
   it.each([
     ['anime', 'naruto'], ['manga', 'berserk'], ['movie', 'inception'], ['series', 'breaking bad'],
   ] as const)('%s search returns real results for %s', async (type, query) => {

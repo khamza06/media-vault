@@ -12,6 +12,9 @@ const filters: DiscoveryHubFilters = { dateAdded: 'all', genres: [], preset: 'al
 const query = {
   select: mocks.select, eq: mocks.eq, or: mocks.or, ilike: mocks.ilike,
   order: () => query, contains: () => query, in: () => query, gte: () => query, lte: () => query,
+  limit: () => query, gt: () => ({ ...query, overrideTypes: async () => ({ data: [], error: null }) }),
+  overrideTypes: async () => mocks.result,
+  range: async (offset: number) => offset ? { ...mocks.result, data: [] } : mocks.result,
   then: (resolve: (value: typeof mocks.result) => unknown) => Promise.resolve(mocks.result).then(resolve),
 }
 beforeEach(() => {

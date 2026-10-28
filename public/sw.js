@@ -1,9 +1,13 @@
-const CACHE_NAME = 'media-vault-shell-v2'
-const APP_SHELL = ['/offline', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
+const CACHE_PREFIX = 'media-vault-shell-'
+const CACHE_NAME = `${CACHE_PREFIX}v3`
+const OFFLINE_URL = '/offline.html'
+const APP_SHELL = [OFFLINE_URL, '/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(() => {})
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(APP_SHELL.map((path) => new Request(path, { credentials: 'omit' })))
+    ).catch(() => {})
   )
   self.skipWaiting()
 })
@@ -13,7 +17,7 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+        Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)))
       )
       .then(() => self.clients.claim())
   )
@@ -30,7 +34,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request).catch(async () => {
         const cache = await caches.open(CACHE_NAME)
-        return (await cache.match('/offline')) || Response.error()
+        return (await cache.match(OFFLINE_URL)) || Response.error()
       })
     )
     return
@@ -40,7 +44,8 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  const shouldCache = ['image', 'font'].includes(event.request.destination)
+  // No authenticated HTML/RSC, private user images or unbounded runtime assets.
+  const shouldCache = APP_SHELL.includes(url.pathname) && !url.search
 
   if (!shouldCache) {
     return
@@ -52,7 +57,7 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse
       }
 
-      return fetch(event.request)
+      return fetch(new Request(event.request, { credentials: 'omit' }))
         .then((response) => {
           if (!response || response.status !== 200) {
             return response

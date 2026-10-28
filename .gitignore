@@ -150,3 +150,7 @@ dist
 .next-*.log
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Browser QA artifacts may contain synthetic account state. Never publish them.
+/test-results/
+/playwright-report/

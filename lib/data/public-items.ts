@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { MediaItemRecord } from '../media'
 import { createSupabaseServerClient } from '../supabase/server'
+import { readAllOwnedBackupRows } from './backup-items'
 
 // Fixed projection: never add private fields or fall back to the base table.
 export const publicItemFields = [
@@ -19,9 +20,14 @@ export function publicItemRecords(rows: unknown): MediaItemRecord[] {
 }
 
 export async function getPublicItemsByUserId(userId: string) {
-  const result = await createSupabaseServerClient().from('public_items')
-    .select(publicItemSelectFields).eq('user_id', userId)
-    .order('last_progress_at', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false })
-  return { ...result, data: result.error ? null : publicItemRecords(result.data) }
+  const result = await readAllOwnedBackupRows<MediaItemRecord>(
+    createSupabaseServerClient(), userId, publicItemSelectFields, 'public_items'
+  )
+  return { ...result, data: result.error ? null : sortRecentItems(publicItemRecords(result.data)) }
+}
+
+export function sortRecentItems<T extends { id: string; last_progress_at?: string | null; created_at?: string | null }>(rows: T[]) {
+  const date = (value?: string | null) => value ? new Date(value).getTime() || 0 : 0
+  return [...rows].sort((a, b) => date(b.last_progress_at) - date(a.last_progress_at) ||
+    date(b.created_at) - date(a.created_at) || a.id.localeCompare(b.id))
 }

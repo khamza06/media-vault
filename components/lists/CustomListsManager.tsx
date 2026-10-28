@@ -415,6 +415,7 @@ export default function CustomListsManager({
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/85 px-4 py-8 backdrop-blur-sm">
           <form
             onSubmit={handleSaveSharing}
+            role="dialog" aria-modal="true" aria-label="List sharing settings"
             className="max-h-[calc(100dvh-4rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">
@@ -553,6 +554,7 @@ export default function CustomListsManager({
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/85 px-4 py-8 backdrop-blur-sm">
           <form
             onSubmit={handleSaveEdit}
+            role="dialog" aria-modal="true" aria-label="Edit list"
             className="max-h-[calc(100dvh-4rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
           >
             <h2 className="text-xl font-bold text-slate-100">Edit list</h2>
@@ -610,7 +612,7 @@ export default function CustomListsManager({
 
       {deleteTarget ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/85 px-4 py-8 backdrop-blur-sm">
-          <div className="max-h-[calc(100dvh-4rem)] w-full max-w-md overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-label="Delete list" className="max-h-[calc(100dvh-4rem)] w-full max-w-md overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
             <h2 className="text-xl font-bold text-slate-100">Delete this list?</h2>
             <p className="mt-3 text-sm leading-6 text-slate-400">
               This removes the list named &quot;{deleteTarget.name}&quot;. Items will remain in your vault.

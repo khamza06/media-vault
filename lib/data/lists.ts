@@ -4,6 +4,7 @@ import { getCurrentUser } from '../auth/dal'
 import { getItems, getPublicItemsByUserId } from './items'
 import { toMediaItem, type MediaItem } from '../media'
 import { createSupabaseServerClient } from '../supabase/server'
+import { readAllOwnedBackupRows } from './backup-items'
 import { getListCoverPreviews, type ListCoverPreviewRow } from '../list-cover-previews'
 
 const listSelectFieldsWithSharing =
@@ -148,11 +149,7 @@ async function selectListsWithSharingFallback(
   supabase: ReturnType<typeof createSupabaseServerClient>,
   userId: string
 ) {
-  const listsResult = await supabase
-    .from('lists')
-    .select(listSelectFieldsWithSharing)
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
+  const listsResult = await readAllOwnedBackupRows<ListRow>(supabase, userId, listSelectFieldsWithSharing, 'lists')
 
   if (!listsResult.error) {
     return {
@@ -170,11 +167,7 @@ async function selectListsWithSharingFallback(
     }
   }
 
-  const fallbackResult = await supabase
-    .from('lists')
-    .select(listSelectFields)
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
+  const fallbackResult = await readAllOwnedBackupRows<ListRow>(supabase, userId, listSelectFields, 'lists')
 
   return {
     error: fallbackResult.error,
@@ -263,23 +256,17 @@ export async function getCustomLists(options: { includeCovers?: boolean } = {}):
     }
   }
 
-  const rows = listsResult.rows
+  const rows = [...listsResult.rows].sort((a, b) => (b.updated_at ?? b.created_at ?? '').localeCompare(a.updated_at ?? a.created_at ?? ''))
   const listIds = rows.map((list) => list.id)
   const counts = new Map<string, number>()
   let coverPreviews = new Map<string, string[]>()
 
   if (listIds.length > 0) {
-    let itemsResult = await supabase
-      .from('list_items')
-      .select(options.includeCovers ? 'list_id, items(image_url, user_id)' : 'list_id')
-      .eq('user_id', user.id)
-      .in('list_id', listIds)
-      .overrideTypes<ListCoverPreviewRow[], { merge: false }>()
-
+    let itemsResult = await readAllOwnedBackupRows<ListCoverPreviewRow & { id: string }>(
+      supabase, user.id, options.includeCovers ? 'id, list_id, items(image_url, user_id)' : 'id, list_id', 'list_items'
+    )
     if (itemsResult.error && options.includeCovers) {
-      itemsResult = await supabase.from('list_items').select('list_id')
-        .eq('user_id', user.id).in('list_id', listIds)
-        .overrideTypes<ListCoverPreviewRow[], { merge: false }>()
+      itemsResult = await readAllOwnedBackupRows<ListCoverPreviewRow & { id: string }>(supabase, user.id, 'id, list_id', 'list_items')
     }
 
     if (itemsResult.error) {
@@ -366,12 +353,7 @@ export async function getCustomListDetail(listId: string): Promise<CustomListDet
   }
 
   const listRow = listResult.row
-  const listItemsResult = await supabase
-    .from('list_items')
-    .select('item_id, created_at')
-    .eq('list_id', listId)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  const listItemsResult = await readAllOwnedBackupRows<ListItemRow & { id: string }>(supabase, user.id, 'id, item_id, created_at', 'list_items', { listId })
 
   if (listItemsResult.error) {
     if (isMissingListSchemaError(listItemsResult.error)) {
@@ -409,7 +391,8 @@ export async function getCustomListDetail(listId: string): Promise<CustomListDet
   }
 
   const allItems = (allItemsResult.data ?? []).map(toMediaItem)
-  const listItemRows = (listItemsResult.data ?? []) as ListItemRow[]
+  const listItemRows = ((listItemsResult.data ?? []) as ListItemRow[])
+    .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
   const itemIds = listItemRows.map((item) => item.item_id)
   const itemIdSet = new Set(itemIds)
   const itemById = new Map(allItems.map((item) => [item.id, item]))
@@ -439,13 +422,7 @@ export async function getCustomListDetail(listId: string): Promise<CustomListDet
 
 export async function getPublicListsForProfile(userId: string): Promise<PublicListsResult> {
   const supabase = createSupabaseServerClient()
-  const listsResult = await supabase
-    .from('lists')
-    .select(listSelectFieldsWithSharing)
-    .eq('user_id', userId)
-    .eq('is_public', true)
-    .not('slug', 'is', null)
-    .order('updated_at', { ascending: false })
+  const listsResult = await readAllOwnedBackupRows<ListRow>(supabase, userId, listSelectFieldsWithSharing, 'lists', { publicListsOnly: true })
 
   if (listsResult.error) {
     return {
@@ -457,15 +434,12 @@ export async function getPublicListsForProfile(userId: string): Promise<PublicLi
     }
   }
 
-  const rows = (listsResult.data ?? []) as ListRow[]
+  const rows = ((listsResult.data ?? []) as ListRow[]).sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
   const listIds = rows.map((list) => list.id)
   const counts = new Map<string, number>()
 
   if (listIds.length > 0) {
-    const itemsResult = await supabase
-      .from('list_items')
-      .select('list_id')
-      .in('list_id', listIds)
+    const itemsResult = await readAllOwnedBackupRows<ListItemRow & { id: string }>(supabase, userId, 'id, list_id', 'list_items')
 
     if (!itemsResult.error) {
       for (const item of (itemsResult.data ?? []) as ListItemRow[]) {
@@ -520,11 +494,7 @@ export async function getPublicListDetailBySlug(
     return { error: null, list: null, notFound: true }
   }
 
-  const listItemsResult = await supabase
-    .from('list_items')
-    .select('item_id, created_at')
-    .eq('list_id', listRow.id)
-    .order('created_at', { ascending: false })
+  const listItemsResult = await readAllOwnedBackupRows<ListItemRow & { id: string }>(supabase, userId, 'id, item_id, created_at', 'list_items', { listId: listRow.id })
 
   if (listItemsResult.error) {
     return {
@@ -536,7 +506,8 @@ export async function getPublicListDetailBySlug(
     }
   }
 
-  const listItemRows = (listItemsResult.data ?? []) as ListItemRow[]
+  const listItemRows = ((listItemsResult.data ?? []) as ListItemRow[])
+    .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
   const itemIds = listItemRows.map((item) => item.item_id)
 
   if (itemIds.length === 0) {

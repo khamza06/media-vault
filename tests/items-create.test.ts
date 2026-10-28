@@ -21,6 +21,12 @@ beforeEach(() => {
 })
 
 describe('catalog item creation', () => {
+  it('reports committed creation as saved even if view invalidation fails', async () => {
+    mocks.revalidatePath.mockImplementationOnce(() => { throw new Error('cache unavailable') })
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(await createItemAction(form)).toMatchObject({ success: true, itemId: 'new-item' })
+    expect(mocks.createItem).toHaveBeenCalledTimes(1)
+  })
   it('passes validated identity and exact notes into the owner insert', async () => {
     expect(await createItemAction(form, 'anilist:20')).toMatchObject({ success: true, itemId: 'new-item' })
     expect(mocks.eq).toHaveBeenCalledWith('user_id', 'owner')

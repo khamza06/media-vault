@@ -1,6 +1,6 @@
 'use client'
 
-import { startTransition, useState } from 'react'
+import { startTransition, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { deleteItemAction } from '../app/actions/items'
@@ -24,16 +24,19 @@ export default function DeleteItemButton({
   const { t } = useLocale()
   const { showToast } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)
+  const pending = useRef(false)
 
   async function handleDelete() {
+    if (pending.current) return
     const shouldDelete = window.confirm(`"${title}"?`)
     if (!shouldDelete) {
       return
     }
 
+    pending.current = true
     setIsDeleting(true)
+    try {
     const result = await deleteItemAction(id, imageUrl)
-    setIsDeleting(false)
 
     if (!result.success) {
       showToast(result.error ?? 'Failed to delete item.', 'error')
@@ -50,6 +53,12 @@ export default function DeleteItemButton({
 
       router.refresh()
     })
+    } catch {
+      showToast('Could not confirm deletion. Refresh your vault before retrying.', 'error')
+    } finally {
+      pending.current = false
+      setIsDeleting(false)
+    }
   }
 
   return (

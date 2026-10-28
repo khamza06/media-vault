@@ -108,7 +108,9 @@ export async function getUpcomingEpisodes(items: MediaItem[], locale: 'en') {
 
   const results = await Promise.all(
     watchingItems.map(async (item) => {
+      try {
       const response = await fetch('https://graphql.anilist.co', {
+        signal: AbortSignal.timeout(5000),
         method: 'POST',
         cache: 'no-store',
         headers: {
@@ -177,6 +179,7 @@ export async function getUpcomingEpisodes(items: MediaItem[], locale: 'en') {
         imageUrl: media.coverImage?.extraLarge ?? media.coverImage?.large ?? item.imageUrl ?? '',
         title: media.title?.userPreferred ?? item.title,
       } satisfies UpcomingEpisode
+      } catch { return null }
     })
   )
 
@@ -202,7 +205,9 @@ export async function getDiscoverRecommendations(items: MediaItem[]) {
 
   const results = await Promise.all(
     sourceItems.map(async (item) => {
+      try {
       const response = await fetch('https://graphql.anilist.co', {
+        signal: AbortSignal.timeout(5000),
         method: 'POST',
         cache: 'no-store',
         headers: {
@@ -338,6 +343,7 @@ export async function getDiscoverRecommendations(items: MediaItem[]) {
       }, [])
 
       return recommendations
+      } catch { return [] as DiscoverRecommendation[] }
     })
   )
 

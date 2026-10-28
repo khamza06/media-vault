@@ -53,6 +53,7 @@ type QuickUpdatePayload = {
 }
 
 async function revalidateVaultPaths(itemId?: string) {
+  try {
   const user = await requireCurrentUser()
 
   revalidatePath('/')
@@ -72,6 +73,7 @@ async function revalidateVaultPaths(itemId?: string) {
     revalidatePath(`/items/${itemId}`)
     revalidatePath(`/items/${itemId}/edit`)
   }
+  } catch { console.warn('Item saved, but view invalidation was unavailable.') }
 }
 
 export async function createItemAction(input: MediaItemInput, catalogId?: string): Promise<ActionResult> {
