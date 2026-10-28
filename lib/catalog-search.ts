@@ -5,6 +5,7 @@ import { normalizeGenreList } from './genres'
 import type { Locale } from './i18n'
 import type { QuickImportTypeHint } from './quick-import-parser'
 import { plainProviderDescription, type ProviderDetails } from './provider-details'
+import { discardInvalidProviderCache, publicProviderCacheOptions } from './provider-cache'
 import { mapCatalogSearchTypeToMediaType, type CatalogSearchType } from './search-safety'
 
 const ANILIST_ANIME_FORMATS = new Set([
@@ -549,14 +550,15 @@ async function getTmdbGenres(apiKey: string, mediaType: 'movie' | 'tv') {
   const payload = await safeFetchJson<{ genres?: TmdbGenre[] }>(
     `https://api.themoviedb.org/3/genre/${mediaType}/list?api_key=${apiKey}&language=${getTmdbLanguage()}`,
     {
-      cache: 'no-store',
+      ...publicProviderCacheOptions('tmdb', mediaType, 'genres'),
       headers: {
         Accept: 'application/json',
       },
     }
   )
 
-  if (!payload) {
+  if (!payload || !Array.isArray(payload.genres)) {
+    discardInvalidProviderCache('tmdb', mediaType, 'genres')
     return new Map<number, string>()
   }
 
@@ -566,7 +568,8 @@ async function getTmdbGenres(apiKey: string, mediaType: 'movie' | 'tv') {
 async function getTmdbDetails(
   apiKey: string,
   id: number,
-  mediaType: 'movie' | 'tv'
+  mediaType: 'movie' | 'tv',
+  cachePublicDetails = false
 ) {
   return safeFetchJson<{
     genres?: Array<{ id: number; name: string }>
@@ -583,7 +586,7 @@ async function getTmdbDetails(
   }>(
     `https://api.themoviedb.org/3/${mediaType}/${id}?api_key=${apiKey}&language=${getTmdbLanguage()}`,
     {
-      cache: 'no-store',
+      ...(cachePublicDetails ? publicProviderCacheOptions('tmdb', mediaType, id) : { cache: 'no-store' as const }),
       signal: AbortSignal.timeout(10000),
       headers: {
         Accept: 'application/json',
@@ -622,8 +625,11 @@ export async function getTmdbProviderDetails(id: number, mediaType: 'movie' | 't
   if (!Number.isSafeInteger(id) || id < 1 || id > 2147483647) return null
   const apiKey = getTmdbApiKey()
   if (!apiKey) return null
-  const details = await getTmdbDetails(apiKey, id, mediaType)
-  if (!details || details.adult) return null
+  const details = await getTmdbDetails(apiKey, id, mediaType, true)
+  if (!details || details.adult || !(details.title?.trim() || details.name?.trim())) {
+    discardInvalidProviderCache('tmdb', mediaType, id)
+    return null
+  }
   return {
     provider: 'TMDB', url: `https://www.themoviedb.org/${mediaType}/${id}`,
     title: details.title?.trim() || details.name?.trim() || null,

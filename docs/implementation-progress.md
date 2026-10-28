@@ -20,7 +20,7 @@ Live confirmation/recovery and two-account RLS checks remain unverified.
 
 ## Next Increments
 
-1. Full EN/RU copy and provider cache tuning remain separate follow-ups.
+1. Complete page-specific EN/RU copy; Russian beta is not full translation coverage.
 2. Keep the schema-heavy activity/calendar/seasons stages separate and reviewed.
 3. Run account-level auth/restore/RLS checks only with the user's explicit opt-in.
 
@@ -378,3 +378,20 @@ reachable mobile Logout at 390x844. Only the local language preference changed;
 no sign-in or database writes were used. Full page-specific translation is not
 complete; see `docs/localization.md` for the next coverage pass.
 Lint, TypeScript and production build passed; temporary browser fixtures were removed.
+
+## Stage 10A: Public Provider Cache
+
+- Added finite Next fetch caching only for public AniList/TMDB About data and
+  TMDB genre taxonomy. Item ownership/auth checks and endpoint `private, no-store`
+  responses are unchanged. No private row, search draft or credentials enter tags.
+- Search, imports, ID preview and explicit metadata-refresh detail reads remain
+  uncached. HTTP-200 GraphQL errors, invalid identities and malformed responses
+  explicitly expire the public cache entry rather than blocking retries for an hour.
+- No new dependency, migration, in-memory durability assumption or broad cache
+  configuration change. See `docs/provider-cache.md` for scope and limitations.
+
+Verification: 341 isolated tests and eight live public-provider checks passed.
+A temporary Next route plus local public-data mock verified a real cache hit,
+HTTP-200 error expiration, fresh retry and a subsequent hit, with distinct route
+request IDs. Mock/route removed after testing; no authentication or database write.
+Lint, TypeScript and production build passed with the QA route removed.

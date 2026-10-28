@@ -5,6 +5,7 @@ import { normalizeAniListAverageScore } from './anilist-values'
 import { parseProviderMediaId } from './provider-ids'
 import { plainProviderDescription, type ProviderDetails } from './provider-details'
 import { normalizeAniListRelations } from './related-titles'
+import { discardInvalidProviderCache, publicProviderCacheOptions } from './provider-cache'
 
 type AniListMediaType = 'ANIME' | 'MANGA'
 
@@ -42,6 +43,7 @@ type AniListResponse = {
 }
 
 type AniListSingleResponse = {
+  errors?: unknown
   data?: {
     Media?: AniListMedia | null
   } | null
@@ -384,7 +386,7 @@ async function searchAniListMediaById(id: number, type: AniListMediaType, isMalI
     const response = await fetch('https://graphql.anilist.co', {
       method: 'POST',
       signal: AbortSignal.timeout(10000),
-      cache: 'no-store',
+      ...(includeRelations ? publicProviderCacheOptions(isMalId ? 'anilist-mal' : 'anilist', type, id) : { cache: 'no-store' as const }),
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -404,8 +406,17 @@ async function searchAniListMediaById(id: number, type: AniListMediaType, isMalI
     }
 
     const payload = (await response.json()) as AniListSingleResponse
-    return payload.data?.Media ?? null
+    const media = payload.data?.Media ?? null
+    if (includeRelations && (
+      (Array.isArray(payload.errors) ? payload.errors.length > 0 : payload.errors != null) || !media ||
+      media.isAdult || (media.type && media.type !== type) || (isMalId ? media.idMal !== id : media.id !== id)
+    )) {
+      discardInvalidProviderCache(isMalId ? 'anilist-mal' : 'anilist', type, id)
+      return null
+    }
+    return media
   } catch {
+    if (includeRelations) discardInvalidProviderCache(isMalId ? 'anilist-mal' : 'anilist', type, id)
     return null
   }
 }
