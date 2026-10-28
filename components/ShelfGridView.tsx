@@ -22,7 +22,7 @@ import LibraryFilterControls from './LibraryFilterControls'
 import { useToast } from './ToastProvider'
 import type { AddToListOption } from './lists/AddToListButton'
 import ShelfItemCard from './ShelfItemCard'
-import LibraryViewControls from './LibraryViewControls'
+import LibraryTools from './LibraryTools'
 import { useVaultPreferences } from './VaultPreferencesProvider'
 
 export default function ShelfGridView({
@@ -224,7 +224,7 @@ export default function ShelfGridView({
       </header>
 
       <section className="mb-8 min-w-0 space-y-4">
-        <LibraryViewControls />
+        <LibraryTools filters={filters} favoritesOnly={favoritesOnly} items={filteredItems} returnTo={currentReturnTo} selectionActive={selectionMode} />
         <LibraryFilterControls
           filters={filters}
           onChange={updateFilterUrl}

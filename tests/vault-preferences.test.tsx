@@ -24,7 +24,7 @@ describe('account-scoped view preferences', () => {
     const view = render(<UI userId="alice" />)
     fireEvent.click(screen.getByRole('button', { name: 'Compact' }))
     expect(screen.getByRole('button', { name: 'Compact' }).getAttribute('aria-pressed')).toBe('true')
-    expect(window.localStorage.getItem(vaultPreferencesKey('alice'))).toBe('{"view":"compact"}')
+    expect(JSON.parse(window.localStorage.getItem(vaultPreferencesKey('alice')) ?? '{}')).toMatchObject({ view: 'compact', savedViews: [] })
     view.unmount()
     render(<UI userId="alice" />)
     expect(screen.getByLabelText('Current view').textContent).toBe('compact')

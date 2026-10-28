@@ -225,3 +225,25 @@ No Apply/Save button was used against a live account. The temporary QA route was
 removed; public pages and schema remain unchanged.
 
 Next checkpoint: account-scoped saved filter views and a Planning title picker.
+
+## Stage 7: Saved Views and Planning Picker
+
+- Save up to 12 named Library/shelf filter combinations, including sort and
+  Favorites. Links use canonical URL parameters, omit defaults and preserve
+  normal navigation/return URLs. Views are dynamic filters, not custom lists.
+- Extended the versioned account-scoped local preference format compatibly with
+  density-only settings. Changing density does not erase saved views, nor vice
+  versa. Malformed/unsafe paths and duplicate names are rejected; blocked storage
+  falls back to the session with accurate feedback. No item notes/email are copied.
+- Pick for me selects only existing Planning titles within the current filtered
+  set, offers another matching choice, and links to detail without adding or
+  changing items. A conflicting/empty filter gets an explicit explanation.
+- Public pages are untouched. Saved views are local-only and are not a database
+  setting or part of the current backup format.
+
+Verification: 247 tests, lint, TypeScript and production build passed. Synthetic browser checks across
+320/390/768/1280/1440/1920 px confirmed no page overflow, long view names, clean
+saved URLs, persistence through reload/density changes, Planning previews and the
+empty-pool state. No live account or database write was used. QA route removed.
+
+Next checkpoint: JSON backup v2 with private custom lists and item-ID mapping.

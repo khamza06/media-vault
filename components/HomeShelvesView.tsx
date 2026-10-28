@@ -30,7 +30,7 @@ import SetupChecklist, { type SetupChecklistState } from './onboarding/SetupChec
 import { useToast } from './ToastProvider'
 import type { AddToListOption } from './lists/AddToListButton'
 import ShelfItemCard from './ShelfItemCard'
-import LibraryViewControls from './LibraryViewControls'
+import LibraryTools from './LibraryTools'
 import { useVaultPreferences } from './VaultPreferencesProvider'
 
 const shelfIcons = {
@@ -431,7 +431,7 @@ export default function HomeShelvesView({
         {selectionMode ? <BulkItemActions items={liveItems.filter((item) => selectedIds.has(item.id))}
           lists={listOptions} onDone={cancelSelectionMode}
           onUpdated={(change, ids) => setLiveItems((current) => applyBulkItemChange(current, change, ids))} /> : null}
-        <LibraryViewControls />
+        <LibraryTools filters={filters} items={filteredItems} returnTo={currentReturnTo} selectionActive={selectionMode} />
       </section>
 
       {totalCount === 0 ? (
