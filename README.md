@@ -79,6 +79,8 @@ Sentry captures production errors.
 
 - Private media library with shelves for anime, manga, movies, series, and books
 - Advanced library filters, sorting, cover filters, source filters, and bulk delete
+- Comfortable, Compact, and Table browsing modes with account-scoped local preferences
+- Named saved filter views and a picker for titles in the current Planning selection
 - Discover/search flows for adding new titles
 - Paginated catalog discovery with provider selection and title previews at `/discover`
 - MyAnimeList XML import with preview, duplicate protection, and cover enrichment
@@ -86,10 +88,16 @@ Sentry captures production errors.
 - Fill Missing Covers utility for imported anime/manga
 - JSON and CSV backup export plus JSON restore preview with duplicate skipping
 - Custom private lists with add/remove existing vault items
+- Collection cover previews and reviewed bulk list, status, and favorite actions
+- On-demand provider descriptions and details, separate from personal Markdown notes
 - Optional public profile at `/u/[username]`
 - Optional public read-only custom list sharing
 - Stats dashboard with ratings, media mix, status, genres, monthly additions, and insights
 - Settings, onboarding checklist, and auth recovery flows
+
+View preferences and saved filters are stored in this browser per account. They
+are not synced settings or part of a backup. JSON backups currently use v1 and
+restore items only; custom list and membership export/restore is still planned.
 
 ## Environment variables
 

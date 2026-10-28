@@ -6,6 +6,7 @@ import { BarChart3, Compass, House, Settings as SettingsIcon, Sparkles } from 'l
 import { usePathname } from 'next/navigation'
 
 import { dispatchOpenAddModal } from '../lib/add-modal-events'
+import { isPublicVaultRoute } from '../lib/public-routes'
 import { useLocale } from './LocaleProvider'
 
 export default function MobileTabBar({
@@ -15,7 +16,7 @@ export default function MobileTabBar({
 }) {
   const pathname = usePathname()
   const { t } = useLocale()
-  const isPublicRoute = pathname.startsWith('/public/') || pathname.startsWith('/u/')
+  const isPublicRoute = isPublicVaultRoute(pathname)
   const isAuthRoute =
     pathname === '/login' || pathname === '/register' || pathname === '/welcome'
 

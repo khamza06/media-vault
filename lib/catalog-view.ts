@@ -14,14 +14,18 @@ function comparableTitle(title: string) {
 }
 
 export function getOwnedCatalogItem(candidate: CatalogSearchCandidate, items: CatalogOwnedItem[]) {
-  return items.find((item) => {
-    const sameType = item.type === candidate.type ||
+  const sameTypeItems = items.filter((item) => item.type === candidate.type ||
       (['Manga', 'Manhwa', 'Manhua'].includes(item.type) && ['Manga', 'Manhwa', 'Manhua'].includes(candidate.type))
-    if (!sameType) return false
-    if (item.externalSource?.toLowerCase() === candidate.provider.toLowerCase() && item.externalId) {
-      const candidateId = candidate.id.split(':').at(-1)
-      if (item.externalId === candidateId || item.externalId === candidate.id) return true
-    }
+  )
+  const sameProvider = (item: CatalogOwnedItem) => item.externalSource?.toLowerCase() === candidate.provider.toLowerCase()
+  const candidateId = candidate.id.split(':').at(-1)
+  const exactMatch = sameTypeItems.find((item) => sameProvider(item) && item.externalId &&
+    (item.externalId === candidateId || item.externalId === candidate.id))
+  if (exactMatch) return exactMatch
+
+  return sameTypeItems.find((item) => {
+    // A different known ID is a different work, even when a remake shares its title.
+    if (sameProvider(item) && item.externalId) return false
     return comparableTitle(item.title) === comparableTitle(candidate.title)
   }) ?? null
 }

@@ -20,6 +20,13 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Edit Markdown notes and confirm notes render correctly.
 - Confirm all writes use `progress` and preserve `notes`.
 - Confirm bulk selection and Delete selected remove only owned items.
+- Switch Comfortable/Compact/Table, reload, and check preference isolation between accounts.
+- Save/open/remove a named filter view; confirm its URL and return navigation.
+- Try Pick for me with and without Planning items under the current filters.
+- Review bulk status/favorite/list changes; cancel, then test a small confirmed selection.
+- Simulate a network failure on +1 and confirm rollback and a usable retry.
+- Expand provider details; confirm notes drafts survive loading, retry and preview toggles.
+- Search two same-title works with different provider IDs; do not mark the remake already saved.
 
 ## Imports and Covers
 
@@ -37,12 +44,17 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Upload the exported JSON and confirm restore preview appears before writing.
 - Restore a selected subset.
 - Restore the same subset again and confirm duplicates are skipped.
+- Confirm backup v1 contains items only; do not claim lists/membership restore is supported yet.
+- Verify exports over the configured API row limit are complete and reject partial-page errors.
+- Confirm malformed notes/progress are reported invalid, not silently changed.
+- Confirm missing activity timestamps stay missing after restore.
 
 ## Lists
 
 - Create a custom list.
 - Rename the list.
 - Add existing vault items to the list.
+- Confirm cover previews use only owned items and duplicate/concurrent additions are skipped.
 - Remove an item from the list and confirm the item remains in Library.
 - Delete the list and confirm vault items are not deleted.
 - If public lists are enabled, make a list public and open `/u/[username]/lists/[listSlug]`.
@@ -57,6 +69,8 @@ Use this checklist before presenting or deploying a production portfolio build.
 - Confirm Add New, Edit, Delete, Bulk Delete, Backup, Import, Settings, Add to List, and +1 progress controls are hidden.
 - Turn Public Vault off and confirm `/u/[username]` shows a private state.
 - Turn a public list private and confirm its public URL no longer reveals items.
+- Check legacy `/share/[user_id]` hides private header/bottom-nav actions even for a signed-in visitor.
+- Confirm `/share/me` still has the owner's normal private navigation.
 
 ## Analytics and Navigation
 
@@ -70,9 +84,18 @@ Use this checklist before presenting or deploying a production portfolio build.
 ## Production Readiness
 
 - Run `npm run lint`.
+- Run `npm test` for isolated tests without account or database writes.
 - Run `npm run build`.
 - Search for legacy episode-specific progress column names and confirm none exist.
 - Confirm `.env.local` and real secrets are not committed.
 - Confirm `NEXT_PUBLIC_SITE_URL` is set in Vercel.
 - Confirm Supabase Auth Site URL and Redirect URLs match production.
 - Confirm Supabase RLS policies are applied for items, profiles, lists, and list items.
+
+## Current Verification Boundary
+
+Automated component/action/API tests use synthetic fixtures and mocked database
+writes. Local browser checks cover responsive layout and read-only interactions.
+Opt-in provider tests make public metadata reads only. Real sign-up emails,
+authenticated saves/imports/restores and cross-account RLS checks remain manual;
+do not mark them passed from a successful build or mocked test alone.

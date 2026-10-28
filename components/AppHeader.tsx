@@ -4,6 +4,7 @@ import { Menu, MoreVertical, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { isPublicVaultRoute } from '../lib/public-routes'
 
 import AddModal from './AddModal'
 import HeaderCatalogSearch from './HeaderCatalogSearch'
@@ -20,7 +21,7 @@ export default function AppHeader({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false)
   const utilityMenuRef = useRef<HTMLDivElement | null>(null)
-  const isPublicRoute = pathname.startsWith('/public/') || pathname.startsWith('/u/')
+  const isPublicRoute = isPublicVaultRoute(pathname)
   const isAuthRoute =
     pathname === '/login' || pathname === '/register' || pathname === '/welcome'
   const profileHref = '/discover'
@@ -55,7 +56,7 @@ export default function AppHeader({
     return null
   }
 
-  if (isPublicRoute) {
+  if (isPublicRoute || !userId) {
     return (
       <header className="vault-container safe-top sticky top-0 z-40 pt-3">
         <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/95 px-3 py-3 shadow-lg shadow-slate-950/20 sm:px-5">

@@ -40,6 +40,11 @@ Horizontal gaps are 16px on mobile and 20px from small screens; row gaps are 24p
 Grid cards fill their tracks. Horizontal home shelves explicitly use the `rail`
 variant of `ShelfItemCard`, with a stable 168-184px width.
 
+Authenticated Library and shelf views also offer Compact and Table modes.
+Compact uses 2 / 3 / 4 / 6 / 7 / 8 columns at the existing breakpoints, and narrower
+144-160px home rails. Table reuses the card actions in a responsive row, not a
+separate edit flow. Public grids keep the comfortable read-only layout.
+
 Do not combine fractional grid columns with a smaller fixed card max-width, or
 use `justify-between` to distribute cards. Reserve two title lines and align card
 actions at the bottom of each row.
@@ -96,3 +101,26 @@ previews without importing. Public fixture grids had no mutation controls and
 the browser reported no console errors. Successful authenticated saves, imports,
 and restores still require a separate account-level test; this pass deliberately
 did not modify the live vault. All temporary fixtures were removed before build.
+
+## Library Tools and Collections
+
+Library view mode and up to 12 named filter views use versioned, account-scoped
+localStorage. SSR starts with a stable default; blocked storage falls back to
+memory. Saved views contain only known Library routes and filter parameters.
+Pick for me selects an existing Planning title in the current filtered set,
+without creating or modifying an item.
+
+Bulk status, favorite, and list additions use a review dialog and preserve the
+selection after errors. Radix dropdowns in this native dialog portal inside its
+top layer. Destructive deletion remains a separate action. Private list cards
+reuse up to four existing owned covers; no provider call is made for collages.
+
+The on-demand item provider panel is separate from the Markdown notes editor.
+Exact stored provider IDs drive metadata reads; titles are not used to guess
+identity. Provider descriptions are plain text, never copied into notes.
+
+Synthetic browser checks at 320/390/768/1280/1440/1920px covered all view modes,
+saved views, Planning previews, bulk dialogs, dropdown keyboard behavior and
+exact notes drafts with no document overflow. These checks used temporary
+fixtures, not authenticated writes. Guest/public navigation also hides private
+actions on legacy `/share/...` routes; `/share/me` remains the private search alias.

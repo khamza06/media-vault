@@ -272,3 +272,27 @@ owner-scoped fallback, namespace collisions, exact Markdown, no invented dates,
 explicit restore selection, guest downloads and malformed files. No live restore
 or export of the user's vault was performed. Format remains v1: list export and
 membership restore are not implemented yet and are the next distinct increment.
+
+## Final Checkpoint: Catalog Identity and Public Navigation
+
+- Catalog ownership now prioritizes an exact provider ID over an earlier manual
+  title match. A different known ID from the same provider no longer marks a
+  same-title remake as already saved. Manga-family matching remains compatible.
+- Shared navigation classification now includes legacy `/share/...` public
+  pages, while keeping `/share/me` private. Guest pages use the read-only header;
+  signed-in public visitors do not see account labels, catalog search, Add New
+  or the private mobile tab bar. Server auth and RLS rules were not changed.
+- README, design-system notes and manual QA now describe current browsing modes,
+  saved views, Planning picker, provider panel and reviewed bulk actions, and
+  explicitly distinguish item-only backup v1 from the next backup v2 increment.
+
+Verification: 277 isolated tests, lint and production build passed. Local production smoke checks
+returned 200 for login, 404 for the removed QA route, and 401 for guest backup,
+catalog search/details and owned-provider APIs. Eight opt-in public provider
+checks passed earlier in this run. Production dependency audit found no known
+vulnerabilities. No real sign-in, email, import, restore or database write was
+performed; these are not marked verified by the automated checks.
+
+Resume next: backup v2, starting with its versioned contract and pure ID mapping
+tests before any UI/write changes. Keep account-level testing opt-in. No
+background work continues after this checkpoint.

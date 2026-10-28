@@ -25,6 +25,14 @@ describe('catalog UI data', () => {
   it('finds a renamed owned item by provider ID', () => {
     expect(getOwnedCatalogItem(candidate, [{ id: 'owned', title: 'Renamed title', type: 'Anime', externalSource: 'anilist', externalId: '20' }])?.id).toBe('owned')
   })
+  it('does not mark a same-title remake with a different known provider ID as owned', () => {
+    expect(getOwnedCatalogItem(candidate, [{ id: 'remake', title: candidate.title, type: 'Anime', externalSource: 'anilist', externalId: '99' }])).toBeNull()
+  })
+  it('prefers an exact provider ID over an earlier manual title match', () => {
+    const manual = { id: 'manual', title: candidate.title, type: 'Anime', externalSource: null, externalId: null }
+    const exact = { ...manual, id: 'exact', title: 'Renamed', externalSource: 'anilist', externalId: candidate.id }
+    expect(getOwnedCatalogItem(candidate, [manual, exact])?.id).toBe('exact')
+  })
   it('keeps manga-family title checks compatible while not mixing anime and manga', () => {
     const owned = [{ id: 'owned', title: ' Fixture ', type: 'Manhwa', externalSource: null, externalId: null }]
     expect(getOwnedCatalogItem({ ...candidate, type: 'Manga' }, owned)?.id).toBe('owned')
