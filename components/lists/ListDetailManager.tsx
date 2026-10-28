@@ -12,6 +12,7 @@ import { addItemsToListAction, removeItemFromListAction } from '../../app/action
 import { mediaCardGridClassName } from '../../lib/media-card-grid'
 import { formatProgressValue, type MediaItem } from '../../lib/media'
 import { useToast } from '../ToastProvider'
+import { useListActionRequest } from './useListActionRequest'
 
 type ListDetail = {
   createdAt: string | null
@@ -32,6 +33,7 @@ export default function ListDetailManager({
 }) {
   const router = useRouter()
   const { showToast } = useToast()
+  const runRequest = useListActionRequest()
   const [liveItems, setLiveItems] = useState(list.items)
   const [liveAvailableItems, setLiveAvailableItems] = useState(availableItems)
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false)
@@ -39,6 +41,15 @@ export default function ListDetailManager({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [isAdding, setIsAdding] = useState(false)
   const [busyRemoveIds, setBusyRemoveIds] = useState<Set<string>>(() => new Set())
+  const [source, setSource] = useState({ items: list.items, availableItems })
+
+  if (source.items !== list.items || source.availableItems !== availableItems) {
+    setSource({ items: list.items, availableItems })
+    setLiveItems(list.items)
+    setLiveAvailableItems(availableItems)
+    const availableIds = new Set(availableItems.map((item) => item.id))
+    setSelectedIds((current) => new Set([...current].filter((id) => availableIds.has(id))))
+  }
 
   const filteredAvailableItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -89,8 +100,8 @@ export default function ListDetailManager({
     }
 
     setIsAdding(true)
-    const result = await addItemsToListAction(list.id, ids)
-    setIsAdding(false)
+    const result = await runRequest('add', () => addItemsToListAction(list.id, ids), () => setIsAdding(false))
+    if (!result) return
 
     if (!result.success) {
       showToast(result.error ?? 'Could not add selected items.', 'error')
@@ -99,7 +110,7 @@ export default function ListDetailManager({
 
     if (result.added > 0) {
       const selectedIdSet = new Set(ids)
-      setLiveItems((current) => [...selectedItems, ...current])
+      setLiveItems((current) => [...new Map([...selectedItems, ...current].map((item) => [item.id, item])).values()])
       setLiveAvailableItems((current) => current.filter((item) => !selectedIdSet.has(item.id)))
       setSelectedIds(new Set())
       showToast(
@@ -122,12 +133,12 @@ export default function ListDetailManager({
     }
 
     setBusyRemoveIds((current) => new Set(current).add(item.id))
-    const result = await removeItemFromListAction(list.id, item.id)
-    setBusyRemoveIds((current) => {
+    const result = await runRequest(`remove:${item.id}`, () => removeItemFromListAction(list.id, item.id), () => setBusyRemoveIds((current) => {
       const next = new Set(current)
       next.delete(item.id)
       return next
-    })
+    }))
+    if (!result) return
 
     if (!result.success) {
       showToast(result.error ?? 'Could not remove item from list.', 'error')
@@ -251,6 +262,7 @@ export default function ListDetailManager({
                       key={item.id}
                       type="button"
                       onClick={() => toggleSelection(item.id)}
+                      disabled={isAdding}
                       className={`grid min-h-16 grid-cols-[auto_1fr] gap-3 rounded-xl border p-3 text-left transition ${
                         selected
                           ? 'border-blue-400/60 bg-blue-500/15'

@@ -13,6 +13,7 @@ import {
 } from '../../app/actions/lists'
 import { useToast } from '../ToastProvider'
 import ListCoverCollage from './ListCoverCollage'
+import { useListActionRequest } from './useListActionRequest'
 
 type ListSummary = {
   coverUrls?: string[]
@@ -55,6 +56,7 @@ export default function CustomListsManager({
 }) {
   const router = useRouter()
   const { showToast } = useToast()
+  const runRequest = useListActionRequest()
   const [liveLists, setLiveLists] = useState(lists)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -86,8 +88,8 @@ export default function CustomListsManager({
     }
 
     setIsCreating(true)
-    const result = await createListAction({ description, name })
-    setIsCreating(false)
+    const result = await runRequest('create', () => createListAction({ description, name }), () => setIsCreating(false))
+    if (!result) return
 
     const newListId = result.listId
 
@@ -124,11 +126,11 @@ export default function CustomListsManager({
     }
 
     setIsSavingEdit(true)
-    const result = await updateListAction(editing.id, {
+    const result = await runRequest('edit', () => updateListAction(editing.id, {
       description: editing.description,
       name: editing.name,
-    })
-    setIsSavingEdit(false)
+    }), () => setIsSavingEdit(false))
+    if (!result) return
 
     if (!result.success) {
       showToast(result.error ?? 'Could not update list.', 'error')
@@ -161,11 +163,11 @@ export default function CustomListsManager({
     }
 
     setIsSavingSharing(true)
-    const result = await updateListSharingAction(sharing.id, {
+    const result = await runRequest('sharing', () => updateListSharingAction(sharing.id, {
       isPublic: sharing.isPublic,
       slug: sharing.slug,
-    })
-    setIsSavingSharing(false)
+    }), () => setIsSavingSharing(false))
+    if (!result) return
 
     if (!result.success || !result.list) {
       showToast(result.error ?? 'Could not update list sharing.', 'error')
@@ -213,8 +215,8 @@ export default function CustomListsManager({
     }
 
     setIsDeleting(true)
-    const result = await deleteListAction(deleteTarget.id)
-    setIsDeleting(false)
+    const result = await runRequest('delete', () => deleteListAction(deleteTarget.id), () => setIsDeleting(false))
+    if (!result) return
 
     if (!result.success) {
       showToast(result.error ?? 'Could not delete list.', 'error')
@@ -243,6 +245,7 @@ export default function CustomListsManager({
             <span className="text-sm font-semibold text-slate-200">Name</span>
             <input
               value={name}
+              disabled={isCreating}
               onChange={(event) => setName(event.target.value)}
               maxLength={80}
               placeholder="Favorites, Study queue, Summer watchlist..."
@@ -253,6 +256,7 @@ export default function CustomListsManager({
             <span className="text-sm font-semibold text-slate-200">Description</span>
             <input
               value={description}
+              disabled={isCreating}
               onChange={(event) => setDescription(event.target.value)}
               maxLength={500}
               placeholder="Optional note about this collection"
@@ -411,7 +415,7 @@ export default function CustomListsManager({
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/85 px-4 py-8 backdrop-blur-sm">
           <form
             onSubmit={handleSaveSharing}
-            className="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
+            className="max-h-[calc(100dvh-4rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -437,6 +441,7 @@ export default function CustomListsManager({
                 <input
                   type="checkbox"
                   checked={sharing.isPublic}
+                  disabled={isSavingSharing}
                   onChange={(event) =>
                     setSharing((current) =>
                       current ? { ...current, isPublic: event.target.checked } : current
@@ -458,6 +463,7 @@ export default function CustomListsManager({
                 <span className="text-sm font-semibold text-slate-200">Public slug</span>
                 <input
                   value={sharing.slug}
+                  disabled={isSavingSharing}
                   onChange={(event) =>
                     setSharing((current) =>
                       current
@@ -547,7 +553,7 @@ export default function CustomListsManager({
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/85 px-4 py-8 backdrop-blur-sm">
           <form
             onSubmit={handleSaveEdit}
-            className="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
+            className="max-h-[calc(100dvh-4rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
           >
             <h2 className="text-xl font-bold text-slate-100">Edit list</h2>
             <div className="mt-5 grid gap-4">
@@ -555,6 +561,7 @@ export default function CustomListsManager({
                 <span className="text-sm font-semibold text-slate-200">Name</span>
                 <input
                   value={editing.name}
+                  disabled={isSavingEdit}
                   onChange={(event) =>
                     setEditing((current) =>
                       current ? { ...current, name: event.target.value } : current
@@ -568,6 +575,7 @@ export default function CustomListsManager({
                 <span className="text-sm font-semibold text-slate-200">Description</span>
                 <textarea
                   value={editing.description}
+                  disabled={isSavingEdit}
                   onChange={(event) =>
                     setEditing((current) =>
                       current ? { ...current, description: event.target.value } : current
@@ -602,7 +610,7 @@ export default function CustomListsManager({
 
       {deleteTarget ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/85 px-4 py-8 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
+          <div className="max-h-[calc(100dvh-4rem)] w-full max-w-md overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
             <h2 className="text-xl font-bold text-slate-100">Delete this list?</h2>
             <p className="mt-3 text-sm leading-6 text-slate-400">
               This removes the list named &quot;{deleteTarget.name}&quot;. Items will remain in your vault.

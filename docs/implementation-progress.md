@@ -320,3 +320,20 @@ account and verifying two-account RLS remain manual, not inferred from mocks.
 Verification: 304 isolated tests, lint, TypeScript and production build passed.
 The synthetic JSON download was uploaded again and produced the expected v2
 preview, with list restore still opt-in. The QA route was removed before build.
+
+## Stage 8C: List Transport Recovery
+
+- A shared per-operation request guard now releases create/edit/sharing/delete
+  and list add/remove pending states even if a server action throws. It prevents
+  duplicate pending requests and explains that an interrupted response may have
+  followed a successful write; it does not automatically retry.
+- Form drafts/selection/confirmations remain on failure. Pending fields cannot
+  change underneath the saved request. Existing mutation actions and ownership
+  checks are unchanged; removing a membership never deletes the vault item.
+- List detail reconciles refreshed server props and deduplicates optimistic item
+  IDs, rather than retaining a stale local grid after refresh. Long list settings
+  dialogs scroll within the dynamic viewport instead of exceeding its height.
+
+Verification: 312 isolated tests cover pending release, duplicate submission,
+all six action failure paths and refreshed membership. No account/database write
+was run. These are client recovery fixes, not a change to RLS or schema.

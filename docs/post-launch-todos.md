@@ -32,8 +32,8 @@ the production polish sprint to avoid expanding scope.
 
 ## Next reliability checks
 
-- Exercise list create/edit/sharing/delete transport failures with a disposable
-  account. Ensure each pending flag is released and unknown write outcomes ask
-  for a refresh before retrying; do not imply a failed connection means no write.
+- Confirm list create/edit/sharing/delete transport recovery with a disposable
+  account. Isolated tests now cover pending cleanup and draft preservation, but
+  an interrupted real request may still have committed before its response failed.
 - Run disposable-account restore/RLS checks for backup v2; mocked write coverage
   and synthetic-file browser checks do not verify a live database restore.
