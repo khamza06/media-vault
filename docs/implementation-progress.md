@@ -183,3 +183,20 @@ Lint, TypeScript and production build passed. Related-title browsing is still
 deferred; no fake relation or activity history is added.
 
 Next checkpoint: collection cover previews and safe bulk list/status/favorite actions.
+
+## Stage 6A: Collection Previews and Membership Conflicts
+
+- Private list cards show up to four distinct existing owned cover images, with
+  neutral placeholders when unavailable. Only `/lists` requests these previews;
+  normal list pickers keep their previous lightweight query.
+- Cover data is embedded in the existing membership read, not loaded per list or
+  per item. Missing relation support falls back to the original list counts.
+  Preview extraction rejects foreign-owner rows and unsafe URL schemes.
+- List additions now use the existing `(list_id, item_id)` unique constraint with
+  `ignoreDuplicates` for non-overwriting conflict handling, including concurrent
+  add attempts. Existing owner/list/item checks remain in both add actions.
+- No list/item deletion behavior or public list rendering was changed.
+
+Verification: 216 isolated tests, lint and production build passed. Added tests
+for cover limits/ownership, optional/fallback reads, guest access, missing owned
+items/lists and duplicate conflicts. No migration or live vault write was run.

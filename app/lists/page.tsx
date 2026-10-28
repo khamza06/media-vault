@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ListsPage() {
-  const [result, profileResult] = await Promise.all([getCustomLists(), getOrCreateProfile()])
+  const [result, profileResult] = await Promise.all([getCustomLists({ includeCovers: true }), getOrCreateProfile()])
   const profile = profileResult.profile
     ? {
         isPublic: profileResult.profile.isPublic,

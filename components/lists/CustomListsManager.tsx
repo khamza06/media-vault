@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Copy, ExternalLink, Globe2, Lock, Pencil, Plus, Share2, Trash2 } from 'lucide-react'
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 
 import {
   createListAction,
@@ -12,8 +12,10 @@ import {
   updateListSharingAction,
 } from '../../app/actions/lists'
 import { useToast } from '../ToastProvider'
+import ListCoverCollage from './ListCoverCollage'
 
 type ListSummary = {
+  coverUrls?: string[]
   createdAt: string | null
   description: string | null
   id: string
@@ -65,6 +67,7 @@ export default function CustomListsManager({
   const [isDeleting, setIsDeleting] = useState(false)
   const profileUsername = profile?.username ?? null
   const isProfilePublic = Boolean(profile?.isPublic)
+  useEffect(() => { setLiveLists(lists) }, [lists])
   const sortedLists = useMemo(
     () =>
       [...liveLists].sort((left, right) => {
@@ -310,6 +313,9 @@ export default function CustomListsManager({
                 key={list.id}
                 className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-xl shadow-slate-950/20"
               >
+                <Link href={`/lists/${list.id}`} aria-label={`Preview ${list.name}`} className="block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400">
+                  <ListCoverCollage covers={list.coverUrls ?? []} />
+                </Link>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="truncate text-lg font-bold text-slate-100">{list.name}</h3>

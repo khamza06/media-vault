@@ -558,7 +558,8 @@ export async function addItemsToListAction(
     }
   }
 
-  const insertResult = await supabase.from('list_items').insert(rows).select('id')
+  const insertResult = await supabase.from('list_items')
+    .upsert(rows, { onConflict: 'list_id,item_id', ignoreDuplicates: true }).select('id')
 
   if (insertResult.error) {
     return {
@@ -734,7 +735,8 @@ export async function addItemToListsAction(
     }
   }
 
-  const insertResult = await supabase.from('list_items').insert(rows).select('list_id')
+  const insertResult = await supabase.from('list_items')
+    .upsert(rows, { onConflict: 'list_id,item_id', ignoreDuplicates: true }).select('list_id')
 
   if (insertResult.error) {
     return {

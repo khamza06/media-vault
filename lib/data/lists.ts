@@ -4,12 +4,14 @@ import { getCurrentUser } from '../auth/dal'
 import { getItems, getPublicItemsByUserId } from './items'
 import { toMediaItem, type MediaItem } from '../media'
 import { createSupabaseServerClient } from '../supabase/server'
+import { getListCoverPreviews, type ListCoverPreviewRow } from '../list-cover-previews'
 
 const listSelectFieldsWithSharing =
   'id, name, description, is_public, slug, created_at, updated_at'
 const listSelectFields = 'id, name, description, created_at, updated_at'
 
 export type CustomListSummary = {
+  coverUrls?: string[]
   createdAt: string | null
   description: string | null
   id: string
@@ -233,7 +235,7 @@ async function selectListDetailWithSharingFallback(
   }
 }
 
-export async function getCustomLists(): Promise<CustomListsResult> {
+export async function getCustomLists(options: { includeCovers?: boolean } = {}): Promise<CustomListsResult> {
   const user = await getCurrentUser()
 
   if (!user) {
@@ -264,13 +266,21 @@ export async function getCustomLists(): Promise<CustomListsResult> {
   const rows = listsResult.rows
   const listIds = rows.map((list) => list.id)
   const counts = new Map<string, number>()
+  let coverPreviews = new Map<string, string[]>()
 
   if (listIds.length > 0) {
-    const itemsResult = await supabase
+    let itemsResult = await supabase
       .from('list_items')
-      .select('list_id')
+      .select(options.includeCovers ? 'list_id, items(image_url, user_id)' : 'list_id')
       .eq('user_id', user.id)
       .in('list_id', listIds)
+      .overrideTypes<ListCoverPreviewRow[], { merge: false }>()
+
+    if (itemsResult.error && options.includeCovers) {
+      itemsResult = await supabase.from('list_items').select('list_id')
+        .eq('user_id', user.id).in('list_id', listIds)
+        .overrideTypes<ListCoverPreviewRow[], { merge: false }>()
+    }
 
     if (itemsResult.error) {
       if (isMissingListSchemaError(itemsResult.error)) {
@@ -285,16 +295,21 @@ export async function getCustomLists(): Promise<CustomListsResult> {
       }
     }
 
-    for (const item of (itemsResult.data ?? []) as ListItemRow[]) {
+    for (const item of itemsResult.data ?? []) {
       if (item.list_id) {
         counts.set(item.list_id, (counts.get(item.list_id) ?? 0) + 1)
       }
     }
+    if (options.includeCovers) coverPreviews = getListCoverPreviews(
+      (itemsResult.data ?? []) as unknown as ListCoverPreviewRow[], user.id
+    )
   }
 
   return {
     error: null,
-    lists: rows.map((row) => toCustomListSummary(row, counts.get(row.id) ?? 0)),
+    lists: rows.map((row) => ({ ...toCustomListSummary(row, counts.get(row.id) ?? 0),
+      ...(options.includeCovers ? { coverUrls: coverPreviews.get(row.id) ?? [] } : {}),
+    })),
     schemaReady: true,
     sharingReady: listsResult.sharingReady,
   }
