@@ -11,6 +11,9 @@ test('library filters, Continue progress, saved views and bulk recovery', async 
   expect(row.error).toBeNull()
   await page.goto('/')
   await page.getByRole('searchbox', { name: 'Search', exact: true }).fill(title)
+  // A matching card is already visible in the unfiltered Continue shelf.
+  // Wait for filter navigation before starting a mutating Server Action.
+  await expect(page).toHaveURL(url => url.searchParams.get('q') === title)
   await expect(page.getByRole('heading', { name: title, exact: true }).first()).toBeVisible()
   const increase = page.getByRole('button', { name: new RegExp(`Increase.*${title}`) }).first()
   await increase.click()
