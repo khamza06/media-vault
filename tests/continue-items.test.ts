@@ -9,6 +9,18 @@ function item(id: string, overrides: Partial<MediaItem> = {}): MediaItem {
 }
 
 describe('Continue shelf selection', () => {
+  it('excludes exhausted totals without changing a user-chosen status', () => {
+    const exhausted = item('done', { progress: 12, totalProgress: 12, status: 'Watching' })
+    expect(getContinueItems([exhausted])).toEqual([])
+    expect(exhausted.status).toBe('Watching')
+  })
+  it('offers a true recent-update sort while retaining an explicit title sort', () => {
+    const old = item('A', { createdAt: '2020-01-01', lastProgressAt: '2026-10-29' })
+    const newest = item('B', { createdAt: '2026-10-28' })
+    expect(filterAndSortMediaItems([newest, old], defaultLibraryFilters).map(row => row.id)).toEqual(['A', 'B'])
+    expect(filterAndSortMediaItems([newest, old], { ...defaultLibraryFilters, sort: 'created-desc' }).map(row => row.id)).toEqual(['B', 'A'])
+    expect(filterAndSortMediaItems([newest, old], { ...defaultLibraryFilters, sort: 'title-desc' }).map(row => row.id)).toEqual(['B', 'A'])
+  })
   it('only includes watching, reading and re-watching statuses', () => {
     const items = ['Planning', 'Watching', 'Reading', 'Completed', 'Dropped', 'Re-Watching']
       .map((status) => item(status, { status }))

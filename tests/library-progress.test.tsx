@@ -20,8 +20,10 @@ import ShelfGridView from '../components/ShelfGridView'
 import { toMediaItem } from '../lib/media'
 const params = new URLSearchParams()
 const item = toMediaItem({ id: 'fixture', title: 'Fixture', type: 'Anime', status: 'Planning', notes: '  **Keep**\n', progress: 0 })
-beforeEach(() => { mocks.incrementProgressAction.mockRejectedValueOnce(new Error('Offline')); mocks.incrementProgressAction.mockResolvedValue({ success: true }) })
-afterEach(cleanup)
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('Offline')).mockResolvedValue(Response.json({ data: { id: item.id, progress: 1, total_progress: null, status: 'Watching', last_progress_at: '2026-10-29T08:00:00Z', outcome: 'updated' } })))
+})
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 describe('progress retry and bulk select availability', () => {
   it.each(['home', 'shelf'])('clears busy state and restores progress after a transport error in %s', async (view) => {
     render(view === 'home' ? <HomeShelvesView items={[item]} listOptions={[]} recommendations={[]} onboardingState={{ itemCount: 1, importedItemCount: 0, isProfilePublic: false, listCount: 0, listsReady: true, profileReady: false, username: null }} />

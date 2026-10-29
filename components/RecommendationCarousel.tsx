@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useLocale } from './LocaleProvider'
 
-export default function RecommendationCarousel({ children, itemCount }: { children: ReactNode; itemCount: number }) {
+export default function RecommendationCarousel({ children, itemCount, label }: { children: ReactNode; itemCount: number; label?: string }) {
   const { t } = useLocale()
   const viewportRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -44,12 +44,12 @@ export default function RecommendationCarousel({ children, itemCount }: { childr
   }
 
   return (
-    <div className="min-w-0 space-y-2" role="region" aria-label={t('library.recommended')}>
+    <div className="min-w-0 space-y-2" role={label ? undefined : 'region'} aria-label={label ? undefined : t('library.recommended')}>
       <div className="flex justify-end gap-2">
-        <button type="button" aria-label={t('carousel.previous')} aria-controls={viewportId} disabled={!edges.previous} onClick={() => scroll(-1)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-slate-100 transition hover:border-violet-400/50 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-35">
+        <button type="button" aria-label={label ? t('progress.previous') : t('carousel.previous')} aria-controls={viewportId} disabled={!edges.previous} onClick={() => scroll(-1)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-slate-100 transition hover:border-violet-400/50 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-35">
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         </button>
-        <button type="button" aria-label={t('carousel.next')} aria-controls={viewportId} disabled={!edges.next} onClick={() => scroll(1)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-slate-100 transition hover:border-violet-400/50 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-35">
+        <button type="button" aria-label={label ? t('progress.next') : t('carousel.next')} aria-controls={viewportId} disabled={!edges.next} onClick={() => scroll(1)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-slate-100 transition hover:border-violet-400/50 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-35">
           <ChevronRight className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
@@ -59,7 +59,7 @@ export default function RecommendationCarousel({ children, itemCount }: { childr
         id={viewportId}
         tabIndex={0}
         role="group"
-        aria-label={t('carousel.items')}
+        aria-label={label ?? t('carousel.items')}
         aria-describedby={helpId}
         className={`scrollbar-hide min-w-0 overflow-x-auto rounded-xl pb-2 ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
         onScroll={measure}

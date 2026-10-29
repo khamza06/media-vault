@@ -5,7 +5,7 @@ import { BookOpen, Clapperboard, Library, MonitorPlay, Sparkles, Tv } from 'luci
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
-import { incrementProgressAction } from '../app/actions/items'
+import { useProgressUpdates } from './useProgressUpdates'
 import { useBulkDeleteRequest } from './useBulkDeleteRequest'
 import { isInProgressItem } from '../lib/continue-items'
 import type { DiscoverRecommendation } from '../lib/home-signals'
@@ -18,7 +18,7 @@ import {
   type LibraryFilters,
   writeLibraryFiltersToSearchParams,
 } from '../lib/library-filters'
-import { isMovieType, usesPageProgress, type MediaItem } from '../lib/media'
+import type { MediaItem } from '../lib/media'
 import { shelfDefinitions } from '../lib/shelves'
 import { getMediaCardGridClassName } from '../lib/media-card-grid'
 import { applyBulkItemChange } from '../lib/bulk-item-changes'
@@ -31,10 +31,10 @@ import DiscoverRecommendationCard from './DiscoverRecommendationCard'
 import RecommendationCarousel from './RecommendationCarousel'
 import LibraryFilterControls from './LibraryFilterControls'
 import SetupChecklist, { type SetupChecklistState } from './onboarding/SetupChecklist'
-import { useToast } from './ToastProvider'
 import type { AddToListOption } from './lists/AddToListButton'
 import ShelfItemCard from './ShelfItemCard'
 import LibraryTools from './LibraryTools'
+import RecentProgressActivity from './RecentProgressActivity'
 import { useVaultPreferences } from './VaultPreferencesProvider'
 
 const shelfIcons = {
@@ -62,10 +62,9 @@ export default function HomeShelvesView({
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { showToast } = useToast()
   const { view } = useVaultPreferences()
   const [liveItems, setLiveItems] = useState(items)
-  const [busyIds, setBusyIds] = useState<Record<string, boolean>>({})
+  const { busyIds, errorIds, handleIncrement } = useProgressUpdates(setLiveItems)
   const [activeAccent, setActiveAccent] = useState<string | null>(null)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
@@ -181,20 +180,14 @@ export default function HomeShelvesView({
       .map((shelf) => {
         const shelfItems = filteredItems
           .filter((item) => shelf.types.some((type) => type === item.type))
-          .sort((left, right) => {
-            return (
-              new Date(right.lastActivityAt ?? right.createdAt ?? 0).getTime() -
-              new Date(left.lastActivityAt ?? left.createdAt ?? 0).getTime()
-            )
-          })
 
-        const shelfUpdatedAt = shelfItems[0]?.lastActivityAt ?? shelfItems[0]?.createdAt ?? null
+        const shelfUpdatedAt = shelfItems.reduce((latest, item) => Math.max(latest, Date.parse(item.lastProgressAt ?? item.lastActivityAt ?? item.createdAt ?? '') || 0), 0)
 
         return {
           ...shelf,
           items: shelfItems.slice(0, 6),
           totalCount: shelfItems.length,
-          updatedAt: shelfUpdatedAt ? new Date(shelfUpdatedAt).getTime() : 0,
+          updatedAt: shelfUpdatedAt,
         }
       })
       .sort((left, right) => right.updatedAt - left.updatedAt)
@@ -249,65 +242,6 @@ export default function HomeShelvesView({
       setActiveAccent(accent)
     } catch {
       setActiveAccent(null)
-    }
-  }
-
-  async function handleIncrement(item: MediaItem) {
-    if (busyIds[item.id]) return
-    const nextProgress =
-      typeof item.totalProgress === 'number' && item.totalProgress > 0
-        ? Math.min(item.progress + 1, item.totalProgress)
-        : item.progress + 1
-
-    if (nextProgress === item.progress) {
-      return
-    }
-
-    const nextStatus =
-      isMovieType(item.type) && nextProgress >= 1
-        ? 'Completed'
-        : usesPageProgress(item.type) && item.status === 'Planning'
-          ? 'Reading'
-          : !usesPageProgress(item.type) && item.status === 'Planning'
-            ? 'Watching'
-            : item.status
-
-    const nowIso = new Date().toISOString()
-
-    setBusyIds((current) => ({ ...current, [item.id]: true }))
-    setLiveItems((current) =>
-      current.map((candidate) =>
-        candidate.id === item.id
-          ? {
-              ...candidate,
-              currentEpisode: usesPageProgress(candidate.type) ? null : nextProgress,
-              currentPage: usesPageProgress(candidate.type) ? nextProgress : null,
-              lastActivityAt: nowIso,
-              lastProgressAt: nowIso,
-              progress: nextProgress,
-              status: nextStatus,
-            }
-          : candidate
-      )
-    )
-
-    try {
-      const result = await incrementProgressAction(item.id)
-      if (result.success) {
-        showToast(`Progress updated: ${item.title}`)
-        return
-      }
-      setLiveItems((current) => current.map((candidate) => (candidate.id === item.id ? item : candidate)))
-      showToast(result.error ?? 'Failed to update progress.', 'error')
-    } catch {
-      setLiveItems((current) => current.map((candidate) => (candidate.id === item.id ? item : candidate)))
-      showToast('Could not update progress. Check your connection and try again.', 'error')
-    } finally {
-      setBusyIds((current) => {
-        const next = { ...current }
-        delete next[item.id]
-        return next
-      })
     }
   }
 
@@ -445,6 +379,7 @@ export default function HomeShelvesView({
             items={filteredItems}
             listOptions={listOptions}
             busyIds={busyIds}
+            errorIds={errorIds}
             isSelectionMode={selectionMode}
             onIncrement={handleIncrement}
             accentHandler={resolveAccent}
@@ -452,11 +387,13 @@ export default function HomeShelvesView({
             density={view === 'compact' ? 'compact' : 'comfortable'}
           /> : null}
 
+          {!selectionMode && <RecentProgressActivity />}
+
           {view === 'table' ? (
             <section aria-label={t('library.itemsRegion')} className={getMediaCardGridClassName(view)}>
               {filteredItems.map((item) => (
                 <ShelfItemCard key={item.id} item={item} layout="row" listOptions={listOptions}
-                  onIncrement={handleIncrement} progressBusy={Boolean(busyIds[item.id])}
+                  onIncrement={handleIncrement} progressBusy={Boolean(busyIds[item.id])} progressError={Boolean(errorIds[item.id])}
                   isSelected={selectedIds.has(item.id)} isSelectionMode={selectionMode}
                   onToggleSelection={toggleSelection} returnTo={currentReturnTo} />
               ))}
@@ -498,7 +435,7 @@ export default function HomeShelvesView({
                         listOptions={listOptions}
                         onIncrement={handleIncrement}
                         onToggleSelection={toggleSelection}
-                        progressBusy={Boolean(busyIds[item.id])}
+                        progressBusy={Boolean(busyIds[item.id])} progressError={Boolean(errorIds[item.id])}
                         returnTo={currentReturnTo}
                       />
                     ))

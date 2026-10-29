@@ -13,6 +13,20 @@ const item = toMediaItem({ id: 'fixture', title: 'A long manga title', status: '
 afterEach(cleanup)
 
 describe('shared card layouts', () => {
+  it('shows confirmation/pending/retry states with a bounded completed button', () => {
+    const onIncrement = vi.fn()
+    const view = render(<ShelfItemCard item={item} onIncrement={onIncrement} progressBusy />)
+    const button = screen.getByRole('button', { name: `Increase progress for ${item.title}` }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(button.getAttribute('aria-busy')).toBe('true')
+    view.rerender(<ShelfItemCard item={item} onIncrement={onIncrement} progressBusy={false} progressError />)
+    expect(screen.getByRole('alert').textContent).toContain('same update will not be counted twice')
+    view.rerender(<ShelfItemCard item={{ ...item, progress: 24 }} onIncrement={onIncrement} progressBusy={false} />)
+    expect((screen.getByRole('button', { name: `Increase progress for ${item.title}` }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText('At total')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: `Increase progress for ${item.title}` }))
+    expect(onIncrement).not.toHaveBeenCalled()
+  })
   it.each(['grid', 'rail', 'row'] as const)('keeps progress, list and return navigation in %s mode', (layout) => {
     const onIncrement = vi.fn()
     render(<ShelfItemCard item={item} layout={layout} onIncrement={onIncrement} progressBusy={false} returnTo="/shelves/manga?status=Reading" />)

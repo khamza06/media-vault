@@ -3,7 +3,6 @@ import 'server-only'
 import { requireCurrentUser } from '../auth/dal'
 import { normalizeGenreList } from '../genres'
 import type { MediaItemRecord, NormalizedMediaItemWriteInput } from '../media'
-import { getDefaultStatus, isMovieType, usesPageProgress } from '../media'
 import { isMissingColumnError, isMissingUserIdError } from './ownership'
 import { createSupabaseServerClient } from '../supabase/server'
 import type { CatalogIdentity } from '../catalog-identity'
@@ -670,99 +669,17 @@ export async function updateItemFavorite(id: string, favorite: boolean) {
     .maybeSingle()
 }
 
+// Retained for older Server Action callers. Current daily controls send the
+// exact displayed version to the JSON endpoint; no read/absolute-write fallback.
 export async function incrementItemProgress(id: string) {
   const user = await requireCurrentUser()
   const supabase = createSupabaseServerClient(user.accessToken)
-
-  const currentItem = await supabase
-    .from('items')
-    .select('id, type, status, progress, total_progress, last_progress_at')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  if (currentItem.error) {
-    if (!isMissingUserIdError(currentItem.error.message) && !isExtendedSchemaError(currentItem.error.message)) {
-      return currentItem
-    }
-
-    const legacyItem = await supabase
-      .from('items')
-      .select('id, type, status, progress, total_progress')
-      .eq('id', id)
-      .maybeSingle()
-
-    if (legacyItem.error || !legacyItem.data) {
-      return legacyItem
-    }
-
-    const totalProgress =
-      isMovieType(legacyItem.data.type ?? '') ? 1 : legacyItem.data.total_progress ?? null
-    const nextProgress =
-      typeof totalProgress === 'number' && totalProgress > 0
-        ? Math.min((legacyItem.data.progress ?? 0) + 1, totalProgress)
-        : (legacyItem.data.progress ?? 0) + 1
-
-    let nextStatus = legacyItem.data.status ?? getDefaultStatus(legacyItem.data.type ?? '')
-
-    if (isMovieType(legacyItem.data.type ?? '') && nextProgress >= 1) {
-      nextStatus = 'Completed'
-    } else if (usesPageProgress(legacyItem.data.type ?? '') && nextStatus === 'Planning') {
-      nextStatus = 'Reading'
-    } else if (!usesPageProgress(legacyItem.data.type ?? '') && nextStatus === 'Planning') {
-      nextStatus = 'Watching'
-    }
-
-    return supabase
-      .from('items')
-      .update({
-        progress: nextProgress,
-        status: nextStatus,
-        total_progress: totalProgress,
-      })
-      .eq('id', id)
-      .select('id, progress, total_progress')
-      .maybeSingle()
-  }
-
-  if (!currentItem.data) {
-    return currentItem
-  }
-
-  const isPaged = usesPageProgress(currentItem.data.type)
-  const totalProgress = isPaged
-    ? currentItem.data.total_progress
-    : isMovieType(currentItem.data.type)
-      ? 1
-      : currentItem.data.total_progress
-  const currentProgress = getStoredProgressValue(currentItem.data)
-  const nextProgress =
-    typeof totalProgress === 'number' && totalProgress > 0
-      ? Math.min(currentProgress + 1, totalProgress)
-      : currentProgress + 1
-
-  let nextStatus = currentItem.data.status ?? getDefaultStatus(currentItem.data.type)
-
-  if (isMovieType(currentItem.data.type) && nextProgress >= 1) {
-    nextStatus = 'Completed'
-  } else if (isPaged && nextStatus === 'Planning') {
-    nextStatus = 'Reading'
-  } else if (!isPaged && nextStatus === 'Planning') {
-    nextStatus = 'Watching'
-  }
-
-  return supabase
-    .from('items')
-    .update({
-      last_progress_at: new Date().toISOString(),
-      progress: nextProgress,
-      status: nextStatus,
-      total_progress: totalProgress ?? null,
-    })
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select('id, progress, total_progress')
-    .maybeSingle()
+  const current = await supabase.from('items').select('progress,last_progress_at')
+    .eq('id', id).eq('user_id', user.id).maybeSingle()
+  if (current.error || !current.data) return current
+  return supabase.rpc('advance_item_progress', { p_item_id: id,
+    p_expected_progress: current.data.progress ?? 0,
+    p_expected_last_progress_at: current.data.last_progress_at ?? null })
 }
 
 export async function getSharedItemsByUserId(userId: string) {

@@ -2,11 +2,13 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { Check, Plus } from 'lucide-react'
+import { Check, LoaderCircle, Plus } from 'lucide-react'
 
 import { getGenreBadgeClass } from '../lib/genres'
 import type { MediaItem } from '../lib/media'
 import { formatExternalRatingValue } from '../lib/media'
+import { getProgressMode, isMovieType } from '../lib/media'
+import { canAdvanceProgress } from '../lib/progress'
 import { translateStatus, translateType, type Locale } from '../lib/i18n'
 import { formatLocalizedProgress } from '../lib/media-form-labels'
 import { useLocale } from './LocaleProvider'
@@ -24,6 +26,7 @@ type ShelfItemCardProps = {
   onIncrement: (item: MediaItem) => void
   onToggleSelection?: (item: MediaItem) => void
   progressBusy: boolean
+  progressError?: boolean
   returnTo?: string
 }
 
@@ -38,6 +41,7 @@ export default function ShelfItemCard({
   onIncrement,
   onToggleSelection,
   progressBusy,
+  progressError = false,
   returnTo,
 }: ShelfItemCardProps) {
   const { locale, t } = useLocale()
@@ -53,13 +57,15 @@ export default function ShelfItemCard({
         type="button"
         aria-label={t('card.increase', { title: item.title })}
         onClick={() => onIncrement(item)}
-        disabled={progressBusy}
+        disabled={progressBusy || !canAdvanceProgress(item)}
+        aria-busy={progressBusy}
         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-100 transition hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <Plus className="h-4 w-4" />
-        +1
+        {progressBusy ? <LoaderCircle aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin" /> : !canAdvanceProgress(item) ? <Check aria-hidden="true" className="h-4 w-4 shrink-0" /> : <Plus aria-hidden="true" className="h-4 w-4 shrink-0" />}
+        {progressBusy ? t('progress.saving') : !canAdvanceProgress(item) ? t('progress.atTotal') : progressError ? t('progress.retry') : isMovieType(item.type) ? t('progress.watched') : `+1 ${t(`progress.${getProgressMode(item.type)}`)}`}
       </button>
       <AddToListButton itemId={item.id} itemTitle={item.title} lists={listOptions} compact buttonLabel={t('card.list')} buttonAriaLabel={t('card.addToList', { title: item.title })} />
+      {progressError && <p role="alert" className="col-span-2 text-xs leading-5 text-amber-200">{t('progress.retryHint')}</p>}
     </div>
   ) : null
 

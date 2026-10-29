@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
-import { incrementProgressAction } from '../app/actions/items'
+import { useProgressUpdates } from './useProgressUpdates'
 import { useBulkDeleteRequest } from './useBulkDeleteRequest'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
 import DeleteItemButton from './DeleteItemButton'
@@ -14,7 +14,6 @@ import EmptyVaultState from './EmptyVaultState'
 import FavoriteToggleButton from './FavoriteToggleButton'
 import { getGenreBadgeClass, translateGenre } from '../lib/genres'
 import { useLocale } from './LocaleProvider'
-import { useToast } from './ToastProvider'
 import { translateStatus, translateType } from '../lib/i18n'
 import type { MediaItem } from '../lib/media'
 import { formatProgressValue, mediaStatuses, mediaTypes } from '../lib/media'
@@ -33,7 +32,6 @@ const archiveStatuses = new Set(['Completed', 'Dropped'])
 
 export default function MediaLibrary({ items }: MediaLibraryProps) {
   const { t } = useLocale()
-  const { showToast } = useToast()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -41,7 +39,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
 
   const [liveItems, setLiveItems] = useState(items)
   const [activeAccent, setActiveAccent] = useState<string | null>(null)
-  const [progressBusyIds, setProgressBusyIds] = useState<Record<string, boolean>>({})
+  const { busyIds: progressBusyIds, handleIncrement: handleIncrementProgress } = useProgressUpdates(setLiveItems)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
@@ -327,44 +325,6 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
     } catch {
       setActiveAccent(null)
     }
-  }
-
-  async function handleIncrementProgress(item: MediaItem) {
-    const nextProgress =
-      typeof item.totalProgress === 'number' && item.totalProgress > 0
-        ? Math.min(item.progress + 1, item.totalProgress)
-        : item.progress + 1
-
-    if (nextProgress === item.progress) {
-      return
-    }
-
-    setProgressBusyIds((current) => ({ ...current, [item.id]: true }))
-    setLiveItems((current) =>
-      current.map((candidate) =>
-        candidate.id === item.id ? { ...candidate, progress: nextProgress } : candidate
-      )
-    )
-
-    const result = await incrementProgressAction(item.id)
-
-    setProgressBusyIds((current) => {
-      const next = { ...current }
-      delete next[item.id]
-      return next
-    })
-
-    if (result.success) {
-      showToast(`Progress updated: ${item.title}`)
-      return
-    }
-
-    setLiveItems((current) =>
-      current.map((candidate) =>
-        candidate.id === item.id ? { ...candidate, progress: item.progress } : candidate
-      )
-    )
-    showToast(result.error ?? 'Failed to update progress.', 'error')
   }
 
   return (

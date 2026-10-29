@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
-import { incrementProgressAction } from '../app/actions/items'
+import { useProgressUpdates } from './useProgressUpdates'
 import { useBulkDeleteRequest } from './useBulkDeleteRequest'
 import {
   defaultLibraryFilters,
@@ -14,7 +14,7 @@ import {
   type LibraryFilters,
   writeLibraryFiltersToSearchParams,
 } from '../lib/library-filters'
-import { isMovieType, usesPageProgress, type MediaItem, type MediaShelfKey } from '../lib/media'
+import { type MediaItem, type MediaShelfKey } from '../lib/media'
 import { getShelfDisplay } from '../lib/library-display'
 import { useLocale } from './LocaleProvider'
 import { getMediaCardGridClassName } from '../lib/media-card-grid'
@@ -22,7 +22,6 @@ import { applyBulkItemChange } from '../lib/bulk-item-changes'
 import BulkItemActions from './BulkItemActions'
 import { BulkDeleteConfirmDialog, BulkSelectionToolbar } from './BulkSelectionControls'
 import LibraryFilterControls from './LibraryFilterControls'
-import { useToast } from './ToastProvider'
 import type { AddToListOption } from './lists/AddToListButton'
 import ShelfItemCard from './ShelfItemCard'
 import LibraryTools from './LibraryTools'
@@ -46,10 +45,9 @@ export default function ShelfGridView({
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { showToast } = useToast()
   const { view } = useVaultPreferences()
   const [liveItems, setLiveItems] = useState(items)
-  const [busyIds, setBusyIds] = useState<Record<string, boolean>>({})
+  const { busyIds, errorIds, handleIncrement } = useProgressUpdates(setLiveItems)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
@@ -114,65 +112,6 @@ export default function ShelfGridView({
 
     return baseItems.filter((item) => item.favorite)
   }, [favoritesOnly, filters, liveItems, showSourceFilter])
-
-  async function handleIncrement(item: MediaItem) {
-    if (busyIds[item.id]) return
-    const nextProgress =
-      typeof item.totalProgress === 'number' && item.totalProgress > 0
-        ? Math.min(item.progress + 1, item.totalProgress)
-        : item.progress + 1
-
-    if (nextProgress === item.progress) {
-      return
-    }
-
-    const isPaged = usesPageProgress(item.type)
-    const nextStatus =
-      isMovieType(item.type) && nextProgress >= 1
-        ? 'Completed'
-        : isPaged && item.status === 'Planning'
-          ? 'Reading'
-          : !isPaged && item.status === 'Planning'
-            ? 'Watching'
-            : item.status
-    const nowIso = new Date().toISOString()
-
-    setBusyIds((current) => ({ ...current, [item.id]: true }))
-    setLiveItems((current) =>
-      current.map((candidate) =>
-        candidate.id === item.id
-          ? {
-              ...candidate,
-              currentEpisode: isPaged ? null : nextProgress,
-              currentPage: isPaged ? nextProgress : null,
-              lastActivityAt: nowIso,
-              lastProgressAt: nowIso,
-              progress: nextProgress,
-              status: nextStatus,
-            }
-          : candidate
-      )
-    )
-
-    try {
-      const result = await incrementProgressAction(item.id)
-      if (result.success) {
-        showToast(`Progress updated: ${item.title}`)
-        return
-      }
-      setLiveItems((current) => current.map((candidate) => (candidate.id === item.id ? item : candidate)))
-      showToast(result.error ?? 'Failed to update progress.', 'error')
-    } catch {
-      setLiveItems((current) => current.map((candidate) => (candidate.id === item.id ? item : candidate)))
-      showToast('Could not update progress. Check your connection and try again.', 'error')
-    } finally {
-      setBusyIds((current) => {
-        const next = { ...current }
-        delete next[item.id]
-        return next
-      })
-    }
-  }
 
   function toggleSelection(item: MediaItem) {
     setSelectedIds((current) => {
@@ -283,7 +222,7 @@ export default function ShelfGridView({
               listOptions={listOptions}
               onIncrement={handleIncrement}
               onToggleSelection={toggleSelection}
-              progressBusy={Boolean(busyIds[item.id])}
+              progressBusy={Boolean(busyIds[item.id])} progressError={Boolean(errorIds[item.id])}
               returnTo={currentReturnTo}
             />
           ))}

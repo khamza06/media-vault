@@ -43,7 +43,7 @@ export default function LibraryFilterControls({
   const hasActiveFilters = hasActiveLibraryFilters(filters)
   const advancedId = useId()
   const [showAdvanced, setShowAdvanced] = useState(
-    filters.cover !== 'all' || filters.rating !== 'all' || filters.source !== 'all' || filters.sort !== 'created-desc'
+    filters.cover !== 'all' || filters.rating !== 'all' || filters.source !== 'all' || filters.sort !== defaultLibraryFilters.sort
   )
   const activeChips = [
     { key: 'query' as const, label: filters.query.trim() ? t('library.searchChip', { query: filters.query }) : null },

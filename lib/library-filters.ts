@@ -3,6 +3,7 @@ import { mediaStatuses, mediaTypes, type MediaItem } from './media'
 export type LibraryCoverFilter = 'all' | 'has-cover' | 'no-cover'
 export type LibraryRatingFilter = 'all' | 'rated' | 'unrated' | '9-plus' | '8-plus' | '7-plus'
 export type LibrarySortMode =
+  | 'activity-desc'
   | 'created-desc'
   | 'progress-desc'
   | 'rating-asc'
@@ -27,7 +28,7 @@ export const defaultLibraryFilters: LibraryFilters = {
   cover: 'all',
   query: '',
   rating: 'all',
-  sort: 'created-desc',
+  sort: 'activity-desc',
   source: 'all',
   status: 'all',
 }
@@ -70,6 +71,7 @@ export const libraryRatingOptions: Array<{ label: string; value: LibraryRatingFi
 ]
 
 export const librarySortOptions: Array<{ label: string; value: LibrarySortMode }> = [
+  { label: 'Recently updated', value: 'activity-desc' },
   { label: 'Recently added', value: 'created-desc' },
   { label: 'Title A-Z', value: 'title-asc' },
   { label: 'Title Z-A', value: 'title-desc' },
@@ -265,6 +267,8 @@ function matchesRatingFilter(rating: number | null, filter: LibraryRatingFilter)
 
 function compareItems(left: MediaItem, right: MediaItem, sort: LibrarySortMode) {
   switch (sort) {
+    case 'activity-desc':
+      return compareLatestProgress(right, left) || compareTitle(left, right)
     case 'title-asc':
       return compareTitle(left, right)
     case 'title-desc':
@@ -311,5 +315,6 @@ function compareLatestProgress(left: MediaItem, right: MediaItem) {
 }
 
 function compareDate(left: string | null, right: string | null) {
-  return new Date(left ?? 0).getTime() - new Date(right ?? 0).getTime()
+  const timestamp = (value: string | null) => value && Number.isFinite(Date.parse(value)) ? Date.parse(value) : 0
+  return timestamp(left) - timestamp(right)
 }

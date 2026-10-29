@@ -3,6 +3,7 @@
 import { Play } from 'lucide-react'
 
 import { getContinueItems } from '../lib/continue-items'
+import RecommendationCarousel from './RecommendationCarousel'
 import type { MediaItem } from '../lib/media'
 import type { AddToListOption } from './lists/AddToListButton'
 import ShelfItemCard from './ShelfItemCard'
@@ -12,6 +13,7 @@ type ContinueShelfProps = {
   items: MediaItem[]
   listOptions: AddToListOption[]
   busyIds: Record<string, boolean>
+  errorIds?: Record<string, boolean>
   isSelectionMode: boolean
   onIncrement: (item: MediaItem) => void
   accentHandler: (imageUrl: string | null) => void
@@ -20,7 +22,7 @@ type ContinueShelfProps = {
 }
 
 export default function ContinueShelf({
-  items, listOptions, busyIds, isSelectionMode, onIncrement, accentHandler, returnTo, density,
+  items, listOptions, busyIds, errorIds = {}, isSelectionMode, onIncrement, accentHandler, returnTo, density,
 }: ContinueShelfProps) {
   const { t } = useLocale()
   const continueItems = getContinueItems(items)
@@ -42,7 +44,7 @@ export default function ContinueShelf({
           </p>
         </div>
       </div>
-      <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2 md:gap-4">
+      <RecommendationCarousel itemCount={continueItems.length} label={t('library.continue')}>
         {continueItems.map((item) => (
           <ShelfItemCard
             key={item.id}
@@ -53,10 +55,11 @@ export default function ContinueShelf({
             listOptions={listOptions}
             onIncrement={onIncrement}
             progressBusy={Boolean(busyIds[item.id])}
+            progressError={Boolean(errorIds[item.id])}
             returnTo={returnTo}
           />
         ))}
-      </div>
+      </RecommendationCarousel>
     </section>
   )
 }

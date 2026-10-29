@@ -1,4 +1,5 @@
 import type { MediaItem } from './media'
+import { canAdvanceProgress } from './progress'
 
 export function isInProgressItem(item: Pick<MediaItem, 'status'>) {
   return ['watching', 'reading', 're-watching'].includes(item.status.trim().toLowerCase())
@@ -20,7 +21,7 @@ function activityTimestamp(item: MediaItem) {
 // Call with the current filtered vault, not a separately fetched library.
 export function getContinueItems(items: readonly MediaItem[]) {
   return items
-    .filter(isInProgressItem)
+    .filter(item => isInProgressItem(item) && canAdvanceProgress(item))
     .sort((left, right) => activityTimestamp(right) - activityTimestamp(left)
       || left.id.localeCompare(right.id))
     .slice(0, 6)

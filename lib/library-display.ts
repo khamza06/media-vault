@@ -17,7 +17,7 @@ export function getLibraryDisplayOptions(locale: Locale) {
     cover: labelOptions(locale, libraryCoverOptions, { all: 'library.allItems', 'has-cover': 'library.hasCover', 'no-cover': 'library.noCoverOption' }),
     source: labelOptions(locale, librarySourceOptions, { all: 'library.allSources', manual: 'library.manualSource' }),
     rating: labelOptions(locale, libraryRatingOptions, { all: 'library.allRatings', rated: 'library.rated', unrated: 'library.unrated' }),
-    sort: labelOptions(locale, librarySortOptions, { 'created-desc': 'library.recentlyAdded', 'title-asc': 'library.sort.titleAsc', 'title-desc': 'library.sort.titleDesc', 'rating-desc': 'library.sort.ratingDesc', 'rating-asc': 'library.lowestRating', 'progress-desc': 'library.sort.progressDesc', status: 'form.status' }),
+    sort: labelOptions(locale, librarySortOptions, { 'activity-desc': 'progress.recentlyUpdated', 'created-desc': 'library.recentlyAdded', 'title-asc': 'library.sort.titleAsc', 'title-desc': 'library.sort.titleDesc', 'rating-desc': 'library.sort.ratingDesc', 'rating-asc': 'library.lowestRating', 'progress-desc': 'library.sort.progressDesc', status: 'form.status' }),
   }
 }
 
