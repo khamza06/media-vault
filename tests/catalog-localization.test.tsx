@@ -28,6 +28,16 @@ afterEach(() => {
   }
 })
 describe('Russian catalog controls with unchanged data', () => {
+  it('keeps Add available for a same-title record from an unrelated provider', async () => {
+    const loadPage = vi.fn(async () => ({ data: [candidate], page: 1, hasMore: false, provider: 'AniList' as const }))
+    render(<LocaleProvider locale="ru" metadataLanguage="ru"><CatalogDiscover loadPage={loadPage} ownedItems={[{ id: 'different-work', title: candidate.title, type: 'Anime', externalSource: 'shikimori', externalId: '20' }]} lists={[]} /></LocaleProvider>)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Поиск тайтлов' }), { target: { value: 'naruto' } })
+    await act(async () => { await vi.advanceTimersByTimeAsync(401) })
+    fireEvent.click(screen.getByRole('button', { name: 'Посмотреть: Original title' }))
+    expect(screen.getByRole('button', { name: 'Добавить в библиотеку' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Открыть запись' })).toBeNull()
+  })
+
   it('keeps request values and the add-form payload unchanged while translating search/preview controls', async () => {
     const loadPage = vi.fn(async () => ({ data: [candidate], page: 1, hasMore: false, provider: 'AniList' as const }))
     render(<LocaleProvider locale="ru"><CatalogDiscover loadPage={loadPage} ownedItems={[]} lists={[]} /></LocaleProvider>)

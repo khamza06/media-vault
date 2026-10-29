@@ -19,7 +19,11 @@ The implementation uses Next's documented fetch Data Cache, with finite TTLs
 and tags. No module-memory cache, new SDK dependency, Cache Components opt-in,
 or database change is required. Cache identity includes the provider request
 URL/method/headers/body; tags contain public provider/type/ID only, not credentials
-or user IDs. The current TMDB details language remains English.
+or user IDs. TMDB details and genre tags distinguish the metadata language (see
+localization.md). These TTLs describe implementation, not a provider data license.
+The Phase 2 provider-permissions review identifies unresolved terms for new
+anime/manga enrichment and an existing AniList tracking-use restriction; do not
+expand that integration on the assumption that a public endpoint grants reuse rights.
 
 Next only stores HTTP 200 responses, but GraphQL may return errors with that
 status. Null/error/mismatched/malformed AniList detail payloads explicitly expire

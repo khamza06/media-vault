@@ -11,6 +11,27 @@ function Label() { const { t } = useLocale(); return <p>{t('nav.library')}</p> }
 beforeEach(() => vi.stubGlobal('fetch', vi.fn(async () => Response.json({ success: true }))))
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 describe('language switching', () => {
+  it.each(['en', 'ru'] as const)('explains the Russian metadata limitation in %s without provider requests', async locale => {
+    render(<LocaleProvider locale={locale} metadataLanguage="en"><LanguageToggle /></LocaleProvider>)
+    const hint = locale === 'ru' ? /Дополнительные русские названия/ : /Additional Russian titles/
+    expect(screen.queryByText(hint)).toBeNull()
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'ru' } })
+    expect(screen.getByText(hint)).toBeTruthy()
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1))
+    expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/locale', expect.objectContaining({ body: JSON.stringify({ metadataLanguage: 'ru' }) }))
+    expect(screen.getByRole('button', { name: locale === 'ru' ? 'Русский' : 'English' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'original' } })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(2))
+    expect(screen.queryByText(hint)).toBeNull()
+  })
+
+  it('keeps metadata coverage information out of the interface-only login control', () => {
+    render(<LocaleProvider locale="ru" metadataLanguage="ru"><LanguageToggle interfaceOnly /></LocaleProvider>)
+    expect(screen.queryByText(/Дополнительные русские названия/)).toBeNull()
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it('renders the server locale without an English hydration flash', () => {
     render(<LocaleProvider locale="ru"><LanguageToggle /><Label /></LocaleProvider>)
     expect(screen.getByText('Библиотека')).toBeTruthy()

@@ -22,6 +22,7 @@ export default function LanguageToggle({ interfaceOnly = false }: { interfaceOnl
       </select>
     </label>
     <p className="text-xs leading-5 text-slate-400">{ui(locale, 'Movies and TV use the selected metadata language when available. Missing translations fall back to English or the original. Other providers keep their existing metadata.')}</p>
+    {metadataLanguage === 'ru' ? <p className="text-xs leading-5 text-slate-400">{ui(locale, 'Additional Russian titles and descriptions for Anime, Manga, Manhwa and Manhua are not enabled while provider permissions are being clarified. Existing catalog metadata remains available.')}</p> : null}
     </> : null}
     {isChangingLocale ? <p role="status" className="text-sm text-slate-400">{t('common.saving')}</p> : null}
     {localeError ? <p role="alert" className="text-sm text-amber-200">{localeError}</p> : null}

@@ -306,6 +306,7 @@ export const uiMessages = {
   "Original": "Оригинал",
   "Interface and metadata languages are independent. Preferences are saved in this browser; your library records are never renamed.": "Язык интерфейса и метаданных настраивается отдельно. Выбор сохраняется в этом браузере; записи библиотеки не переименовываются.",
   "Movies and TV use the selected metadata language when available. Missing translations fall back to English or the original. Other providers keep their existing metadata.": "Фильмы и сериалы используют выбранный язык метаданных при наличии перевода. Иначе показывается английский или оригинал. Данные других источников остаются прежними.",
+  "Additional Russian titles and descriptions for Anime, Manga, Manhwa and Manhua are not enabled while provider permissions are being clarified. Existing catalog metadata remains available.": "Дополнительные русские названия и описания для аниме, манги, манхвы и маньхуа пока не подключены: уточняются разрешения провайдеров. Существующие данные каталога остаются доступны.",
   "Unknown year": "Год неизвестен",
   "Select type": "Выберите тип",
   "Search global databases...": "Поиск во внешних каталогах…",

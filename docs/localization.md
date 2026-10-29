@@ -88,6 +88,9 @@ original Korean title/synopsis, and Russian search with an English interface.
 It makes no AniList/Shikimori requests or database writes.
 
 Books/anime/manga/manhwa/manhua metadata retain their existing provider behavior.
+The Phase 2 [provider-permissions review](russian-metadata-phase2.md) records why
+additional anime/manga-family Russian enrichment is not enabled. This is a release
+blocker, not a claim that those providers have no Russian data.
 Translation coverage depends on TMDB. Browser/OS-owned dialogs/date pickers and
 authentication email templates are outside application UI dictionaries.
 No live production RLS/account-data integrity test is implied by mocked tests or

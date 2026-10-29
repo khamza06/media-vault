@@ -24,8 +24,9 @@ export function getOwnedCatalogItem(candidate: CatalogSearchCandidate, items: Ca
   if (exactMatch) return exactMatch
 
   return sameTypeItems.find((item) => {
-    // A different known ID is a different work, even when a remake shares its title.
-    if (sameProvider(item) && item.externalId) return false
+    // A title is not a cross-provider ID bridge. Keep the legacy title fallback
+    // only for manual records; a known identity needs a verified exact match.
+    if (item.externalSource && item.externalId) return false
     return comparableTitle(item.title) === comparableTitle(candidate.title)
   }) ?? null
 }
