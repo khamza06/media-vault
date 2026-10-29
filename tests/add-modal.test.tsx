@@ -39,6 +39,20 @@ function open() {
 }
 
 describe('Add New catalog save', () => {
+  it('retains the entire draft when a stable provider identity already exists', async () => {
+    mocks.createItemAction.mockResolvedValueOnce({ success: true, alreadyExists: true, itemId: 'existing-id' })
+    open()
+    fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'PRIVATE duplicate draft' } })
+    fireEvent.change(screen.getByLabelText('Progress fixture'), { target: { value: '5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save fixture' }))
+    await screen.findByText(/Its saved data is unchanged/)
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect((screen.getByLabelText('Notes') as HTMLTextAreaElement).value).toBe('PRIVATE duplicate draft')
+    expect((screen.getByLabelText('Progress fixture') as HTMLInputElement).value).toBe('5')
+    const link = screen.getByRole('link', { name: 'Open existing item (new tab)' })
+    expect(link.getAttribute('href')).toBe('/items/existing-id')
+    expect(link.getAttribute('target')).toBe('_blank')
+  })
   it('requires explicit selection and preserves notes, rating and progress when applying an identified match', async () => {
     const next = { ...candidate, id: 'anilist:900', title: 'Canonical Naruto', identification: { confidence: 'possible', score: 0.8, signals: ['title-exact'] } }
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { candidates: [next], form: { notes: 'Provider text must not become notes' }, requiresSelection: true, warnings: [] } })))

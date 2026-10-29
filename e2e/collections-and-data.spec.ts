@@ -78,6 +78,9 @@ test('CSV and MAL file previews import selected data and avoid duplicates on ret
   const xml = `<myanimelist><anime><series_animedb_id>${malId}</series_animedb_id><series_title>${malTitle}</series_title><my_watched_episodes>2</my_watched_episodes><my_status>Watching</my_status><my_score>7</my_score><my_comments>PRIVATE MAL</my_comments></anime></myanimelist>`
   await page.locator('#mal-xml-file').setInputFiles({ name: 'synthetic.xml', mimeType: 'text/xml', buffer: Buffer.from(xml) })
   await page.getByRole('button', { name: 'Import selected items', exact: true }).click()
+  // Metadata providers may time out before the import safely saves un-enriched rows.
+  // Wait for the user-visible completion state before checking its persisted data.
+  await expect(page.getByText(/^Imported 1 items\./).first()).toBeVisible({ timeout: 90_000 })
   await expect.poll(async () => (await client.from('items').select('notes,progress').eq('user_id', fixture().a).eq('title', malTitle)).data?.[0]).toEqual({ notes: 'PRIVATE MAL', progress: 2 })
   await page.getByRole('button', { name: 'Import selected items', exact: true }).click()
   expect((await client.from('items').select('id').eq('user_id', fixture().a).eq('title', malTitle)).data).toHaveLength(1)
@@ -119,19 +122,23 @@ test('cover upload, failed save retry, shared reference, replacement and deletio
   const item = await client.from('items').insert({ user_id: fixture().a, title, type: 'Movie', status: 'Planning', progress: 0, notes: 'PRIVATE COVER' }).select('id').single()
   expect(item.error).toBeNull()
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jH1sAAAAASUVORK5CYII=', 'base64')
+  const beforeObjects = await client.storage.from('media-covers').list(fixture().a)
+  expect(beforeObjects.error).toBeNull()
   await page.goto(`/items/${item.data!.id}/edit`)
   await page.getByLabel('Or Upload Cover', { exact: true }).setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: png })
   // Block only the item-save action after a successful direct Storage upload.
-  let coverUploaded = false
-  page.on('response', response => { if (response.url().includes('/storage/v1/object/upload/sign/')) coverUploaded = response.ok() })
   await page.route('**/items/*/edit', async route => {
-    if (route.request().method() === 'POST' && coverUploaded) await route.abort('failed')
+    const request = route.request()
+    // The prepare-upload action only carries size/type. Identify the save payload
+    // directly: a cross-origin response callback can arrive after this request.
+    if (request.method() === 'POST' && request.headers()['next-action'] && request.postData()?.includes('"imageUrl"')) await route.abort('failed')
     else await route.continue()
   })
   await page.getByRole('button', { name: 'Save Changes', exact: true }).click()
   await expect(page.getByRole('alert').filter({ hasText: /Could not|Failed/ }).first()).toBeVisible()
   const firstObjects = await client.storage.from('media-covers').list(fixture().a)
   expect(firstObjects.error).toBeNull()
+  expect(firstObjects.data?.filter(file => !beforeObjects.data?.some(previous => previous.name === file.name))).toHaveLength(1)
   await page.unroute('**/items/*/edit')
   await page.getByRole('button', { name: 'Save Changes', exact: true }).click()
   await expect(page).not.toHaveURL(/\/edit/)

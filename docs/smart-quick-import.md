@@ -29,6 +29,7 @@ user chooses a candidate and submits the existing Save Item form.
    retained. Provider descriptions never become private notes. Stable provider
    identity reaches the existing owner-only create action. Jikan IDs also check
    existing MAL-import identities; duplicate saves do not overwrite stored data.
+   A duplicate keeps the full draft open and offers the existing item in a new tab.
 
 ## Fetch boundary and limits
 

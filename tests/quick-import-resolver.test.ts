@@ -62,6 +62,13 @@ describe('smart Quick Import orchestration', () => {
     expect(result.warnings).toContain('provider-unavailable')
     expect(result.candidates[0].id).toBe('shikimori:animes:20')
   })
+  it('consumes provider rejections even when the identification deadline has already expired', async () => {
+    vi.spyOn(AbortSignal, 'timeout').mockReturnValueOnce(AbortSignal.abort())
+    mocks.searchAniListCandidates.mockRejectedValue(new Error('Aborted provider'))
+    const result = await resolveQuickImport('Naruto', 'en', 'anime')
+    expect(result.candidates).toEqual([])
+    expect(result.warnings).toContain('provider-unavailable')
+  })
   it.each(['movie', 'series', 'book', 'manhwa', 'manhua'] as const)('routes %s to appropriate catalog APIs', async type => {
     await resolveQuickImport('Fixture work', 'en', type)
     if (type === 'book') expect(mocks.searchOpenLibraryCandidates).toHaveBeenCalled()

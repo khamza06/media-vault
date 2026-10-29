@@ -21,7 +21,7 @@ function result(candidates: CatalogSearchCandidate[], metadata: MediaPageMetadat
 async function settledBeforeDeadline(operations: Array<Promise<CatalogSearchCandidate[]>>, signal: AbortSignal) {
   return Promise.all(operations.map(operation => new Promise<CatalogSearchCandidate[]>((resolve) => {
     const abort = () => resolve([])
-    if (signal.aborted) { resolve([]); return }
+    if (signal.aborted) { void operation.catch(() => {}); resolve([]); return }
     signal.addEventListener('abort', abort, { once: true })
     operation.then(value => resolve(value), () => resolve([])).finally(() => signal.removeEventListener('abort', abort))
   })))

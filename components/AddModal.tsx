@@ -3,6 +3,7 @@
 import { ChevronDown, Sparkles } from 'lucide-react'
 import { FormEvent, ReactNode, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 import { createItemAction } from '../app/actions/items'
 import { uploadCoverFile } from '../lib/cover-upload'
@@ -62,6 +63,7 @@ export default function AddModal({
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const uploadedCoverRef = useRef<{ file: File; url: string } | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [existingItemId, setExistingItemId] = useState<string>()
   const [form, setForm] = useState<MediaItemInput>(initialFormState)
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | undefined>()
   const [isOpen, setIsOpen] = useState(false)
@@ -86,6 +88,7 @@ export default function AddModal({
     titleSearchRequestIdRef.current += 1
     setCoverFile(null)
     setErrorMessage('')
+    setExistingItemId(undefined)
     setForm(initialFormState)
     setSelectedCatalogId(undefined)
     setIsQuickImporting(false)
@@ -115,7 +118,7 @@ export default function AddModal({
   }
 
   function updateField<K extends keyof MediaItemInput>(field: K, value: MediaItemInput[K]) {
-    if (field === 'title' || field === 'type') setSelectedCatalogId(undefined)
+    if (field === 'title' || field === 'type') { setSelectedCatalogId(undefined); setExistingItemId(undefined) }
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -123,6 +126,8 @@ export default function AddModal({
   }
 
   function applyCatalogCandidate(candidate: CatalogSearchCandidate) {
+    setExistingItemId(undefined)
+    setErrorMessage('')
     titleSearchSkipRef.current = true
     titleSearchRequestIdRef.current += 1
     setForm(current => ({
@@ -366,9 +371,15 @@ export default function AddModal({
         return
       }
 
+      if (result.alreadyExists) {
+        setExistingItemId(result.itemId)
+        setErrorMessage(t('smartImport.duplicate'))
+        return
+      }
+
       setIsOpen(false)
       resetState()
-      showToast(result.alreadyExists ? t('form.alreadySaved') : t('toast.itemAdded'))
+      showToast(t('toast.itemAdded'))
       router.refresh()
     } catch {
       setErrorMessage(t('form.saveOffline'))
@@ -523,6 +534,7 @@ export default function AddModal({
           </div>
         </details>
 
+        {existingItemId && <Link href={`/items/${encodeURIComponent(existingItemId)}`} target="_blank" rel="noreferrer" prefetch={false} className="mx-4 mt-4 inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-blue-200 underline sm:mx-6">{t('smartImport.openExisting')}</Link>}
         <MediaItemForm
           coverFileName={coverFile?.name}
           errorMessage={errorMessage}

@@ -129,8 +129,11 @@ describe('localized item forms keep their tracking contract', () => {
   it('shows localized duplicate feedback without claiming that existing data was overwritten', async () => {
     mocks.createItemAction.mockResolvedValueOnce({ success: true, alreadyExists: true })
     openAdd()
+    fireEvent.change(screen.getByRole('textbox', { name: /Заметки/ }), { target: { value: notes } })
     fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }))
-    await waitFor(() => expect(mocks.showToast).toHaveBeenCalledWith('Уже есть в библиотеке. Существующие данные сохранены.'))
+    await screen.findByText(/Сохранённые данные не изменены/)
+    expect((screen.getByRole('textbox', { name: /Заметки/ }) as HTMLTextAreaElement).value).toBe(notes)
+    expect(mocks.showToast).not.toHaveBeenCalled()
   })
   it('saves full edits with exact notes, progress, rating and existing provider score', async () => {
     render(<LocaleProvider locale="ru"><EditItemPageForm item={item} returnTo="/?status=Reading" /></LocaleProvider>)

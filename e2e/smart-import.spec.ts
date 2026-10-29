@@ -46,9 +46,12 @@ test('smart import requires a selection, preserves personal drafts, saves stable
   await again.getByRole('button', { name: /^Use match:/ }).first().click()
   await again.getByRole('textbox', { name: /^Notes/ }).fill('This duplicate draft must not overwrite stored notes')
   await again.getByRole('button', { name: 'Save Item', exact: true }).click()
-  await expect(again).not.toBeVisible()
+  await expect(again.getByText(/Its saved data is unchanged/)).toBeVisible()
+  await expect(again.getByRole('textbox', { name: /^Notes/ })).toHaveValue('This duplicate draft must not overwrite stored notes')
+  await expect(again.getByRole('link', { name: 'Open existing item (new tab)' })).toHaveAttribute('href', `/items/${saved.data!.id}`)
   const after = await client.from('items').select('id,notes,progress,rating,status').eq('user_id', fixture().a).eq('external_source', 'anilist').eq('external_id', '20')
   expect(after.data).toEqual([saved.data])
+  await again.getByRole('button', { name: 'Close modal', exact: true }).click()
 })
 
 test('mobile unsafe and unsupported URLs offer honest manual fallback without losing a draft', async ({ page }) => {
