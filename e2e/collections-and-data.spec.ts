@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { test, expect } from '@playwright/test'
-import { authenticate, fixture, prefix } from './helpers'
+import { authenticate, choose, fixture, prefix } from './helpers'
 
 test.beforeEach(() => { fixture() })
 
@@ -125,7 +125,10 @@ test('cover upload, failed save retry, shared reference, replacement and deletio
   const beforeObjects = await client.storage.from('media-covers').list(fixture().a)
   expect(beforeObjects.error).toBeNull()
   await page.goto(`/items/${item.data!.id}/edit`)
+  // Exercise a hydrated control before sending a synthetic file-change event.
+  await choose(page, 'Status', 'Planning')
   await page.getByLabel('Or Upload Cover', { exact: true }).setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: png })
+  await expect(page.getByText('Selected file: cover.png', { exact: true })).toBeVisible()
   // Block only the item-save action after a successful direct Storage upload.
   await page.route('**/items/*/edit', async route => {
     const request = route.request()
@@ -148,7 +151,9 @@ test('cover upload, failed save retry, shared reference, replacement and deletio
   const shared = await client.from('items').insert({ user_id: fixture().a, title: `${title} shared`, type: 'Movie', status: 'Planning', image_url: first.data!.image_url }).select('id').single()
   expect(shared.error).toBeNull()
   await page.goto(`/items/${item.data!.id}/edit`)
+  await choose(page, 'Status', 'Planning')
   await page.getByLabel('Or Upload Cover', { exact: true }).setInputFiles({ name: 'replacement.png', mimeType: 'image/png', buffer: png })
+  await expect(page.getByText('Selected file: replacement.png', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Save Changes', exact: true }).click()
   await expect(page).not.toHaveURL(/\/edit/)
   expect((await page.request.get(first.data!.image_url)).status()).toBe(200)

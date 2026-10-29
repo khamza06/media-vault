@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { Check, LoaderCircle, Plus } from 'lucide-react'
+import { Check, LoaderCircle } from 'lucide-react'
 
 import { getGenreBadgeClass } from '../lib/genres'
 import type { MediaItem } from '../lib/media'
@@ -61,8 +61,8 @@ export default function ShelfItemCard({
         aria-busy={progressBusy}
         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-100 transition hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {progressBusy ? <LoaderCircle aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin" /> : !canAdvanceProgress(item) ? <Check aria-hidden="true" className="h-4 w-4 shrink-0" /> : <Plus aria-hidden="true" className="h-4 w-4 shrink-0" />}
-        {progressBusy ? t('progress.saving') : !canAdvanceProgress(item) ? t('progress.atTotal') : progressError ? t('progress.retry') : isMovieType(item.type) ? t('progress.watched') : `+1 ${t(`progress.${getProgressMode(item.type)}`)}`}
+        {progressBusy && <LoaderCircle aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin" />}
+        <span className="min-w-0 truncate">{progressBusy ? t('progress.saving') : !canAdvanceProgress(item) ? t('progress.atTotal') : progressError ? t('progress.retry') : isMovieType(item.type) ? t('progress.watched') : `+1 ${t(`progress.${getProgressMode(item.type)}`)}`}</span>
       </button>
       <AddToListButton itemId={item.id} itemTitle={item.title} lists={listOptions} compact buttonLabel={t('card.list')} buttonAriaLabel={t('card.addToList', { title: item.title })} />
       {progressError && <p role="alert" className="col-span-2 text-xs leading-5 text-amber-200">{t('progress.retryHint')}</p>}

@@ -93,8 +93,36 @@ test('mobile keyboard progress and private recent history retain exact notes and
   await expect.poll(async () => (await client.from('items').select('progress').eq('id', item.data!.id).single()).data?.progress).toBe(4)
   await page.locator('summary').filter({ hasText: 'Recent progress' }).click()
   await expect(page.locator('details').filter({ has: page.locator('summary', { hasText: 'Recent progress' }) }).getByRole('link', { name: title, exact: true })).toBeVisible()
-  await expect(page.getByText('ch.: 3 → 4', { exact: true })).toBeVisible()
+  const event = page.locator('li').filter({ has: page.getByRole('link', { name: title, exact: true }) })
+  await expect(event.getByText('ch.: 3 → 4', { exact: true })).toBeVisible()
   expect((await page.request.get('/api/progress-activity')).headers()['cache-control']).toBe('private, no-store')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
   expect((await client.from('items').select('notes,rating').eq('id', item.data!.id).single()).data).toEqual({ notes: '  PRIVATE MOBILE **notes**\n', rating: 9 })
+})
+
+test('narrow progress controls contain pending feedback in English and Russian', async ({ page, context }) => {
+  await page.setViewportSize({ width: 320, height: 844 })
+  const client = await authenticate(context)
+  const title = `${prefix()} pending layout ${randomUUID().slice(0, 5)}`
+  const item = await client.from('items').insert({ user_id: fixture().a, title, type: 'Manga', status: 'Reading', progress: 1, total_progress: 12 }).select('id').single()
+  expect(item.error).toBeNull()
+  const origin = new URL(process.env.MEDIA_VAULT_E2E_URL ?? 'http://localhost:3000').origin
+  for (const locale of ['en', 'ru']) {
+    await context.addCookies([{ name: 'media-vault-locale', value: locale, url: origin }])
+    await page.goto(`/shelves/manga-family?q=${encodeURIComponent(title)}`)
+    let release!: () => void
+    const gate = new Promise<void>(done => { release = done })
+    await page.route(`**/api/items/${item.data!.id}/progress`, async route => { await gate; await route.fulfill({ status: 503, json: { error: 'Synthetic unavailable' } }) })
+    try {
+      const button = page.locator('button[aria-busy]').first()
+      await button.click()
+      await expect(button).toHaveAttribute('aria-busy', 'true')
+      expect(await button.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
+    } finally {
+      release()
+      await expect(page.locator('button[aria-busy]').first()).toHaveAttribute('aria-busy', 'false')
+      await page.unroute(`**/api/items/${item.data!.id}/progress`)
+    }
+  }
 })
