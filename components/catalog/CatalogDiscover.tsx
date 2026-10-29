@@ -1,4 +1,7 @@
 'use client'
+import { translateError } from '../../lib/ui-i18n'
+
+import { ui } from '../../lib/ui-i18n'
 
 import { Search, X } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
@@ -23,7 +26,7 @@ export default function CatalogDiscover({ ownedItems, lists, loadPage = fetchCat
   loadPage?: typeof fetchCatalogPage
 }) {
   const params = useSearchParams()
-  const { locale, t } = useLocale()
+  const { locale, t, metadataLanguage } = useLocale()
   const urlQuery = params.get('q') ?? ''
   const typeParam = params.get('type')
   const type = isCatalogSearchType(typeParam) ? typeParam : 'anime'
@@ -41,13 +44,14 @@ export default function CatalogDiscover({ ownedItems, lists, loadPage = fetchCat
   const [retry, setRetry] = useState(0)
   const [selected, setSelected] = useState<CatalogSearchCandidate | null>(null)
   const trimmedQuery = query.trim()
-  const key = JSON.stringify([trimmedQuery, type, source, locale])
+  const key = JSON.stringify([trimmedQuery, type, source, locale, metadataLanguage])
   const [lastSearchKey, setLastSearchKey] = useState(key)
   const page = cursor.key === key ? cursor.page : 1
   const visible = response?.key === key ? response : null
 
   // Returning to a previous query/source starts at page one, not an orphaned later page.
   if (lastSearchKey !== key) {
+    setSelected(null)
     setLastSearchKey(key)
     setCursor({ key, page: 1 })
   }
@@ -84,22 +88,22 @@ export default function CatalogDiscover({ ownedItems, lists, loadPage = fetchCat
       setIsLoading(true)
       setError('')
       try {
-        const payload = await loadPage({ query: trimmedQuery, type, source, locale, page }, controller.signal)
+        const payload = await loadPage({ query: trimmedQuery, type, source, locale, metadataLanguage, page }, controller.signal)
         if (cancelled) return
         setResponse((current) => ({ ...payload, key, data: page > 1 && current?.key === key ? mergeCatalogPages(current.data, payload.data) : payload.data }))
       } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Search failed. Try again.')
+        if (!cancelled) setError(cause instanceof Error ? cause.message : ui(locale, "Search failed. Try again."))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
     }, page > 1 ? 0 : 400)
     return () => { cancelled = true; window.clearTimeout(timer); controller.abort() }
-  }, [key, loadPage, locale, page, retry, source, trimmedQuery, type])
+  }, [key, loadPage, locale, metadataLanguage, page, retry, source, trimmedQuery, type])
 
   const primaryLabel = canChooseSources ? 'AniList' : type === 'book' ? 'Open Library' : 'TMDB'
   return (
     <div className="space-y-6">
-      <section aria-label="Catalog search" className="grid min-w-0 gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_10rem_11rem]">
+      <section aria-label={ui(locale, "Catalog search")} className="grid min-w-0 gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_10rem_11rem]">
         <div className="min-w-0">
           <label htmlFor={searchId} className="mb-2 block text-sm font-semibold text-slate-300">{t('catalog.searchTitles')}</label>
           <div className="flex min-h-12 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 pl-4 pr-1 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/30">
@@ -117,7 +121,7 @@ export default function CatalogDiscover({ ownedItems, lists, loadPage = fetchCat
         <p className="text-xs leading-5 text-slate-400 md:col-span-3">{t('catalog.instructions')}</p>
       </section>
 
-      {error ? <ActionFeedback tone="error"><p>{error}</p><button type="button" onClick={() => setRetry((value) => value + 1)} className="mt-3 min-h-11 rounded-xl border border-slate-700 bg-slate-950 px-4">{t('catalog.tryAgain')}</button></ActionFeedback> : null}
+      {error ? <ActionFeedback tone="error"><p>{translateError(locale, error)}</p><button type="button" onClick={() => setRetry((value) => value + 1)} className="mt-3 min-h-11 rounded-xl border border-slate-700 bg-slate-950 px-4">{t('catalog.tryAgain')}</button></ActionFeedback> : null}
       {isLoading ? <ActionFeedback tone="pending">{t('catalog.searching', { provider: source === 'primary' ? primaryLabel : source })}</ActionFeedback> : null}
       {trimmedQuery.length < MIN_CATALOG_QUERY_LENGTH ? (
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center">

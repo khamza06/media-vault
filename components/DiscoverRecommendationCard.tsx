@@ -1,4 +1,9 @@
 'use client'
+import { translateError } from '../lib/ui-i18n'
+import { translateMessage } from '../lib/ui-i18n'
+
+import { ui, countNoun } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
 
 import CoverPlaceholder from './CoverPlaceholder'
 
@@ -65,6 +70,8 @@ export default function DiscoverRecommendationCard({
   ownedItem,
   recommendation,
 }: DiscoverRecommendationCardProps) {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const { showToast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
@@ -144,7 +151,7 @@ export default function DiscoverRecommendationCard({
       const nextError = listResult.error ?? 'Could not add this recommendation to your lists.'
       setError(
         createdItem
-          ? `Added to your vault, but list update failed: ${nextError}`
+          ? ui(locale, "Added to your vault, but list update failed: {value0}", { value0: nextError })
           : nextError
       )
       showToast(nextError, 'error')
@@ -154,12 +161,10 @@ export default function DiscoverRecommendationCard({
 
     const nextMessage =
       listResult.added > 0
-        ? `Added ${createdItem ? 'to your vault and ' : ''}to ${listResult.added} list${
-            listResult.added === 1 ? '' : 's'
-          }.${listResult.skipped > 0 ? ` ${listResult.skipped} duplicate skipped.` : ''}`
+        ? ui(locale, "Added {value0}to {value1} list{value2}.{value3}", { value0: createdItem ? 'to your vault and ' : '', value1: listResult.added, value2: listResult.added === 1 ? '' : 's', value3: listResult.skipped > 0 ? ui(locale, " {value0} duplicate skipped.", { value0: listResult.skipped }) : '' })
         : createdItem
-          ? 'Added to your vault. It was already in the selected lists.'
-          : 'This item was already in the selected lists.'
+          ? ui(locale, "Added to your vault. It was already in the selected lists.")
+          : ui(locale, "This item was already in the selected lists.")
 
     setSelectedListIds(new Set())
     setMessage(nextMessage)
@@ -182,7 +187,7 @@ export default function DiscoverRecommendationCard({
           setError(null)
         }}
         className="group min-w-[44vw] max-w-[44vw] text-left outline-none sm:min-w-[188px] sm:max-w-[188px]"
-        aria-label={`Preview recommendation ${recommendation.title}`}
+        aria-label={ui(locale, "Preview recommendation {value0}", { value0: recommendation.title })}
       >
         <span className="glass-panel-soft relative block aspect-[2/3] overflow-hidden rounded-xl border border-white/10 transition group-hover:border-violet-300/40 group-focus-visible:border-violet-300/70 group-focus-visible:ring-2 group-focus-visible:ring-violet-400/40">
           {recommendation.imageUrl ? (
@@ -196,9 +201,7 @@ export default function DiscoverRecommendationCard({
           ) : (
             <CoverPlaceholder title={recommendation.title} type={recommendation.type} />
           )}
-          <span className="absolute left-3 top-3 rounded-xl border border-violet-300/30 bg-violet-500/20 px-2.5 py-1 text-[11px] font-semibold text-violet-100">
-            Preview
-          </span>
+          <span className="absolute left-3 top-3 rounded-xl border border-violet-300/30 bg-violet-500/20 px-2.5 py-1 text-[11px] font-semibold text-violet-100"> {ui(locale, "Preview")} </span>
           <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-3">
             <span className="line-clamp-2 text-sm font-semibold text-white">{recommendation.title}</span>
             <span className="mt-1 block text-xs text-slate-300">{recommendation.subtitle}</span>
@@ -216,14 +219,12 @@ export default function DiscoverRecommendationCard({
           <div className="max-h-[calc(100dvh-3rem)] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 shadow-2xl">
             <div className="flex items-start justify-between gap-4 border-b border-slate-800 px-5 py-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-200/75">
-                  AI Discover
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-200/75"> {ui(locale, "AI Discover")} </p>
                 <h2 id="discover-preview-title" className="mt-2 text-2xl font-bold text-slate-100">
                   {recommendation.title}
                 </h2>
                 <p className="mt-2 text-sm text-slate-400">
-                  {recommendation.type} from {recommendation.provider}
+                  {recommendation.type} {ui(locale, "from")} {recommendation.provider}
                   {recommendation.year ? ` / ${recommendation.year}` : ''}
                 </p>
               </div>
@@ -232,7 +233,7 @@ export default function DiscoverRecommendationCard({
                 onClick={closePreview}
                 disabled={isSavingToLists}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-slate-200 transition hover:border-blue-400/40 disabled:opacity-60"
-                aria-label="Close recommendation preview"
+                aria-label={ui(locale, "Close recommendation preview")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -269,14 +270,12 @@ export default function DiscoverRecommendationCard({
                     </span>
                   ) : null}
                   {isAlreadyInVault ? (
-                    <span className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-100">
-                      Already in vault
-                    </span>
+                    <span className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-100"> {ui(locale, "Already in vault")} </span>
                   ) : null}
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Why this pick?</h3>
+                  <h3 className="text-sm font-semibold text-slate-100"> {ui(locale, "Why this pick?")} </h3>
                   <p className="mt-2 text-sm leading-6 text-slate-300">
                     {recommendation.description ||
                       'This recommendation is based on your highest-rated anime and manga.'}
@@ -285,7 +284,7 @@ export default function DiscoverRecommendationCard({
 
                 {recommendation.genres.length > 0 ? (
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-100">Genres</h3>
+                    <h3 className="text-sm font-semibold text-slate-100"> {ui(locale, "Genres")} </h3>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {recommendation.genres.slice(0, 8).map((genre) => (
                         <span
@@ -307,7 +306,7 @@ export default function DiscoverRecommendationCard({
                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Plus className="h-4 w-4" />
-                    {isAlreadyInVault ? 'Already in vault' : 'Add to vault'}
+                    {isAlreadyInVault ? ui(locale, "Already in vault") : ui(locale, "Add to vault")}
                   </button>
 
                   {recommendation.sourceUrl ? (
@@ -317,20 +316,18 @@ export default function DiscoverRecommendationCard({
                       rel="noreferrer"
                       className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
                     >
-                      <ExternalLink className="h-4 w-4" />
-                      Open source
-                    </Link>
+                      <ExternalLink className="h-4 w-4" /> {ui(locale, "Open source")} </Link>
                   ) : null}
                 </div>
 
                 <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-100">Add to list</h3>
+                      <h3 className="text-sm font-semibold text-slate-100"> {ui(locale, "Add to list")} </h3>
                       <p className="mt-1 text-sm leading-6 text-slate-400">
                         {currentItemId
-                          ? 'Use your existing custom-list picker for this saved vault item.'
-                          : 'Choose custom lists. Media Vault will add this title to your vault first, then attach it to the selected lists.'}
+                          ? ui(locale, "Use your existing custom-list picker for this saved vault item.")
+                          : ui(locale, "Choose custom lists. Media Vault will add this title to your vault first, then attach it to the selected lists.")}
                       </p>
                     </div>
                     {currentItemId ? (
@@ -347,16 +344,12 @@ export default function DiscoverRecommendationCard({
                       <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900 p-2">
                         {listOptions.length === 0 ? (
                           <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950 p-4 text-center">
-                            <p className="text-sm font-semibold text-slate-100">
-                              You do not have any custom lists yet.
-                            </p>
+                            <p className="text-sm font-semibold text-slate-100"> {ui(locale, "You do not have any custom lists yet.")} </p>
                             <Link
                               href="/lists"
                               className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-400"
                               onClick={closePreview}
-                            >
-                              Create a list
-                            </Link>
+                            > {ui(locale, "Create a list")} </Link>
                           </div>
                         ) : (
                           <div className="grid gap-2 sm:grid-cols-2">
@@ -390,7 +383,7 @@ export default function DiscoverRecommendationCard({
                                       {list.name}
                                     </span>
                                     <span className="mt-1 block text-xs text-slate-400">
-                                      {list.itemCount} item{list.itemCount === 1 ? '' : 's'}
+                                      {list.itemCount} {countNoun(locale, list.itemCount, "item")}
                                     </span>
                                   </span>
                                 </button>
@@ -408,22 +401,22 @@ export default function DiscoverRecommendationCard({
                       >
                         <ListPlus className="h-4 w-4" />
                         {isSavingToLists
-                          ? 'Saving...'
+                          ? ui(locale, "Saving...")
                           : selectedListIds.size > 0
-                            ? `Add to ${selectedListIds.size} list${selectedListIds.size === 1 ? '' : 's'}`
-                            : 'Add to selected lists'}
+                            ? ui(locale, "Add to {value0} list{value1}", { value0: selectedListIds.size, value1: selectedListIds.size === 1 ? '' : 's' })
+                            : ui(locale, "Add to selected lists")}
                       </button>
                     </>
                   ) : null}
 
                   {message ? (
                     <p className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-                      {message}
+                      {translateMessage(locale, message)}
                     </p>
                   ) : null}
                   {error ? (
                     <p className="mt-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-                      {error}
+                      {translateError(locale, error)}
                     </p>
                   ) : null}
                 </div>
@@ -433,9 +426,7 @@ export default function DiscoverRecommendationCard({
                   onClick={dismissRecommendation}
                   disabled={isSavingToLists}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-red-400/40 hover:text-white disabled:opacity-60"
-                >
-                  Dismiss / Not interested
-                </button>
+                > {ui(locale, "Dismiss / Not interested")} </button>
               </div>
             </div>
           </div>

@@ -1,3 +1,6 @@
+
+import { ui } from '../../lib/ui-i18n'
+import { getRequestLocale } from '../../lib/i18n-server'
 import type { Metadata } from 'next'
 
 import AniListImporter from '@/components/import/AniListImporter'
@@ -5,30 +8,29 @@ import CsvImporter from '@/components/import/CsvImporter'
 import MalXmlImporter from '@/components/import/MalXmlImporter'
 import { getCurrentUser } from '@/lib/auth/dal'
 
-export const metadata: Metadata = {
-  title: 'Import Center | Media Vault',
-  description: 'Import your existing anime and manga lists into Media Vault.',
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale()
+  return {
+  title: ui(locale, "Import Center | Media Vault"),
+  description: ui(locale, "Import your existing anime and manga lists into Media Vault."),
+}
 }
 
 export default async function ImportPage() {
+  const locale = await getRequestLocale()
+
   const user = await getCurrentUser()
 
   return (
     <main className="vault-page">
       <div className="min-w-0">
         <header className="mb-8 min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-            Import tools
-          </p>
-          <h1 className="vault-title mt-3">
-            Import Center
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
-            Import your existing anime and manga lists into Media Vault.
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400"> {ui(locale, "Import tools")} </p>
+          <h1 className="vault-title mt-3"> {ui(locale, "Import Center")} </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base"> {ui(locale, "Import your existing anime and manga lists into Media Vault.")} </p>
         </header>
 
-        <nav aria-label="Import formats" className="mb-6 flex flex-wrap gap-2">
+        <nav aria-label={ui(locale, "Import formats")} className="mb-6 flex flex-wrap gap-2">
           {([{ id: 'anilist-import', label: 'AniList' }, { id: 'csv-import', label: 'CSV' }, { id: 'mal-import', label: 'MyAnimeList XML' }]).map(format => (
             <a key={format.id} href={`#${format.id}`} className="inline-flex min-h-11 items-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-blue-400 hover:text-white">{format.label}</a>
           ))}
@@ -36,10 +38,8 @@ export default async function ImportPage() {
 
         <section id="anilist-import" className="mb-6 min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
           <div className="mb-5">
-            <h2 className="text-xl font-semibold text-slate-100">AniList Import</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              Enter an AniList username to preview and import public anime and manga lists.
-            </p>
+            <h2 className="text-xl font-semibold text-slate-100"> {ui(locale, "AniList Import")} </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "Enter an AniList username to preview and import public anime and manga lists.")} </p>
           </div>
 
           <AniListImporter canImport={Boolean(user)} />
@@ -47,11 +47,8 @@ export default async function ImportPage() {
 
         <section id="csv-import" className="mb-6 min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
           <div className="mb-5">
-            <h2 className="text-xl font-semibold text-slate-100">CSV Import</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              Upload a spreadsheet-friendly CSV file, map its columns, preview rows, and import
-              selected items into your vault.
-            </p>
+            <h2 className="text-xl font-semibold text-slate-100"> {ui(locale, "CSV Import")} </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "Upload a spreadsheet-friendly CSV file, map its columns, preview rows, and import selected items into your vault.")} </p>
           </div>
 
           <CsvImporter canImport={Boolean(user)} />
@@ -59,17 +56,11 @@ export default async function ImportPage() {
 
         <section id="mal-import" className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
           <div className="mb-5">
-            <h2 className="text-xl font-semibold text-slate-100">MyAnimeList XML Import</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              Upload a MyAnimeList XML export, preview your titles, then import selected items into
-              your vault.
-            </p>
+            <h2 className="text-xl font-semibold text-slate-100"> {ui(locale, "MyAnimeList XML Import")} </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "Upload a MyAnimeList XML export, preview your titles, then import selected items into your vault.")} </p>
           </div>
 
-          <div className="mb-5 rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm leading-6 text-slate-400">
-            Your XML file is parsed locally in your browser for preview. Selected items are only
-            saved when you click Import selected items.
-          </div>
+          <div className="mb-5 rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm leading-6 text-slate-400"> {ui(locale, "Your XML file is parsed locally in your browser for preview. Selected items are only saved when you click Import selected items.")} </div>
 
           <MalXmlImporter canDeleteMalImports={Boolean(user)} />
         </section>

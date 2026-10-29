@@ -1,5 +1,7 @@
 import { getCurrentUser } from '../../../lib/auth/dal'
 import { getTmdbCandidateById } from '../../../lib/catalog-search'
+import { getRequestMetadataLanguage } from '../../../lib/i18n-server'
+import { resolveMetadataLanguage } from '../../../lib/metadata-language'
 import { parseProviderMediaId } from '../../../lib/provider-ids'
 
 export async function POST(request: Request) {
@@ -12,13 +14,13 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: 'Invalid request body.' }, { status: 400 })
   }
-  const input = body as { id?: unknown; type?: unknown } | null
+  const input = body as { id?: unknown; type?: unknown; metadataLanguage?: unknown } | null
   if (!input || typeof input.id !== 'string' || (input.type !== 'movie' && input.type !== 'series')) {
     return Response.json({ error: 'Invalid catalog item.' }, { status: 400 })
   }
   const type = input.type === 'movie' ? 'movie' : 'tv'
   const id = parseProviderMediaId(input.id, 'tmdb', type)
   if (!id) return Response.json({ error: 'Invalid catalog item.' }, { status: 400 })
-  const data = await getTmdbCandidateById(id, type)
+  const data = await getTmdbCandidateById(id, type, resolveMetadataLanguage(input.metadataLanguage ?? await getRequestMetadataLanguage()), request.signal)
   return data ? Response.json({ data }) : Response.json({ error: 'Provider details are unavailable. You can still review this title before saving.' }, { status: 502 })
 }

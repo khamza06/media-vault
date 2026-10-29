@@ -1,6 +1,7 @@
+import { render } from './render-with-locale'
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ createListAction: vi.fn(), deleteListAction: vi.fn(), updateListAction: vi.fn(), updateListSharingAction: vi.fn(), addItemsToListAction: vi.fn(), removeItemFromListAction: vi.fn(), showToast: vi.fn(), refresh: vi.fn() }))
 vi.mock('../app/actions/lists', () => mocks)

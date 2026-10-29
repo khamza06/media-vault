@@ -1,5 +1,7 @@
 'use client'
 
+import { ui } from '../lib/ui-i18n'
+
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -13,7 +15,7 @@ export default function LogoutButton({
   className?: string
 }) {
   const router = useRouter()
-  const { t } = useLocale()
+  const { locale, t  } = useLocale()
   const { showToast } = useToast()
   const pending = useRef(false)
   const [isPending, setIsPending] = useState(false)
@@ -31,7 +33,7 @@ export default function LogoutButton({
           router.replace('/login')
           router.refresh()
         } catch {
-          showToast('Could not confirm logout. Check your connection and try again.', 'error')
+          showToast(ui(locale, "Could not confirm logout. Check your connection and try again."), 'error')
         } finally {
           pending.current = false
           setIsPending(false)

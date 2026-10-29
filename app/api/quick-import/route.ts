@@ -1,5 +1,6 @@
 import { getCurrentUser } from '../../../lib/auth/dal'
-import { getRequestLocale } from '../../../lib/i18n-server'
+import { getRequestLocale, getRequestMetadataLanguage } from '../../../lib/i18n-server'
+import { resolveMetadataLanguage } from '../../../lib/metadata-language'
 import { resolveLocale } from '../../../lib/i18n'
 import { resolveQuickImport } from '../../../lib/quick-import-resolver'
 import { containsBlockedSearchTerm, isCatalogSearchType } from '../../../lib/search-safety'
@@ -33,13 +34,14 @@ export async function POST(request: Request) {
   if (containsBlockedSearchTerm(input)) return json({ error: 'Please search for a different title.' }, 400)
   if (body.type !== undefined && body.type !== '' && (typeof body.type !== 'string' || !isCatalogSearchType(body.type))) return json({ error: 'Invalid media type.' }, 400)
   const locale = resolveLocale(typeof body.locale === 'string' ? body.locale : await getRequestLocale())
+  const metadataLanguage = resolveMetadataLanguage(body.metadataLanguage ?? await getRequestMetadataLanguage())
   let quota: { data: unknown; error: unknown }
   try { quota = await createSupabaseServerClient(user.accessToken).rpc('consume_quick_import_quota') }
   catch { return json({ error: 'Identification is temporarily unavailable. You can still add media manually.' }, 503) }
   if (quota.error) return json({ error: 'Identification is temporarily unavailable. You can still add media manually.' }, 503)
   if (quota.data !== true) return json({ error: 'Too many identification requests. Wait a few minutes, or use the manual form.', code: 'rate-limited' }, 429, { 'Retry-After': '600' })
   try {
-    return json({ data: await resolveQuickImport(input, locale, isCatalogSearchType(typeof body.type === 'string' ? body.type : '') ? body.type as import('../../../lib/search-safety').CatalogSearchType : undefined) })
+    return json({ data: await resolveQuickImport(input, locale, isCatalogSearchType(typeof body.type === 'string' ? body.type : '') ? body.type as import('../../../lib/search-safety').CatalogSearchType : undefined, metadataLanguage) })
   } catch (error) {
     return json({ error: error instanceof PageFetchError && error.code === 'unsafe-url' ? 'This URL cannot be fetched safely. Enter the media title instead.' : 'Identification is unavailable. Enter a title or use the manual form.' }, 400)
   }

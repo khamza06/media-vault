@@ -1,4 +1,8 @@
 'use client'
+import { translateError } from '../../lib/ui-i18n'
+
+import { ui } from '../../lib/ui-i18n'
+import { useLocale } from '../LocaleProvider'
 
 import ActionFeedback from '../ui/ActionFeedback'
 
@@ -35,27 +39,29 @@ function formatTypeLabel(type: AniListImportCandidate['type']) {
   }
 }
 
-function formatImportResult(result: AniListImportResult) {
+function formatImportResult(result: AniListImportResult, locale: import('../../lib/i18n').Locale = 'en') {
   if (result.error) {
     return result.error
   }
 
   if (result.imported > 0) {
-    return `Imported ${result.imported} AniList items. Skipped ${result.skipped} duplicates.`
+    return ui(locale, "Imported {value0} AniList items. Skipped {value1} duplicates.", { value0: result.imported, value1: result.skipped })
   }
 
-  return `No items imported. ${result.skipped} items were skipped as duplicates.`
+  return ui(locale, "No items imported. {value0} items were skipped as duplicates.", { value0: result.skipped })
 }
 
-function formatExternalScore(value: number | null | undefined) {
+function formatExternalScore(value: number | null | undefined, locale: import('../../lib/i18n').Locale = 'en') {
   if (typeof value !== 'number') {
-    return 'No official score'
+    return ui(locale, "No official score")
   }
 
-  return `AniList ${value.toFixed(1)} / 10`
+  return ui(locale, "AniList {value0} / 10", { value0: value.toFixed(1) })
 }
 
 export default function AniListImporter({ canImport = false }: { canImport?: boolean }) {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const [candidates, setCandidates] = useState<AniListImportCandidate[]>([])
   const [errorMessage, setErrorMessage] = useState('')
@@ -123,7 +129,7 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
       setCandidates(result.candidates)
       setSelectedKeys(new Set(result.candidates.map(getCandidateKey)))
     } catch {
-      setErrorMessage('Could not fetch this AniList library. Please try again.')
+      setErrorMessage(ui(locale, "Could not fetch this AniList library. Please try again."))
     } finally {
       setIsFetching(false)
     }
@@ -151,7 +157,7 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
       }
     } catch {
       setImportResult({
-        error: 'Import failed. Please try again.',
+        error: ui(locale, "Import failed. Please try again."),
         failed: selectedCandidates.length,
         imported: 0,
         skipped: 0,
@@ -189,22 +195,15 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
   return (
     <div className="space-y-5">
       {!canImport ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-          Sign in to fetch and import AniList libraries.
-        </div>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100"> {ui(locale, "Sign in to fetch and import AniList libraries.")} </div>
       ) : null}
 
       <form
         onSubmit={(event) => void handleFetchAniListLibrary(event)}
         className="rounded-xl border border-slate-800 bg-slate-950 p-4"
       >
-        <label htmlFor="anilist-username" className="block text-sm font-semibold text-slate-100">
-          AniList username
-        </label>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
-          Enter a public AniList username. The app fetches anime and manga lists for preview before
-          anything is saved.
-        </p>
+        <label htmlFor="anilist-username" className="block text-sm font-semibold text-slate-100"> {ui(locale, "AniList username")} </label>
+        <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "Enter a public AniList username. The app fetches anime and manga lists for preview before anything is saved.")} </p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <input
             id="anilist-username"
@@ -220,14 +219,14 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
             disabled={isFetchDisabled}
             className="min-h-12 rounded-xl border border-blue-400/20 bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-500"
           >
-            {isFetching ? 'Fetching...' : 'Fetch AniList Library'}
+            {isFetching ? ui(locale, "Fetching...") : ui(locale, "Fetch AniList Library")}
           </button>
         </div>
       </form>
 
       {errorMessage ? (
         <ActionFeedback tone="error">
-          {errorMessage}
+          {translateError(locale, errorMessage)}
         </ActionFeedback>
       ) : null}
 
@@ -238,32 +237,28 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
       ) : null}
 
       {isFetching ? (
-        <ActionFeedback tone="pending">
-          Fetching public AniList lists...
-        </ActionFeedback>
+        <ActionFeedback tone="pending"> {ui(locale, "Fetching public AniList lists...")} </ActionFeedback>
       ) : null}
 
       {!hasCandidates && !isFetching && !errorMessage ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-          Fetch a public AniList username to preview importable anime and manga entries.
-        </div>
+        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400"> {ui(locale, "Fetch a public AniList username to preview importable anime and manga entries.")} </div>
       ) : null}
 
       {hasCandidates ? (
         <section className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-4">
-            <SummaryCard label="Parsed items" value={summary.total.toString()} />
-            <SummaryCard label="Anime" value={summary.byType.anime.toString()} />
+            <SummaryCard label={ui(locale, "Parsed items")} value={summary.total.toString()} />
+            <SummaryCard label={ui(locale, "Anime")} value={summary.byType.anime.toString()} />
             <SummaryCard
-              label="Manga family"
+              label={ui(locale, "Manga family")}
               value={(summary.byType.manga + summary.byType.manhwa + summary.byType.manhua).toString()}
             />
-            <SummaryCard label="Selected" value={`${selectedCount}`} />
+            <SummaryCard label={ui(locale, "Selected")} value={`${selectedCount}`} />
           </div>
 
           {summary.byStatus.length > 0 ? (
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <h3 className="text-sm font-semibold text-slate-100">Status breakdown</h3>
+              <h3 className="text-sm font-semibold text-slate-100"> {ui(locale, "Status breakdown")} </h3>
               <div className="mt-3 flex flex-wrap gap-2">
                 {summary.byStatus.map(([status, count]) => (
                   <span
@@ -280,38 +275,26 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-100">AniList preview</h3>
-                <p className="text-sm text-slate-400">
-                  Select entries to save. The import skips existing AniList IDs and existing
-                  title/type duplicates.
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-200">
-                  Selected {selectedCount} of {candidates.length} items
-                </p>
+                <h3 className="text-lg font-semibold text-slate-100"> {ui(locale, "AniList preview")} </h3>
+                <p className="text-sm text-slate-400"> {ui(locale, "Select entries to save. The import skips existing AniList IDs and existing title/type duplicates.")} </p>
+                <p className="mt-2 text-sm font-medium text-slate-200"> {ui(locale, "Selected")} {selectedCount} {ui(locale, "of")} {candidates.length} {ui(locale, "items")} </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={selectAllCandidates}
                   className="min-h-11 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
-                >
-                  Select all
-                </button>
+                > {ui(locale, "Select all")} </button>
                 <button
                   type="button"
                   onClick={deselectAllCandidates}
                   className="min-h-11 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
-                >
-                  Deselect all
-                </button>
+                > {ui(locale, "Deselect all")} </button>
               </div>
             </div>
 
             {candidates.length > PREVIEW_LIMIT ? (
-              <p className="mt-3 text-xs text-slate-400">
-                Showing first {PREVIEW_LIMIT} of {candidates.length} items. Selection still applies
-                to the full list.
-              </p>
+              <p className="mt-3 text-xs text-slate-400"> {ui(locale, "Showing first")} {PREVIEW_LIMIT} {ui(locale, "of")} {candidates.length} {ui(locale, "items. Selection still applies to the full list.")} </p>
             ) : null}
 
             <div className="mt-4 max-h-[38rem] space-y-3 overflow-y-auto pr-1">
@@ -326,7 +309,7 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
                       checked={selectedKeys.has(getCandidateKey(candidate, index))}
                       onChange={() => toggleCandidate(candidate, index)}
                       className="mt-1 h-5 w-5 rounded-xl border-slate-700 bg-slate-950 text-blue-500"
-                      aria-label={`Select ${candidate.title}`}
+                      aria-label={ui(locale, "Select {value0}", { value0: candidate.title })}
                     />
                     <div className="h-20 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
                       {candidate.image_url ? (
@@ -338,9 +321,7 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
                           loading="lazy"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center px-2 text-center text-[0.65rem] text-slate-500">
-                          No cover
-                        </div>
+                        <div className="flex h-full w-full items-center justify-center px-2 text-center text-[0.65rem] text-slate-500"> {ui(locale, "No cover")} </div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -360,26 +341,26 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
                       </div>
 
                       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
-                        <PreviewField label="Status" value={candidate.status ?? 'Unknown'} />
+                        <PreviewField label={ui(locale, "Status")} value={candidate.status ?? 'Unknown'} />
                         <PreviewField
-                          label="My rating"
-                          value={candidate.rating == null ? 'Unrated' : `${candidate.rating} / 10`}
+                          label={ui(locale, "My rating")}
+                          value={candidate.rating == null ? ui(locale, "Unrated") : `${candidate.rating} / 10`}
                         />
                         <PreviewField
-                          label="Progress"
+                          label={ui(locale, "Progress")}
                           value={candidate.progress == null ? 'Not started' : candidate.progress}
                         />
                         <PreviewField
-                          label="Official"
-                          value={formatExternalScore(candidate.external_score)}
+                          label={ui(locale, "Official")}
+                          value={formatExternalScore(candidate.external_score, locale)}
                         />
                       </dl>
                       {candidate.notes || candidate.started_at || candidate.completed_at ? (
                         <p className="mt-3 text-xs leading-5 text-slate-400">
                           {[
-                            candidate.notes ? 'Includes notes' : null,
-                            candidate.started_at ? `Started ${candidate.started_at}` : null,
-                            candidate.completed_at ? `Completed ${candidate.completed_at}` : null,
+                            candidate.notes ? ui(locale, "Includes notes") : null,
+                            candidate.started_at ? ui(locale, "Started {value0}", { value0: candidate.started_at }) : null,
+                            candidate.completed_at ? ui(locale, "Completed {value0}", { value0: candidate.completed_at }) : null,
                           ].filter(Boolean).join(' / ')}
                         </p>
                       ) : null}
@@ -390,17 +371,15 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
             </div>
           </div>
 
-          {isImporting ? <ActionFeedback tone="pending">Importing selected items...</ActionFeedback> : null}
+          {isImporting ? <ActionFeedback tone="pending"> {ui(locale, "Importing selected items...")} </ActionFeedback> : null}
           {importResult ? (
             <ActionFeedback tone={importResult.error ? 'error' : 'success'}>
-              <p className="font-semibold">{formatImportResult(importResult)}</p>
+              <p className="font-semibold">{formatImportResult(importResult, locale)}</p>
               {!importResult.error && importResult.imported > 0 ? (
                 <Link
                   href="/"
                   className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-emerald-300/20 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-500/25"
-                >
-                  Go to Library
-                </Link>
+                > {ui(locale, "Go to Library")} </Link>
               ) : null}
             </ActionFeedback>
           ) : null}
@@ -412,14 +391,9 @@ export default function AniListImporter({ canImport = false }: { canImport?: boo
               onClick={() => void handleImportSelected()}
               className="min-h-12 w-full rounded-xl border border-blue-400/20 bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-500"
             >
-              {isImporting ? 'Importing...' : 'Import selected AniList items'}
+              {isImporting ? 'Importing...' : ui(locale, "Import selected AniList items")}
             </button>
-            <p className="mt-3 text-center text-sm text-slate-400">
-              Imported entries keep your progress, notes and complete start/finish dates.
-              Personal scores are rounded to the vault&apos;s 1-10 scale. Repeat counts and
-              incomplete dates are not imported. Covers, genres and official ratings are kept
-              when available.
-            </p>
+            <p className="mt-3 text-center text-sm text-slate-400"> {ui(locale, "Imported entries keep your progress, notes and complete start/finish dates. Personal scores are rounded to the vault&apos;s 1-10 scale. Repeat counts and incomplete dates are not imported. Covers, genres and official ratings are kept when available.")} </p>
           </div>
         </section>
       ) : null}

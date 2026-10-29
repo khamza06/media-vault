@@ -1,5 +1,8 @@
 'use client'
 
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
+
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react'
@@ -11,16 +14,16 @@ import {
 import { useToast } from './ToastProvider'
 import ActionFeedback from './ui/ActionFeedback'
 
-function formatResultMessage(result: MetadataRefreshResult) {
+function formatResultMessage(result: MetadataRefreshResult, locale: import('../lib/i18n').Locale = 'en') {
   if (result.error) {
     return result.error
   }
 
   if (result.updated === 0) {
-    return `Checked ${result.checked} items. No metadata was changed. Unavailable or ambiguous matches are skipped.`
+    return ui(locale, "Checked {value0} items. No metadata was changed. Unavailable or ambiguous matches are skipped.", { value0: result.checked })
   }
 
-  return `Checked ${result.checked} items and updated ${result.updated}.`
+  return ui(locale, "Checked {value0} items and updated {value1}.", { value0: result.checked, value1: result.updated })
 }
 
 function SummaryPill({ label, value }: { label: string; value: number }) {
@@ -35,6 +38,8 @@ function SummaryPill({ label, value }: { label: string; value: number }) {
 }
 
 export default function MetadataRefreshButton() {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const { showToast } = useToast()
   const [isPending, startTransition] = useTransition()
@@ -50,14 +55,14 @@ export default function MetadataRefreshButton() {
         const nextResult = await refreshCurrentUserItemMetadata()
         setResult(nextResult)
 
-        const message = formatResultMessage(nextResult)
+        const message = formatResultMessage(nextResult, locale)
         showToast(message, nextResult.error ? 'error' : 'success')
 
         if (!nextResult.error) {
           router.refresh()
         }
       } catch {
-        const message = 'Could not finish refreshing metadata. Check your connection and try again.'
+        const message = ui(locale, "Could not finish refreshing metadata. Check your connection and try again.")
         setRequestError(message)
         showToast(message, 'error')
       }
@@ -68,12 +73,8 @@ export default function MetadataRefreshButton() {
     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
       <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white">Refresh provider metadata</p>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Fill official ratings, missing covers, genres, and missing totals from AniList
-            or TMDB without changing your notes, status, progress, rating, favorites, or lists.
-            Saved provider IDs are preferred; ambiguous title matches are skipped.
-          </p>
+          <p className="text-sm font-semibold text-white"> {ui(locale, "Refresh provider metadata")} </p>
+          <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "Fill official ratings, missing covers, genres, and missing totals from AniList or TMDB without changing your notes, status, progress, rating, favorites, or lists. Saved provider IDs are preferred; ambiguous title matches are skipped.")} </p>
         </div>
         <button
           type="button"
@@ -82,7 +83,7 @@ export default function MetadataRefreshButton() {
           className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
-          {isPending ? 'Refreshing...' : 'Refresh metadata'}
+          {isPending ? ui(locale, "Refreshing...") : ui(locale, "Refresh metadata")}
         </button>
       </div>
 
@@ -102,18 +103,17 @@ export default function MetadataRefreshButton() {
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
             )}
             <div className="min-w-0">
-              <p className="text-sm font-semibold">{formatResultMessage(result)}</p>
+              <p className="text-sm font-semibold">{formatResultMessage(result, locale)}</p>
               <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-                <SummaryPill label="Checked" value={result.checked} />
-                <SummaryPill label="Updated" value={result.updated} />
-                <SummaryPill label="Ratings" value={result.ratingsAdded} />
-                <SummaryPill label="Covers" value={result.coversAdded} />
-                <SummaryPill label="Skipped" value={result.skipped} />
-                <SummaryPill label="Failed" value={result.failed} />
+                <SummaryPill label={ui(locale, "Checked")} value={result.checked} />
+                <SummaryPill label={ui(locale, "Updated")} value={result.updated} />
+                <SummaryPill label={ui(locale, "Ratings")} value={result.ratingsAdded} />
+                <SummaryPill label={ui(locale, "Covers")} value={result.coversAdded} />
+                <SummaryPill label={ui(locale, "Skipped")} value={result.skipped} />
+                <SummaryPill label={ui(locale, "Failed")} value={result.failed} />
               </div>
               {result.genresUpdated > 0 || result.totalsUpdated > 0 ? (
-                <p className="mt-3 text-xs leading-5 text-emerald-100/80">
-                  Genres updated: {result.genresUpdated}. Totals filled:{' '}
+                <p className="mt-3 text-xs leading-5 text-emerald-100/80"> {ui(locale, "Genres updated:")} {result.genresUpdated} {ui(locale, ". Totals filled:")} {' '}
                   {result.totalsUpdated}.
                 </p>
               ) : null}

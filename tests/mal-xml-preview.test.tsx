@@ -1,5 +1,6 @@
+import { render } from './render-with-locale'
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ importMyAnimeListItems: vi.fn() }))
 vi.mock('../app/actions/import', () => ({ ...mocks, deleteMyAnimeListImports: vi.fn(), enrichMissingAnimeMangaCovers: vi.fn() }))

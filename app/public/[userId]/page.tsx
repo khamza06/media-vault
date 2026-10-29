@@ -1,3 +1,7 @@
+import { translateMessage } from '../../../lib/ui-i18n'
+
+import { ui } from '../../../lib/ui-i18n'
+import { getRequestLocale } from '../../../lib/i18n-server'
 import type { Metadata } from 'next'
 import { Compass } from 'lucide-react'
 
@@ -8,9 +12,12 @@ import { toMediaItem, type MediaItemRecord } from '../../../lib/media'
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Public Vault | Media Vault',
-  description: 'A public, read-only view of a Media Vault collection.',
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale()
+  return {
+  title: ui(locale, "Public Vault | Media Vault"),
+  description: ui(locale, "A public, read-only view of a Media Vault collection."),
+}
 }
 
 type PageProps = {
@@ -23,10 +30,12 @@ const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export default async function PublicVaultPage(props: PageProps) {
+  const locale = await getRequestLocale()
+
   const { userId } = await props.params
 
   if (!userId || !uuidPattern.test(userId)) {
-    return <PublicStateCard message="Invalid public link. Please ask the owner for a correct one." />
+    return <PublicStateCard message={ui(locale, "Invalid public link. Please ask the owner for a correct one.")} />
   }
 
   const { data, error } = await getPublicItemsByUserId(userId)
@@ -34,7 +43,7 @@ export default async function PublicVaultPage(props: PageProps) {
   if (error) {
     return (
       <PublicStateCard
-        message="This public vault is not available right now. Check the link or try again later."
+        message={ui(locale, "This public vault is not available right now. Check the link or try again later.")}
       />
     )
   }
@@ -45,26 +54,19 @@ export default async function PublicVaultPage(props: PageProps) {
     <main className="vault-page">
       <header className="mb-8 max-w-4xl min-w-0">
         <div className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
-          <Compass className="h-4 w-4" />
-          Public Vault
-        </div>
-        <h1 className="vault-title mt-4">
-          Shared Media Library
-        </h1>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-          Browse this collection in read-only mode. Posters, genres, progress, and official
-          ratings stay visible, while editing controls remain private to the owner.
-        </p>
+          <Compass className="h-4 w-4" /> {ui(locale, "Public Vault")} </div>
+        <h1 className="vault-title mt-4"> {ui(locale, "Shared Media Library")} </h1>
+        <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg"> {ui(locale, "Browse this collection in read-only mode. Posters, genres, progress, and official ratings stay visible, while editing controls remain private to the owner.")} </p>
       </header>
 
       <section className="mb-6 grid min-w-0 gap-4 md:grid-cols-3">
-        <SummaryCard label="Visible items" value={String(items.length)} />
+        <SummaryCard label={ui(locale, "Visible items")} value={String(items.length)} />
         <SummaryCard
-          label="Favorites"
+          label={ui(locale, "Favorites")}
           value={String(items.filter((item) => item.favorite).length)}
         />
         <SummaryCard
-          label="Completed"
+          label={ui(locale, "Completed")}
           value={String(items.filter((item) => item.status === 'Completed').length)}
         />
       </section>
@@ -74,11 +76,13 @@ export default async function PublicVaultPage(props: PageProps) {
   )
 }
 
-function PublicStateCard({ message }: { message: string }) {
+async function PublicStateCard({ message }: { message: string }) {
+  const locale = await getRequestLocale()
+
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl items-center px-4 py-10 pb-32 sm:px-6 lg:px-8">
       <section className="glass-panel surface-highlight w-full rounded-xl px-6 py-10 text-center">
-        <p className="text-base font-semibold text-white">{message}</p>
+        <p className="text-base font-semibold text-white">{translateMessage(locale, message)}</p>
       </section>
     </main>
   )

@@ -1,4 +1,8 @@
 'use client'
+import { translateError } from '../lib/ui-i18n'
+import { translateMessage } from '../lib/ui-i18n'
+
+import { ui } from '../lib/ui-i18n'
 
 import { LoaderCircle, Search, Sparkles, Star, X } from 'lucide-react'
 import Link from 'next/link'
@@ -61,7 +65,7 @@ const catalogTypeOptions = [
 ]
 
 export default function HeaderCatalogSearch() {
-  const { locale } = useLocale()
+  const { locale, metadataLanguage } = useLocale()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<CatalogSearchCandidate[] | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
@@ -128,7 +132,7 @@ export default function HeaderCatalogSearch() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ locale, query: trimmedQuery, type: searchType }),
+          body: JSON.stringify({ locale, metadataLanguage, query: trimmedQuery, type: searchType }),
         })
 
         const payload = (await response.json()) as {
@@ -153,7 +157,7 @@ export default function HeaderCatalogSearch() {
         }
 
         setResults([])
-        setErrorMessage('Search failed.')
+        setErrorMessage(ui(locale, "Search failed."))
       } finally {
         if (controller.signal.aborted || searchRequestIdRef.current !== requestId) {
           return
@@ -168,7 +172,7 @@ export default function HeaderCatalogSearch() {
       window.clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [locale, query, searchType])
+  }, [locale, metadataLanguage, query, searchType])
 
   useEffect(() => {
     function isInsideSearchSurface(target: Node) {
@@ -252,39 +256,31 @@ export default function HeaderCatalogSearch() {
   function renderResultsContent() {
     if (trimmedQuery.length < MIN_CATALOG_QUERY_LENGTH) {
       return (
-        <div className="px-4 py-4 text-sm text-slate-300">
-          Type at least 2 characters to search global databases.
-        </div>
+        <div className="px-4 py-4 text-sm text-slate-300"> {ui(locale, "Type at least 2 characters to search global databases.")} </div>
       )
     }
 
     if (isLoading) {
       return (
         <div className="flex items-center gap-2 px-4 py-4 text-sm text-white">
-          <LoaderCircle className="h-4 w-4 animate-spin text-blue-300" />
-          Searching...
-        </div>
+          <LoaderCircle className="h-4 w-4 animate-spin text-blue-300" /> {ui(locale, "Searching...")} </div>
       )
     }
 
     if (errorMessage) {
-      return <div className="px-4 py-4 text-sm text-amber-200">{errorMessage}</div>
+      return <div className="px-4 py-4 text-sm text-amber-200">{translateError(locale, errorMessage)}</div>
     }
 
     if (!hasSearched) {
       return (
         <div className="flex items-center gap-2 px-4 py-4 text-sm text-slate-300">
-          <LoaderCircle className="h-4 w-4 animate-spin text-blue-300" />
-          Searching...
-        </div>
+          <LoaderCircle className="h-4 w-4 animate-spin text-blue-300" /> {ui(locale, "Searching...")} </div>
       )
     }
 
     if ((results?.length ?? 0) === 0) {
       return (
-        <div className="px-4 py-4 text-sm text-slate-200">
-          No matches found. Try a different title.
-        </div>
+        <div className="px-4 py-4 text-sm text-slate-200"> {ui(locale, "No matches found. Try a different title.")} </div>
       )
     }
 
@@ -305,9 +301,7 @@ export default function HeaderCatalogSearch() {
                 className="h-14 w-10 shrink-0 rounded-xl object-cover"
               />
             ) : (
-              <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-[10px] text-slate-400">
-                N/A
-              </div>
+              <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-[10px] text-slate-400"> {ui(locale, "N/A")} </div>
             )}
 
             <div className="flex min-w-0 flex-1 flex-col">
@@ -315,7 +309,7 @@ export default function HeaderCatalogSearch() {
                 <span className="truncate text-sm font-semibold text-white">
                   {getResultTitle(item)}
                 </span>
-                <span className="shrink-0 text-xs text-slate-400">{getResultYear(item)}</span>
+                <span className="shrink-0 text-xs text-slate-400">{translateMessage(locale, getResultYear(item))}</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {getRatingCopy(item) ? (
@@ -335,9 +329,7 @@ export default function HeaderCatalogSearch() {
           href={`/discover?${new URLSearchParams({ q: trimmedQuery, type: searchType }).toString()}`}
           onClick={() => clearSearch({ blur: true, closeMobile: true })}
           className="mt-2 flex min-h-11 items-center justify-center rounded-xl border border-blue-400/30 bg-blue-500/15 px-3 text-sm font-semibold text-blue-100 transition hover:bg-blue-500/25"
-        >
-          View all results
-        </Link>
+        > {ui(locale, "View all results")} </Link>
       </div>
     )
   }
@@ -349,7 +341,7 @@ export default function HeaderCatalogSearch() {
           type="button"
           onClick={() => setIsMobileOverlayOpen(true)}
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-white shadow-[0_12px_30px_rgba(2,6,23,0.35)] transition hover:border-blue-400/40 hover:bg-slate-900 md:hidden"
-          aria-label="Open search"
+          aria-label={ui(locale, "Open search")}
         >
           <Search className="h-5 w-5" />
         </button>
@@ -357,10 +349,10 @@ export default function HeaderCatalogSearch() {
         <div className="hidden items-center gap-3 md:flex">
           <div className="flex w-32 min-w-0 shrink-0 items-center xl:w-36">
             <AppSelect
-              ariaLabel="Search media type"
+              ariaLabel={ui(locale, "Search media type")}
               value={searchType}
               onValueChange={(value) => setSearchType(value as CatalogSearchType | '')}
-              options={catalogTypeOptions}
+              options={catalogTypeOptions.map(option => ({ ...option, label: translateMessage(locale, option.label) }))}
               className={`h-12 min-h-12 w-full rounded-xl border px-4 py-3 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-blue-500/40 ${desktopTypeSelectClass}`}
             />
           </div>
@@ -390,7 +382,7 @@ export default function HeaderCatalogSearch() {
                   }
                 }, 0)
               }}
-              placeholder={searchType ? 'Search global databases...' : 'Select type first...'}
+              placeholder={searchType ? ui(locale, "Search global databases...") : ui(locale, "Select type first...")}
               className="min-w-0 w-full bg-transparent pl-3 text-sm font-medium text-white outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-500"
               disabled={!searchType}
             />
@@ -399,7 +391,7 @@ export default function HeaderCatalogSearch() {
                 type="button"
                 onClick={() => clearSearch()}
                 className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/5 hover:text-white"
-                aria-label="Clear search"
+                aria-label={ui(locale, "Clear search")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -412,9 +404,7 @@ export default function HeaderCatalogSearch() {
 
         {shouldShowDesktopDropdown ? (
           <div className="absolute left-0 top-full z-[9999] mt-1 w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-2xl">
-            <p className="px-3 pt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Search Results
-            </p>
+            <p className="px-3 pt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400"> {ui(locale, "Search Results")} </p>
             {renderResultsContent()}
           </div>
         ) : null}
@@ -425,16 +415,14 @@ export default function HeaderCatalogSearch() {
           <div className="safe-top flex h-full flex-col px-4 pb-6 pt-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                  Search
-                </p>
-                <h2 className="mt-1 text-xl font-semibold text-white">Find your next title</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500"> {ui(locale, "Search")} </p>
+                <h2 className="mt-1 text-xl font-semibold text-white"> {ui(locale, "Find your next title")} </h2>
               </div>
               <button
                 type="button"
                 onClick={() => setIsMobileOverlayOpen(false)}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-white shadow-[0_12px_30px_rgba(2,6,23,0.35)] transition hover:border-blue-400/40 hover:bg-slate-900"
-                aria-label="Close search"
+                aria-label={ui(locale, "Close search")}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -443,10 +431,10 @@ export default function HeaderCatalogSearch() {
             <div className="relative mt-5">
               <div className="space-y-3">
                 <AppSelect
-                  ariaLabel="Search media type"
+                  ariaLabel={ui(locale, "Search media type")}
                   value={searchType}
                   onValueChange={(value) => setSearchType(value as CatalogSearchType | '')}
-                  options={catalogTypeOptions}
+                  options={catalogTypeOptions.map(option => ({ ...option, label: translateMessage(locale, option.label) }))}
                   className={`h-12 min-h-12 w-full rounded-xl border px-4 py-3 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-blue-500/40 ${mobileTypeSelectClass}`}
                 />
 
@@ -481,7 +469,7 @@ export default function HeaderCatalogSearch() {
                         }
                       }, 0)
                     }}
-                    placeholder={searchType ? 'Search global databases...' : 'Select type first...'}
+                    placeholder={searchType ? ui(locale, "Search global databases...") : ui(locale, "Select type first...")}
                     className="w-full bg-transparent pl-1 text-base font-semibold text-white outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-500"
                     disabled={!searchType}
                   />
@@ -490,7 +478,7 @@ export default function HeaderCatalogSearch() {
                       type="button"
                       onClick={() => clearSearch()}
                       className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/5 hover:text-white"
-                      aria-label="Clear search"
+                      aria-label={ui(locale, "Clear search")}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -500,9 +488,7 @@ export default function HeaderCatalogSearch() {
 
               {shouldShowMobileResults ? (
                 <div className="absolute left-0 top-full z-[999] mt-2 w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-2xl">
-                  <p className="px-4 pt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300">
-                    Search Results
-                  </p>
+                  <p className="px-4 pt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300"> {ui(locale, "Search Results")} </p>
                   {renderResultsContent()}
                 </div>
               ) : null}
@@ -512,9 +498,7 @@ export default function HeaderCatalogSearch() {
               {!shouldShowMobileResults ? (
                 <div className="glass-panel-soft flex h-full min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-white/10 px-6 text-center">
                   <Search className="h-8 w-8 text-slate-500" />
-                  <p className="mt-4 text-sm text-slate-400">
-                    Pick a media type and start typing to search the global databases.
-                  </p>
+                  <p className="mt-4 text-sm text-slate-400"> {ui(locale, "Pick a media type and start typing to search the global databases.")} </p>
                 </div>
               ) : null}
             </div>

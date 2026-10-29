@@ -1,3 +1,7 @@
+import { translateMessage } from '../../../lib/ui-i18n'
+
+import { ui } from '../../../lib/ui-i18n'
+import { getRequestLocale } from '../../../lib/i18n-server'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, Compass, ListChecks, Lock, UserRound } from 'lucide-react'
@@ -22,6 +26,8 @@ type PageProps = {
 const usernamePattern = /^[a-z0-9_-]{3,30}$/
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const locale = await getRequestLocale()
+
   const { username: usernameParam } = await props.params
   const username = usernameParam.trim().toLowerCase()
 
@@ -51,17 +57,17 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   }
 
   const displayName = profile.displayName || profile.username
-  const description = `Browse ${displayName}'s public Media Vault in read-only mode.`
+  const description = ui(locale, "Browse {value0}'s public Media Vault in read-only mode.", { value0: displayName })
   const path = `/u/${profile.username}`
 
   return {
-    title: `${displayName} | Media Vault`,
+    title: ui(locale, "{value0} | Media Vault", { value0: displayName }),
     description,
     alternates: {
       canonical: path,
     },
     openGraph: {
-      title: `${displayName} | Media Vault`,
+      title: ui(locale, "{value0} | Media Vault", { value0: displayName }),
       description,
       url: path,
       siteName: 'Media Vault',
@@ -69,13 +75,15 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${displayName} | Media Vault`,
+      title: ui(locale, "{value0} | Media Vault", { value0: displayName }),
       description,
     },
   }
 }
 
 export default async function PublicUserProfilePage(props: PageProps) {
+  const locale = await getRequestLocale()
+
   const { username: usernameParam } = await props.params
   const username = usernameParam.trim().toLowerCase()
 
@@ -83,8 +91,8 @@ export default async function PublicUserProfilePage(props: PageProps) {
     return (
       <PublicStateCard
         icon={<UserRound className="h-5 w-5" />}
-        message="Public profile not found."
-        title="Unknown profile"
+        message={ui(locale, "Public profile not found.")}
+        title={ui(locale, "Unknown profile")}
       />
     )
   }
@@ -95,8 +103,8 @@ export default async function PublicUserProfilePage(props: PageProps) {
     return (
       <PublicStateCard
         icon={<UserRound className="h-5 w-5" />}
-        message="This public profile does not exist or is not available."
-        title="Profile not found"
+        message={ui(locale, "This public profile does not exist or is not available.")}
+        title={ui(locale, "Profile not found")}
       />
     )
   }
@@ -107,8 +115,8 @@ export default async function PublicUserProfilePage(props: PageProps) {
     return (
       <PublicStateCard
         icon={<Lock className="h-5 w-5" />}
-        message="This vault is private. Ask the owner to enable public sharing."
-        title="Private vault"
+        message={ui(locale, "This vault is private. Ask the owner to enable public sharing.")}
+        title={ui(locale, "Private vault")}
       />
     )
   }
@@ -123,8 +131,8 @@ export default async function PublicUserProfilePage(props: PageProps) {
     return (
       <PublicStateCard
         icon={<Lock className="h-5 w-5" />}
-        message="This public vault is not available right now. Try again later."
-        title="Vault unavailable"
+        message={ui(locale, "This public vault is not available right now. Try again later.")}
+        title={ui(locale, "Vault unavailable")}
       />
     )
   }
@@ -147,17 +155,12 @@ export default async function PublicUserProfilePage(props: PageProps) {
           <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
             <div className="min-w-0">
               <div className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
-                <Compass className="h-4 w-4" />
-                Public Vault
-              </div>
+                <Compass className="h-4 w-4" /> {ui(locale, "Public Vault")} </div>
               <h1 className="vault-title mt-5">
                 {displayName}
               </h1>
               <p className="mt-3 text-sm font-medium text-blue-200">@{profile.username}</p>
-              <p className="mt-5 max-w-3xl text-base leading-7 text-slate-400">
-                Browse this Media Vault in read-only mode. Explore titles, ratings, and
-                shared collections.
-              </p>
+              <p className="mt-5 max-w-3xl text-base leading-7 text-slate-400"> {ui(locale, "Browse this Media Vault in read-only mode. Explore titles, ratings, and shared collections.")} </p>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <CopyPublicLinkButton path={`/u/${profile.username}`} />
@@ -166,27 +169,25 @@ export default async function PublicUserProfilePage(props: PageProps) {
                     href="/"
                     className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 hover:bg-slate-800"
                   >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to vault
-                  </Link>
+                    <ArrowLeft className="h-4 w-4" /> {ui(locale, "Back to vault")} </Link>
                 ) : null}
               </div>
             </div>
 
             <div className="grid min-w-0 grid-cols-2 gap-3">
-              <SummaryCard label="Public items" value={String(items.length)} />
-              <SummaryCard label="Completed" value={String(completedCount)} />
-              <SummaryCard label="Rated" value={String(ratedCount)} />
+              <SummaryCard label={ui(locale, "Public items")} value={String(items.length)} />
+              <SummaryCard label={ui(locale, "Completed")} value={String(completedCount)} />
+              <SummaryCard label={ui(locale, "Rated")} value={String(ratedCount)} />
               {publicListsSupported ? (
-                <SummaryCard label="Public lists" value={String(publicLists.length)} />
+                <SummaryCard label={ui(locale, "Public lists")} value={String(publicLists.length)} />
               ) : null}
             </div>
           </div>
         </header>
 
         <section className="mb-8 grid min-w-0 gap-4 lg:grid-cols-2">
-          <BreakdownCard emptyLabel="No media types yet." items={typeCounts} title="By Type" />
-          <BreakdownCard emptyLabel="No statuses yet." items={statusCounts} title="By Status" />
+          <BreakdownCard emptyLabel={ui(locale, "No media types yet.")} items={typeCounts} title={ui(locale, "By Type")} />
+          <BreakdownCard emptyLabel={ui(locale, "No statuses yet.")} items={statusCounts} title={ui(locale, "By Status")} />
         </section>
 
         {publicListsSupported ? (
@@ -252,7 +253,7 @@ function BreakdownCard({
   )
 }
 
-function PublicListsSection({
+async function PublicListsSection({
   lists,
   username,
 }: {
@@ -265,29 +266,25 @@ function PublicListsSection({
   }>
   username: string
 }) {
+  const locale = await getRequestLocale()
+
   return (
     <section className="mb-8 min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4">
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">
-            <ListChecks className="h-4 w-4" />
-            Public Lists
-          </div>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight text-white">
-            Shared collections
-          </h2>
+            <ListChecks className="h-4 w-4" /> {ui(locale, "Public Lists")} </div>
+          <h2 className="mt-3 text-2xl font-bold tracking-tight text-white"> {ui(locale, "Shared collections")} </h2>
         </div>
         <p className="text-sm text-slate-400">
-          {lists.length} public list{lists.length === 1 ? '' : 's'}
+          {lists.length} {ui(locale, "public list")} {lists.length === 1 ? '' : 's'}
         </p>
       </div>
 
       {lists.length === 0 ? (
         <div className="mt-5 rounded-xl border border-dashed border-slate-800 bg-slate-950 p-5">
-          <h3 className="text-base font-semibold text-slate-100">No public lists yet.</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            This vault is public, but the owner has not shared any custom lists.
-          </p>
+          <h3 className="text-base font-semibold text-slate-100"> {ui(locale, "No public lists yet.")} </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "This vault is public, but the owner has not shared any custom lists.")} </p>
         </div>
       ) : (
         <div className="mt-5 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -302,11 +299,9 @@ function PublicListsSection({
                 {list.description || 'No description yet.'}
               </p>
               <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">
-                {list.itemCount} item{list.itemCount === 1 ? '' : 's'} - /{list.slug}
+                {list.itemCount} {ui(locale, "item")} {list.itemCount === 1 ? '' : 's'} - /{list.slug}
               </p>
-              <span className="mt-4 inline-flex min-h-10 items-center rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-100">
-                Open list
-              </span>
+              <span className="mt-4 inline-flex min-h-10 items-center rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-100"> {ui(locale, "Open list")} </span>
             </Link>
           ))}
         </div>
@@ -315,7 +310,7 @@ function PublicListsSection({
   )
 }
 
-function PublicStateCard({
+async function PublicStateCard({
   icon,
   message,
   title,
@@ -324,6 +319,8 @@ function PublicStateCard({
   message: string
   title: string
 }) {
+  const locale = await getRequestLocale()
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10 pb-32 text-slate-100 sm:px-6 lg:px-8">
       <section className="w-full max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6 text-center">
@@ -331,7 +328,7 @@ function PublicStateCard({
           {icon}
         </div>
         <h1 className="mt-4 text-3xl font-bold tracking-tight text-white">{title}</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-400">{message}</p>
+        <p className="mt-3 text-sm leading-6 text-slate-400">{translateMessage(locale, message)}</p>
       </section>
     </main>
   )

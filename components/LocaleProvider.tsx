@@ -4,9 +4,12 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useTra
 import { useRouter } from 'next/navigation'
 
 import { getMessages, localeCookieName, t, type Locale, type MessageKey } from '../lib/i18n'
+import { metadataLanguageCookieName, type MetadataLanguage } from '../lib/metadata-language'
 
 type LocaleContextValue = {
   locale: Locale
+  metadataLanguage: MetadataLanguage
+  setMetadataLanguage: (language: MetadataLanguage) => void
   setLocale: (locale: Locale) => void
   isChangingLocale: boolean
   localeError: string
@@ -18,13 +21,16 @@ const LocaleContext = createContext<LocaleContextValue | null>(null)
 export function LocaleProvider({
   children,
   locale,
+  metadataLanguage = 'en',
 }: {
   children: React.ReactNode
   locale: Locale
+  metadataLanguage?: MetadataLanguage
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [currentLocale, setCurrentLocale] = useState(locale)
+  const [currentMetadataLanguage, setCurrentMetadataLanguage] = useState(metadataLanguage)
   const [isChangingLocale, setIsChangingLocale] = useState(false)
   const [localeError, setLocaleError] = useState('')
   const pending = useRef(false)
@@ -33,12 +39,31 @@ export function LocaleProvider({
     setCurrentLocale(locale)
   }, [locale])
   useEffect(() => { document.documentElement.lang = currentLocale }, [currentLocale])
+  useEffect(() => { setCurrentMetadataLanguage(metadataLanguage) }, [metadataLanguage])
 
   const value = useMemo<LocaleContextValue>(() => {
     const currentMessages = getMessages(currentLocale)
 
     return {
       locale: currentLocale,
+      metadataLanguage: currentMetadataLanguage,
+      setMetadataLanguage(nextLanguage) {
+        if (pending.current || (nextLanguage === currentMetadataLanguage && !localeError)) return
+        setCurrentMetadataLanguage(nextLanguage)
+        setLocaleError('')
+        setIsChangingLocale(true)
+        pending.current = true
+        try { window.localStorage.setItem(metadataLanguageCookieName, nextLanguage) } catch { /* Cookie persistence remains available. */ }
+        try { document.cookie = `${metadataLanguageCookieName}=${nextLanguage}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax` } catch { /* Confirm through the route. */ }
+        startTransition(async () => {
+          try {
+            const response = await fetch('/api/locale', { method: 'POST', signal: AbortSignal.timeout(8000), headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ metadataLanguage: nextLanguage }) })
+            if (!response.ok) throw new Error('Preference not confirmed')
+            router.refresh()
+          } catch { setLocaleError(t(currentLocale, 'language.saveError')) }
+          finally { pending.current = false; setIsChangingLocale(false) }
+        })
+      },
       isChangingLocale,
       localeError,
       setLocale(nextLocale) {
@@ -76,7 +101,7 @@ export function LocaleProvider({
         return template.replace(/\{(\w+)\}/g, (_, token) => String(vars[token] ?? `{${token}}`))
       },
     }
-  }, [currentLocale, isChangingLocale, localeError, router])
+  }, [currentLocale, currentMetadataLanguage, isChangingLocale, localeError, router])
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
 }

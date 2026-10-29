@@ -1,4 +1,8 @@
 'use client'
+import { translateMessage } from '../lib/ui-i18n'
+
+import { ui, countNoun } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
 
 import { Download, FileJson2, FileSpreadsheet } from 'lucide-react'
 import { useState } from 'react'
@@ -19,13 +23,15 @@ type VaultExportSectionProps = {
 }
 
 export default function VaultExportSection({ items, lists, listExportError, listExportWarning }: VaultExportSectionProps) {
+  const { locale } = useLocale()
+
   const [activeFormat, setActiveFormat] = useState<'json' | 'csv' | null>(null)
   const [message, setMessage] = useState('')
   const [messageTone, setMessageTone] = useState<'error' | 'success' | null>(null)
 
   async function downloadExport(format: 'json' | 'csv') {
     if (items.length === 0 && (format === 'csv' || !lists?.length)) {
-      setMessage('Your vault is empty. Add items or create a list before exporting JSON.')
+      setMessage(ui(locale, "Your vault is empty. Add items or create a list before exporting JSON."))
       setMessageTone('error')
       return
     }
@@ -49,13 +55,11 @@ export default function VaultExportSection({ items, lists, listExportError, list
       anchor.remove()
       URL.revokeObjectURL(objectUrl)
       setMessage(
-        `${format.toUpperCase()} export ready. Downloaded ${items.length} item${
-          items.length === 1 ? '' : 's'
-        }.${format === 'json' && lists ? ` Includes ${lists.length} lists. Sharing settings are not included.` : ''}`
+        ui(locale, "{value0} export ready. Downloaded {value1} item{value2}.{value3}", { value0: format.toUpperCase(), value1: items.length, value2: items.length === 1 ? '' : 's', value3: format === 'json' && lists ? ui(locale, " Includes {value0} lists. Sharing settings are not included.", { value0: lists.length }) : '' })
       )
       setMessageTone('success')
     } catch {
-      setMessage('Export failed. Please try again.')
+      setMessage(ui(locale, "Export failed. Please try again."))
       setMessageTone('error')
     } finally {
       setActiveFormat(null)
@@ -69,14 +73,11 @@ export default function VaultExportSection({ items, lists, listExportError, list
           <Download className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">Export your vault</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Download your Media Vault library as JSON or CSV. JSON is recommended for
-            restoring a Media Vault backup; CSV is best for spreadsheets.
-          </p>
+          <h2 className="text-2xl font-semibold tracking-tight text-white"> {ui(locale, "Export your vault")} </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-300"> {ui(locale, "Download your Media Vault library as JSON or CSV. JSON is recommended for restoring a Media Vault backup; CSV is best for spreadsheets.")} </p>
         </div>
       </div>
-      <p className="mt-4 text-sm text-slate-400">JSON {lists ? 'v2 includes items, lists and their memberships. Restored lists are always private.' : 'v1 contains items only.'} CSV contains items only.</p>
+      <p className="mt-4 text-sm text-slate-400">JSON {lists ? ui(locale, "v2 includes items, lists and their memberships. Restored lists are always private.") : ui(locale, "v1 contains items only.")} {ui(locale, "CSV contains items only.")} </p>
       {listExportError || listExportWarning ? <p role={listExportError ? 'alert' : 'status'} className="mt-3 break-words rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">{listExportError ?? listExportWarning}</p> : null}
 
       <div className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2">
@@ -87,7 +88,7 @@ export default function VaultExportSection({ items, lists, listExportError, list
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(59,130,246,0.32)] transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <FileJson2 className="h-4 w-4" />
-          {activeFormat === 'json' ? 'Preparing JSON...' : 'Export JSON'}
+          {activeFormat === 'json' ? ui(locale, "Preparing JSON...") : ui(locale, "Export JSON")}
         </button>
 
         <button
@@ -97,7 +98,7 @@ export default function VaultExportSection({ items, lists, listExportError, list
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <FileSpreadsheet className="h-4 w-4" />
-          {activeFormat === 'csv' ? 'Preparing CSV...' : 'Export CSV'}
+          {activeFormat === 'csv' ? ui(locale, "Preparing CSV...") : ui(locale, "Export CSV")}
         </button>
       </div>
 
@@ -109,12 +110,11 @@ export default function VaultExportSection({ items, lists, listExportError, list
               : 'border border-red-500/30 bg-red-500/10 text-red-200'
           }`}
         >
-          {message}
+          {translateMessage(locale, message)}
         </p>
       ) : null}
 
-      <p className="mt-4 text-xs text-slate-500">
-        Current export size: {items.length} item{items.length === 1 ? '' : 's'}.
+      <p className="mt-4 text-xs text-slate-500"> {ui(locale, "Current export size:")} {items.length} {countNoun(locale, items.length, "item")}.
       </p>
     </section>
   )

@@ -1,3 +1,6 @@
+
+import { ui } from '../../lib/ui-i18n'
+import { getRequestLocale } from '../../lib/i18n-server'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
@@ -20,12 +23,17 @@ import { toMediaItem } from '../../lib/media'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Settings | Media Vault',
-  description: 'Manage account, profile, public vault, and Media Vault preferences.',
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale()
+  return {
+  title: ui(locale, "Settings | Media Vault"),
+  description: ui(locale, "Manage account, profile, public vault, and Media Vault preferences."),
+}
 }
 
 export default async function SettingsPage() {
+  const locale = await getRequestLocale()
+
   const user = await getCurrentUser()
 
   if (!user) {
@@ -35,26 +43,17 @@ export default async function SettingsPage() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10 text-blue-200">
             <Lock className="h-5 w-5" />
           </div>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-white">
-            Sign in required
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-400">
-            Settings are private to your account. Sign in to manage your vault preferences and
-            public sharing options.
-          </p>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-white"> {ui(locale, "Sign in required")} </h1>
+          <p className="mt-3 text-sm leading-6 text-slate-400"> {ui(locale, "Settings are private to your account. Sign in to manage your vault preferences and public sharing options.")} </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               href="/login"
               className="inline-flex min-h-11 items-center rounded-xl border border-blue-400/30 bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400"
-            >
-              Open login
-            </Link>
+            > {ui(locale, "Open login")} </Link>
             <Link
               href="/"
               className="inline-flex min-h-11 items-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-900"
-            >
-              Back to vault
-            </Link>
+            > {ui(locale, "Back to vault")} </Link>
           </div>
         </section>
       </main>
@@ -85,15 +84,9 @@ export default async function SettingsPage() {
     <main className="vault-page">
       <div className="min-w-0">
         <header className="mb-8 max-w-3xl min-w-0">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-200">
-            Account Controls
-          </p>
-          <h1 className="vault-title mt-3">
-            Settings
-          </h1>
-          <p className="mt-4 text-base leading-7 text-slate-400">
-            Manage your profile, public sharing, and backup and import tools.
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-200"> {ui(locale, "Account Controls")} </p>
+          <h1 className="vault-title mt-3"> {ui(locale, "Settings")} </h1>
+          <p className="mt-4 text-base leading-7 text-slate-400"> {ui(locale, "Manage your profile, public sharing, and backup and import tools.")} </p>
         </header>
 
         {shouldShowSetupChecklist ? (
@@ -108,21 +101,17 @@ export default async function SettingsPage() {
         <section className="grid min-w-0 gap-4 lg:grid-cols-2">
           <SettingsCard
             icon={<ShieldCheck className="h-5 w-5" />}
-            kicker="Account"
-            title="Signed-in account"
+            kicker={ui(locale, "Account")}
+            title={ui(locale, "Signed-in account")}
           >
             <dl className="space-y-4">
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Email
-                </dt>
+                <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"> {ui(locale, "Email")} </dt>
                 <dd className="mt-1 break-all text-sm font-medium text-slate-100">
                   {user.email ?? 'No email available'}
                 </dd>
               </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-                Manage your public name and sharing preferences below. Your account email is private.
-              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400"> {ui(locale, "Manage your public name and sharing preferences below. Your account email is private.")} </div>
             </dl>
           </SettingsCard>
 
@@ -133,16 +122,13 @@ export default async function SettingsPage() {
 
           <SettingsCard
             icon={<SlidersHorizontal className="h-5 w-5" />}
-            kicker="Preferences"
-            title="Language and display"
+            kicker={ui(locale, "Preferences")}
+            title={ui(locale, "Language and display")}
           >
             <div className="grid gap-4">
               <LanguageToggle />
-              <p className="text-sm leading-6 text-slate-400">
-                Language, Library layout and saved views are remembered in this browser.
-                Change the layout or save your current filters from Library.
-              </p>
-              <ToolLink href="/">Open Library preferences</ToolLink>
+              <p className="text-sm leading-6 text-slate-400"> {ui(locale, "Language, Library layout and saved views are remembered in this browser. Change the layout or save your current filters from Library.")} </p>
+              <ToolLink href="/"> {ui(locale, "Open Library preferences")} </ToolLink>
             </div>
           </SettingsCard>
         </section>
@@ -150,17 +136,14 @@ export default async function SettingsPage() {
         <section className="mt-4 grid min-w-0 gap-4 lg:grid-cols-2">
           <SettingsCard
             icon={<Database className="h-5 w-5" />}
-            kicker="Tools"
-            title="Backup and import"
+            kicker={ui(locale, "Tools")}
+            title={ui(locale, "Backup and import")}
           >
             <div className="flex flex-wrap gap-3">
-              <ToolLink href="/backup">Open Backup</ToolLink>
-              <ToolLink href="/import">Open Import Center</ToolLink>
+              <ToolLink href="/backup"> {ui(locale, "Open Backup")} </ToolLink>
+              <ToolLink href="/import"> {ui(locale, "Open Import Center")} </ToolLink>
             </div>
-            <p className="mt-4 text-sm leading-6 text-slate-400">
-              Download a JSON backup before a large import or cleanup. You can preview and
-              selectively restore its contents from Backup.
-            </p>
+            <p className="mt-4 text-sm leading-6 text-slate-400"> {ui(locale, "Download a JSON backup before a large import or cleanup. You can preview and selectively restore its contents from Backup.")} </p>
             <div className="mt-4">
               <MetadataRefreshButton />
             </div>
@@ -168,16 +151,13 @@ export default async function SettingsPage() {
 
           <SettingsCard
             icon={<AlertTriangle className="h-5 w-5" />}
-            kicker="Collection tools"
-            title="Manage your collection"
+            kicker={ui(locale, "Collection tools")}
+            title={ui(locale, "Manage your collection")}
           >
-            <p className="text-sm leading-6 text-slate-400">
-              Review MyAnimeList imports in Import Center. To delete individual titles or a
-              selection, use Library. Deletions require confirmation.
-            </p>
+            <p className="text-sm leading-6 text-slate-400"> {ui(locale, "Review MyAnimeList imports in Import Center. To delete individual titles or a selection, use Library. Deletions require confirmation.")} </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <ToolLink href="/import">Manage import cleanup</ToolLink>
-              <ToolLink href="/">Return to Library</ToolLink>
+              <ToolLink href="/import"> {ui(locale, "Manage import cleanup")} </ToolLink>
+              <ToolLink href="/"> {ui(locale, "Return to Library")} </ToolLink>
             </div>
           </SettingsCard>
         </section>

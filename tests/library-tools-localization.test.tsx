@@ -1,7 +1,8 @@
+import { render } from './render-with-locale'
 // @vitest-environment jsdom
 
 import { StrictMode } from 'react'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ addItemToListsAction: vi.fn(), showToast: vi.fn(), refresh: vi.fn() }))
 vi.mock('../app/actions/lists', () => mocks)

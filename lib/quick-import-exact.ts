@@ -24,7 +24,7 @@ async function providerJson(url: string, signal: AbortSignal) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'))
 }
 
-export async function resolveExactProviderUrl(url: URL, signal: AbortSignal): Promise<CatalogSearchCandidate[] | null> {
+export async function resolveExactProviderUrl(url: URL, signal: AbortSignal, metadataLanguage: import('./metadata-language').MetadataLanguage = 'en'): Promise<CatalogSearchCandidate[] | null> {
   const reference = exactProviderReference(url)
   if (!reference) return null
   const { provider, kind, id } = reference
@@ -37,7 +37,7 @@ export async function resolveExactProviderUrl(url: URL, signal: AbortSignal): Pr
     } catch { /* Fall back to the exact MAL resource, never to title matching. */ }
   }
   if (provider === 'tmdb') {
-    const candidate = await getTmdbCandidateById(Number(id), kind === 'tv' ? 'tv' : 'movie')
+    const candidate = await getTmdbCandidateById(Number(id), kind === 'tv' ? 'tv' : 'movie', metadataLanguage, signal)
     return candidate ? [candidate] : []
   }
   if (provider === 'imdb') {
@@ -45,7 +45,7 @@ export async function resolveExactProviderUrl(url: URL, signal: AbortSignal): Pr
     if (!key) return []
     const payload = await providerJson(`https://api.themoviedb.org/3/find/${id}?api_key=${encodeURIComponent(key)}&external_source=imdb_id`, signal)
     const refs = [...(payload.movie_results ?? []).map((row: { id: number }) => ({ id: row.id, kind: 'movie' as const })), ...(payload.tv_results ?? []).map((row: { id: number }) => ({ id: row.id, kind: 'tv' as const }))].slice(0, 2)
-    return (await Promise.all(refs.map(row => getTmdbCandidateById(row.id, row.kind)))).filter((row): row is CatalogSearchCandidate => row !== null)
+    return (await Promise.all(refs.map(row => getTmdbCandidateById(row.id, row.kind, metadataLanguage, signal)))).filter((row): row is CatalogSearchCandidate => row !== null)
   }
   if (provider === 'openlibrary') {
     let work = `/works/${id}`

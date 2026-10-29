@@ -1,5 +1,7 @@
 'use client'
 
+import { ui } from '../lib/ui-i18n'
+
 import { startTransition, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -19,7 +21,7 @@ export default function FavoriteToggleButton({
   title,
 }: FavoriteToggleButtonProps) {
   const router = useRouter()
-  const { t } = useLocale()
+  const { locale, t  } = useLocale()
   const { showToast } = useToast()
   const [isPending, setIsPending] = useState(false)
 
@@ -34,7 +36,7 @@ export default function FavoriteToggleButton({
       return
     }
 
-    showToast(nextValue ? `Added "${title}" to favorites.` : `Removed "${title}" from favorites.`)
+    showToast(nextValue ? ui(locale, "Added \"{value0}\" to favorites.", { value0: title }) : ui(locale, "Removed \"{value0}\" from favorites.", { value0: title }))
     startTransition(() => {
       router.refresh()
     })

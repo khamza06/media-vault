@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ getCurrentUser: vi.fn(), searchCatalogPage: vi.fn(), searchCatalogByMediaType: vi.fn(), getTmdbCandidateById: vi.fn() }))
 vi.mock('../lib/auth/dal', () => mocks)
 vi.mock('../lib/catalog-search', () => ({ ...mocks, isCatalogSearchProviderError: (error: unknown) => error instanceof Error && 'provider' in error }))
-vi.mock('../lib/i18n-server', () => ({ getRequestLocale: async () => 'en' }))
+vi.mock('../lib/i18n-server', () => ({ getRequestLocale: async () => 'en', getRequestMetadataLanguage: async () => 'en' }))
 import { POST as search } from '../app/api/catalog-search/route'
 import { POST as details } from '../app/api/catalog-details/route'
 
@@ -23,16 +23,16 @@ describe('catalog API validation', () => {
   it.each(['manhwa', 'manhua'])('supports %s in fast suggestions and full search, including fallback pages', async type => {
     mocks.searchCatalogByMediaType.mockResolvedValue([])
     expect((await search(request({ query: 'Fixture', type }))).status).toBe(200)
-    expect(mocks.searchCatalogByMediaType).toHaveBeenCalledWith(expect.any(Array), type, 'en')
+    expect(mocks.searchCatalogByMediaType).toHaveBeenCalledWith(expect.any(Array), type, 'en', 'en')
     expect((await search(request({ query: 'Fixture', type, mode: 'full', source: 'jikan', page: 2 }))).status).toBe(200)
-    expect(mocks.searchCatalogPage).toHaveBeenCalledWith('Fixture', type, 'en', 'jikan', 2)
+    expect(mocks.searchCatalogPage).toHaveBeenCalledWith('Fixture', type, 'en', 'jikan', 2, 'en')
   })
   it.each(['My Hero Academia', 'Re', 'Re:Zero', 'Berserk'])('allows legitimate title %s in fast and full search', async (query) => {
     mocks.searchCatalogByMediaType.mockResolvedValue([])
     expect((await search(request({ query, type: 'anime' }))).status).toBe(200)
     expect(mocks.searchCatalogByMediaType).toHaveBeenCalled()
     expect((await search(request({ query, type: 'anime', mode: 'full' }))).status).toBe(200)
-    expect(mocks.searchCatalogPage).toHaveBeenCalledWith(query, 'anime', 'en', 'primary', 1)
+    expect(mocks.searchCatalogPage).toHaveBeenCalledWith(query, 'anime', 'en', 'primary', 1, 'en')
   })
   it('keeps fast requests compatible and limited to five suggestions', async () => {
     mocks.searchCatalogByMediaType.mockResolvedValue(Array.from({ length: 8 }, (_, index) => ({ id: index })))
@@ -42,7 +42,7 @@ describe('catalog API validation', () => {
   })
   it('passes full-search page/source choices through safely', async () => {
     expect((await search(request({ query: 'berserk', type: 'manga', mode: 'full', page: 2, source: 'jikan' }))).status).toBe(200)
-    expect(mocks.searchCatalogPage).toHaveBeenCalledWith('berserk', 'manga', 'en', 'jikan', 2)
+    expect(mocks.searchCatalogPage).toHaveBeenCalledWith('berserk', 'manga', 'en', 'jikan', 2, 'en')
   })
   it.each([null, [], 'bad'])('rejects malformed JSON shapes: %j', async (body) => {
     expect((await search(request(body))).status).toBe(400)

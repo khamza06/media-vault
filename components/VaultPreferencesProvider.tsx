@@ -1,5 +1,8 @@
 'use client'
 
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
+
 import { createContext, useContext, useMemo, useSyncExternalStore } from 'react'
 
 import { parseVaultPreferences, vaultPreferencesKey, type VaultViewMode, type VaultPreferences } from '../lib/vault-preferences'
@@ -7,7 +10,7 @@ import { normalizeSavedView, type SavedLibraryViewInput } from '../lib/saved-lib
 
 type SaveViewResult = { success: boolean; error: string | null; persistent: boolean }
 
-function createStore(userId: string | null) {
+function createStore(userId: string | null, locale: import('../lib/i18n').Locale = 'en') {
   const key = userId ? vaultPreferencesKey(userId) : null
   const listeners = new Set<() => void>()
   let fallback = ''
@@ -47,17 +50,17 @@ function createStore(userId: string | null) {
       write({ ...parseVaultPreferences(getSnapshot()), view })
     },
     saveView(input: SavedLibraryViewInput): SaveViewResult {
-      if (!key) return { success: false, error: 'Sign in to save a view for your account.', persistent: false }
+      if (!key) return { success: false, error: ui(locale, "Sign in to save a view for your account."), persistent: false }
       const current = parseVaultPreferences(getSnapshot())
       let fallbackId = 0
       const prefix = `view-${Date.now().toString(36)}`
       while (current.savedViews.some((view) => view.id === `${prefix}-${fallbackId}`)) fallbackId += 1
       const id = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${prefix}-${fallbackId}`
       const next = normalizeSavedView(input, id)
-      if (!next) return { success: false, error: 'Use a name of 1-60 characters and valid Library filters (search up to 300 characters).', persistent: false }
-      if (current.savedViews.length >= 12) return { success: false, error: 'You can save up to 12 views. Remove one first.', persistent: false }
+      if (!next) return { success: false, error: ui(locale, "Use a name of 1-60 characters and valid Library filters (search up to 300 characters)."), persistent: false }
+      if (current.savedViews.length >= 12) return { success: false, error: ui(locale, "You can save up to 12 views. Remove one first."), persistent: false }
       if (current.savedViews.some((view) => view.name.toLocaleLowerCase('en-US') === next.name.toLocaleLowerCase('en-US'))) {
-        return { success: false, error: 'A view with that name already exists. Choose another name.', persistent: false }
+        return { success: false, error: ui(locale, "A view with that name already exists. Choose another name."), persistent: false }
       }
       return { success: true, error: null, persistent: write({ ...current, savedViews: [...current.savedViews, next] }) }
     },
@@ -82,7 +85,9 @@ export default function VaultPreferencesProvider({ userId, children }: {
   userId: string | null
   children: React.ReactNode
 }) {
-  const store = useMemo(() => createStore(userId), [userId])
+  const { locale } = useLocale()
+
+  const store = useMemo(() => createStore(userId, locale), [userId, locale])
   const raw = useSyncExternalStore(store.subscribe, store.getSnapshot, () => '')
   const preferences = useMemo(() => parseVaultPreferences(raw), [raw])
   return (

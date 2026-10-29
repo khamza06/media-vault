@@ -1,3 +1,6 @@
+
+import { getRequestLocale } from '../lib/i18n-server'
+import { translateMessage } from '../lib/ui-i18n'
 import Link from 'next/link'
 
 import type { Locale } from '../lib/i18n'
@@ -51,7 +54,7 @@ export default function HomeOverview({ items, locale }: HomeOverviewProps) {
                 href={`/items/${item.id}`}
                 title={item.title}
                 subtitle={`${translateType(locale, item.type)} - ${translateStatus(locale, item.status)}`}
-                meta={formatProgressValue(item)}
+                meta={formatProgressValue(item, locale)}
               />
             ))
           ) : (
@@ -187,6 +190,8 @@ function ListRow({
   )
 }
 
-function EmptyState({ message }: { message: string }) {
-  return <p className="text-sm text-slate-400">{message}</p>
+async function EmptyState({ message }: { message: string }) {
+  const locale = await getRequestLocale()
+
+  return <p className="text-sm text-slate-400">{translateMessage(locale, message)}</p>
 }

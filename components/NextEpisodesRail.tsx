@@ -1,5 +1,8 @@
 'use client'
 
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
+
 import { CalendarClock, Tv2 } from 'lucide-react'
 
 import type { UpcomingEpisode } from '../lib/home-signals'
@@ -9,9 +12,11 @@ export default function NextEpisodesRail({
 }: {
   episodes: UpcomingEpisode[]
 }) {
-  const title = 'Next Episodes'
-  const description = 'Upcoming airings for the anime you are currently watching.'
-  const emptyMessage = 'Mark anime as Watching and upcoming episodes will appear here.'
+  const { locale } = useLocale()
+
+  const title = ui(locale, "Next Episodes")
+  const description = ui(locale, "Upcoming airings for the anime you are currently watching.")
+  const emptyMessage = ui(locale, "Mark anime as Watching and upcoming episodes will appear here.")
   const episodeLabel = 'Ep.'
 
   return (

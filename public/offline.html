@@ -17,11 +17,20 @@
 </head>
 <body>
   <main>
-    <p>MEDIA VAULT · OFFLINE</p>
-    <h1>Media Vault is temporarily offline</h1>
-    <p>Reconnect to the internet and try again. Your saved library is kept on the server; changes require a connection.</p>
-    <p lang="ru">Нет соединения с интернетом. Подключитесь к сети и попробуйте снова. Ваша библиотека сохранена на сервере; для изменений нужно соединение.</p>
-    <a href="/">Try again / Попробовать снова</a>
+    <div data-locale="en">
+      <p>MEDIA VAULT · OFFLINE</p>
+      <h1>Media Vault is temporarily offline</h1>
+      <p>Reconnect to the internet and try again. Your saved library is kept on the server; changes require a connection.</p>
+      <a href="/">Try again</a>
+    </div>
+    <div data-locale="ru" lang="ru" hidden>
+      <p>MEDIA VAULT · НЕТ ПОДКЛЮЧЕНИЯ</p>
+      <h1>Media Vault временно недоступен без сети</h1>
+      <p>Подключитесь к сети и попробуйте снова. Ваша библиотека сохранена на сервере; для изменений нужно соединение.</p>
+      <a href="/">Попробовать снова</a>
+    </div>
+    <noscript><p lang="ru">Нет подключения. Подключитесь к сети и попробуйте снова.</p></noscript>
   </main>
 </body>
+<script src="/offline-locale.js" defer></script>
 </html>

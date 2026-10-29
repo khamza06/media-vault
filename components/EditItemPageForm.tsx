@@ -1,4 +1,6 @@
 'use client'
+import { translateError } from '../lib/ui-i18n'
+
 
 import { FormEvent, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -42,7 +44,7 @@ export default function EditItemPageForm({
   returnTo,
 }: EditItemPageFormProps) {
   const router = useRouter()
-  const { t } = useLocale()
+  const { locale, t  } = useLocale()
   const { showToast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -137,7 +139,7 @@ export default function EditItemPageForm({
 
       <MediaItemForm
         coverFileName={coverFile?.name}
-        errorMessage={errorMessage}
+        errorMessage={translateError(locale, errorMessage)}
         form={form}
         isSubmitting={isSubmitting}
         onChange={updateField}

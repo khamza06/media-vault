@@ -1,3 +1,7 @@
+import { translateMessage } from '../../../lib/ui-i18n'
+
+import { ui } from '../../../lib/ui-i18n'
+import { getRequestLocale } from '../../../lib/i18n-server'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Compass } from 'lucide-react'
@@ -14,9 +18,12 @@ import { toMediaItem, type MediaItem, type MediaItemRecord } from '../../../lib/
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Advanced Library Search | Media Vault',
-  description: "Explore, filter, and sort through this user's entire media collection.",
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale()
+  return {
+  title: ui(locale, "Advanced Library Search | Media Vault"),
+  description: ui(locale, "Explore, filter, and sort through this user's entire media collection."),
+}
 }
 
 type PageProps = {
@@ -30,6 +37,8 @@ const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export default async function ShareDiscoveryPage(props: PageProps) {
+  const locale = await getRequestLocale()
+
   const { user_id: userId } = await props.params
   const resolvedSearchParams = await props.searchParams
   const currentUser = await getCurrentUser()
@@ -57,7 +66,7 @@ export default async function ShareDiscoveryPage(props: PageProps) {
     if (itemsResult.error) {
       errorMessage = isOwnerView
         ? itemsResult.error.message ?? 'Could not load your library hub.'
-        : 'This share link is not active yet. Ask the owner to enable shared discovery.'
+        : ui(locale, "This share link is not active yet. Ask the owner to enable shared discovery.")
     } else {
       items = ((itemsResult.data ?? []) as MediaItemRecord[]).map(toMediaItem)
       totalCount = itemsResult.totalCount
@@ -69,28 +78,20 @@ export default async function ShareDiscoveryPage(props: PageProps) {
     <main className="vault-page">
       <header className="mb-8 max-w-4xl min-w-0">
         <div className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
-          <Compass className="h-4 w-4" />
-          Discover
-        </div>
-        <h1 className="vault-title mt-4">
-          Advanced Library Search
-        </h1>
-        <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg">
-          Explore, filter, and sort through this user&apos;s entire media collection.
-        </p>
+          <Compass className="h-4 w-4" /> {ui(locale, "Discover")} </div>
+        <h1 className="vault-title mt-4"> {ui(locale, "Advanced Library Search")} </h1>
+        <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg"> {ui(locale, "Explore, filter, and sort through this user&apos;s entire media collection.")} </p>
       </header>
 
       {errorMessage ? (
         <section className="glass-panel-soft min-w-0 rounded-xl border border-amber-500/20 px-6 py-8 text-center text-slate-200">
-          <p className="text-base font-semibold text-white">{errorMessage}</p>
+          <p className="text-base font-semibold text-white">{translateMessage(locale, errorMessage)}</p>
           {isMeAlias && !currentUser ? (
             <div className="mt-5 flex justify-center">
               <Link
                 href="/login"
                 className="inline-flex min-h-11 items-center rounded-xl border border-blue-400/30 bg-blue-500/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500/30"
-              >
-                Open login
-              </Link>
+              > {ui(locale, "Open login")} </Link>
             </div>
           ) : null}
         </section>

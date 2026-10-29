@@ -1,3 +1,5 @@
+import { getRequestMetadataLanguage } from '../../../../../lib/i18n-server'
+import { resolveMetadataLanguage } from '../../../../../lib/metadata-language'
 import { getCurrentUser } from '../../../../../lib/auth/dal'
 import { createSupabaseServerClient } from '../../../../../lib/supabase/server'
 import { getAniListProviderDetails } from '../../../../../lib/anilist-import-enrichment'
@@ -22,7 +24,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     if (!ref) return Response.json({ error: 'This item has no supported provider ID. Personal tracking is still available.' }, { status: 422, headers })
     const data = ref.provider === 'anilist'
       ? await getAniListProviderDetails(ref.id, ref.type, ref.isMalId)
-      : await getTmdbProviderDetails(ref.id, ref.type)
+      : await getTmdbProviderDetails(ref.id, ref.type, resolveMetadataLanguage(new URL(_request.url).searchParams.get('metadataLanguage') ?? await getRequestMetadataLanguage()), _request.signal)
     return data ? Response.json({ data }, { headers })
       : Response.json({ error: 'Provider details are unavailable right now. Your saved item has not changed.' }, { status: 502, headers })
   } catch {

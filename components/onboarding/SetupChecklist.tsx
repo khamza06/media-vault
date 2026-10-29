@@ -1,5 +1,8 @@
 'use client'
 
+import { ui } from '../../lib/ui-i18n'
+import { useLocale } from '../LocaleProvider'
+
 import Link from 'next/link'
 import {
   Archive,
@@ -54,13 +57,15 @@ export default function SetupChecklist({
   storageKey = defaultStorageKey,
   variant = 'empty',
 }: SetupChecklistProps) {
+  const { locale } = useLocale()
+
   const [isDismissed, setIsDismissed] = useState(false)
 
   useEffect(() => {
     setIsDismissed(window.localStorage.getItem(storageKey) === 'true')
   }, [storageKey])
 
-  const checklistItems = useMemo(() => buildChecklistItems(state), [state])
+  const checklistItems = useMemo(() => buildChecklistItems(state, locale), [state, locale])
   const trackableItems = checklistItems.filter((item) => item.isTrackable && !item.isOptional)
   const completedCount = trackableItems.filter((item) => item.isComplete).length
   const totalCount = trackableItems.length
@@ -82,32 +87,27 @@ export default function SetupChecklist({
       <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
-            <Compass className="h-4 w-4" />
-            First-time setup
-          </div>
+            <Compass className="h-4 w-4" /> {ui(locale, "First-time setup")} </div>
           <h2 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-            {compact ? 'Setup checklist' : 'Welcome to Media Vault'}
+            {compact ? ui(locale, "Setup checklist") : ui(locale, "Welcome to Media Vault")}
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 sm:text-base">
             {compact
-              ? 'A quick path through the most useful vault setup steps.'
-              : 'Start by adding a title, importing an existing list, or setting up your public profile.'}
+              ? ui(locale, "A quick path through the most useful vault setup steps.")
+              : ui(locale, "Start by adding a title, importing an existing list, or setting up your public profile.")}
           </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
           <span className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-100">
-            {completedCount} / {totalCount} complete
-          </span>
+            {completedCount} / {totalCount} {ui(locale, "complete")} </span>
           {showDismiss ? (
             <button
               type="button"
               onClick={handleDismiss}
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-300 transition hover:border-blue-400/40 hover:text-white"
             >
-              <X className="h-4 w-4" />
-              Hide
-            </button>
+              <X className="h-4 w-4" /> {ui(locale, "Hide")} </button>
           ) : null}
         </div>
       </div>
@@ -119,21 +119,11 @@ export default function SetupChecklist({
             onClick={() => dispatchOpenAddModal()}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-400"
           >
-            <Plus className="h-4 w-4" />
-            Add your first title
-          </button>
-          <OnboardingLink href="/import" icon={<Import className="h-4 w-4" />}>
-            Import a library
-          </OnboardingLink>
-          <OnboardingLink href="/discover" icon={<Compass className="h-4 w-4" />}>
-            Explore Discover
-          </OnboardingLink>
-          <OnboardingLink href="/lists" icon={<ListPlus className="h-4 w-4" />}>
-            Create a custom list
-          </OnboardingLink>
-          <OnboardingLink href="/settings" icon={<UserRound className="h-4 w-4" />}>
-            Set up public profile
-          </OnboardingLink>
+            <Plus className="h-4 w-4" /> {ui(locale, "Add your first title")} </button>
+          <OnboardingLink href="/import" icon={<Import className="h-4 w-4" />}> {ui(locale, "Import a library")} </OnboardingLink>
+          <OnboardingLink href="/discover" icon={<Compass className="h-4 w-4" />}> {ui(locale, "Explore Discover")} </OnboardingLink>
+          <OnboardingLink href="/lists" icon={<ListPlus className="h-4 w-4" />}> {ui(locale, "Create a custom list")} </OnboardingLink>
+          <OnboardingLink href="/settings" icon={<UserRound className="h-4 w-4" />}> {ui(locale, "Set up public profile")} </OnboardingLink>
         </div>
       ) : null}
 
@@ -147,7 +137,9 @@ export default function SetupChecklist({
 }
 
 function ChecklistRow({ item }: { item: ChecklistItem }) {
-  const statusLabel = getStatusLabel(item)
+  const { locale } = useLocale()
+
+  const statusLabel = getStatusLabel(item, locale)
 
   return (
     <article className="flex min-w-0 items-start gap-3 rounded-xl border border-slate-800 bg-slate-950 p-4">
@@ -219,7 +211,7 @@ function OnboardingLink({
   )
 }
 
-function buildChecklistItems(state: SetupChecklistState): ChecklistItem[] {
+function buildChecklistItems(state: SetupChecklistState, locale: import('../../lib/i18n').Locale = 'en'): ChecklistItem[] {
   const hasItems = state.itemCount > 0
   const hasImportedItems = state.importedItemCount > 0
   const listsAvailable = state.listsReady && state.listCount !== null
@@ -227,81 +219,81 @@ function buildChecklistItems(state: SetupChecklistState): ChecklistItem[] {
 
   return [
     {
-      actionLabel: 'Add title',
+      actionLabel: ui(locale, "Add title"),
       description: hasItems
-        ? `${state.itemCount} title${state.itemCount === 1 ? '' : 's'} in your vault.`
-        : 'Add one title manually to make your vault feel alive.',
+        ? ui(locale, "{value0} title{value1} in your vault.", { value0: state.itemCount, value1: state.itemCount === 1 ? '' : 's' })
+        : ui(locale, "Add one title manually to make your vault feel alive."),
       isComplete: hasItems,
       isTrackable: true,
-      label: 'Add your first item',
+      label: ui(locale, "Add your first item"),
     },
     {
       actionHref: '/import',
-      actionLabel: 'Open Import',
+      actionLabel: ui(locale, "Open Import"),
       description: hasImportedItems
-        ? `${state.importedItemCount} imported title${state.importedItemCount === 1 ? '' : 's'} detected.`
+        ? ui(locale, "{value0} imported title{value1} detected.", { value0: state.importedItemCount, value1: state.importedItemCount === 1 ? '' : 's' })
         : hasItems
-          ? 'Optional if you prefer adding titles manually.'
-          : 'Bring in MyAnimeList, AniList, or CSV data when you have an existing library.',
+          ? ui(locale, "Optional if you prefer adding titles manually.")
+          : ui(locale, "Bring in MyAnimeList, AniList, or CSV data when you have an existing library."),
       isComplete: hasImportedItems,
       isOptional: !hasImportedItems && hasItems,
       isTrackable: true,
-      label: 'Import your existing library',
+      label: ui(locale, "Import your existing library"),
     },
     {
       actionHref: '/lists',
-      actionLabel: 'Open Lists',
+      actionLabel: ui(locale, "Open Lists"),
       description: listsAvailable
         ? state.listCount && state.listCount > 0
-          ? `${state.listCount} custom list${state.listCount === 1 ? '' : 's'} created.`
-          : 'Create a list for favorites, watch queues, or themed shelves.'
-        : 'Custom lists need the lists setup migration before this can be tracked.',
+          ? ui(locale, "{value0} custom list{value1} created.", { value0: state.listCount ?? 0, value1: state.listCount === 1 ? '' : 's' })
+          : ui(locale, "Create a list for favorites, watch queues, or themed shelves.")
+        : ui(locale, "Custom lists need the lists setup migration before this can be tracked."),
       isComplete: listsAvailable && Boolean(state.listCount && state.listCount > 0),
       isTrackable: listsAvailable,
-      label: 'Create a custom list',
+      label: ui(locale, "Create a custom list"),
     },
     {
       actionHref: '/settings',
-      actionLabel: 'Open Settings',
+      actionLabel: ui(locale, "Open Settings"),
       description: hasUsername
-        ? `Your public username is @${state.username}.`
+        ? ui(locale, "Your public username is @{value0}.", { value0: state.username ?? '' })
         : state.profileReady
-          ? 'Choose a username before sharing your public vault.'
-          : 'Profile settings need the public profile migration before this can be tracked.',
+          ? ui(locale, "Choose a username before sharing your public vault.")
+          : ui(locale, "Profile settings need the public profile migration before this can be tracked."),
       isComplete: hasUsername,
       isTrackable: state.profileReady,
-      label: 'Set your username',
+      label: ui(locale, "Set your username"),
     },
     {
       actionHref: '/settings',
-      actionLabel: 'Public settings',
+      actionLabel: ui(locale, "Public settings"),
       description:
         state.profileReady && state.isProfilePublic
-          ? 'Your read-only public vault can be shared.'
-          : 'Turn this on only when you are ready for visitors to browse your public vault.',
+          ? ui(locale, "Your read-only public vault can be shared.")
+          : ui(locale, "Turn this on only when you are ready for visitors to browse your public vault."),
       isComplete: state.profileReady && state.isProfilePublic,
       isTrackable: state.profileReady,
-      label: 'Enable public profile',
+      label: ui(locale, "Enable public profile"),
     },
     {
       actionHref: '/backup',
-      actionLabel: 'Open Backup',
-      description: 'Download a JSON backup before major imports or cleanup sessions.',
+      actionLabel: ui(locale, "Open Backup"),
+      description: ui(locale, "Download a JSON backup before major imports or cleanup sessions."),
       isComplete: false,
       isOptional: true,
       isTrackable: false,
-      label: 'Create a backup',
+      label: ui(locale, "Create a backup"),
     },
   ]
 }
 
-function getStatusLabel(item: ChecklistItem) {
+function getStatusLabel(item: ChecklistItem, locale: import('../../lib/i18n').Locale = 'en') {
   if (item.isComplete) {
     return 'Done'
   }
 
   if (!item.isTrackable) {
-    return item.isOptional ? 'Optional' : 'Setup needed'
+    return item.isOptional ? 'Optional' : ui(locale, "Setup needed")
   }
 
   return item.isOptional ? 'Optional' : 'Next'
@@ -312,7 +304,7 @@ function getItemIcon(label: string) {
     return <Download className="h-4 w-4" />
   }
 
-  if (label.includes('list')) {
+  if (label.includes('list') || label.includes('спис')) {
     return <ListPlus className="h-4 w-4" />
   }
 

@@ -19,7 +19,7 @@ export default function CatalogPreview({ candidate, ownedItem, onClose }: {
   onClose: () => void
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const { locale, t } = useLocale()
+  const { locale, t, metadataLanguage } = useLocale()
   const [details, setDetails] = useState(candidate)
   const [isLoading, setIsLoading] = useState(candidate.provider === 'TMDB')
   const [warning, setWarning] = useState<{ text?: string; fallback: MessageKey } | null>(null)
@@ -35,11 +35,13 @@ export default function CatalogPreview({ candidate, ownedItem, onClose }: {
     const controller = new AbortController()
     let cancelled = false
     async function loadDetails() {
+      setIsLoading(true)
+      setWarning(null)
       try {
         const response = await fetch('/api/catalog-details', {
           method: 'POST', signal: controller.signal,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: candidate.id, type: candidate.type === 'Movie' ? 'movie' : 'series' }),
+          body: JSON.stringify({ id: candidate.id, metadataLanguage, type: candidate.type === 'Movie' ? 'movie' : 'series' }),
         })
         const payload = await response.json() as { data?: CatalogSearchCandidate; error?: string }
         if (cancelled) return
@@ -53,7 +55,7 @@ export default function CatalogPreview({ candidate, ownedItem, onClose }: {
     }
     void loadDetails()
     return () => { cancelled = true; controller.abort() }
-  }, [candidate])
+  }, [candidate, metadataLanguage])
 
   const description = details.description.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '').trim()
 
@@ -84,7 +86,7 @@ export default function CatalogPreview({ candidate, ownedItem, onClose }: {
               <p className="mt-3 text-sm font-semibold text-amber-200">{formatExternalRatingValue(details.externalRatingLabel, details.externalRatingValue)}</p>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
-              {details.genres.split(',').map((genre) => genre.trim()).filter(Boolean).map((genre) => (
+              {(details.displayGenres ?? details.genres.split(',').map((genre) => genre.trim()).filter(Boolean)).map((genre) => (
                 <span key={genre} className="rounded-xl border border-slate-800 bg-slate-950 px-2 py-1 text-xs text-slate-300">{genre}</span>
               ))}
             </div>

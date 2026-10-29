@@ -1,3 +1,6 @@
+
+import { ui } from '../lib/ui-i18n'
+import { getRequestLocale } from '../lib/i18n-server'
 import { ImageResponse } from 'next/og'
 
 export const alt = 'Media Vault app preview'
@@ -7,7 +10,9 @@ export const size = {
   width: 1200,
 }
 
-export default function OpenGraphImage() {
+export default async function OpenGraphImage() {
+  const locale = await getRequestLocale()
+
   return new ImageResponse(
     (
       <div
@@ -69,9 +74,7 @@ export default function OpenGraphImage() {
                   letterSpacing: 5,
                   textTransform: 'uppercase',
                 }}
-              >
-                Personal Media Tracker
-              </span>
+              > {ui(locale, "Personal Media Tracker")} </span>
               <span style={{ fontSize: 72, fontWeight: 900, letterSpacing: -3 }}>
                 Media Vault
               </span>
@@ -86,12 +89,10 @@ export default function OpenGraphImage() {
               margin: 0,
               maxWidth: 860,
             }}
-          >
-            Track anime, manga, movies, series, and books in one polished personal vault.
-          </p>
+          > {ui(locale, "Track anime, manga, movies, series, and books in one polished personal vault.")} </p>
 
           <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
-            {['Import', 'Stats', 'Lists', 'Public Profiles'].map((label) => (
+            {[ui(locale, "Import"), ui(locale, "Stats"), ui(locale, "Lists"), ui(locale, "Public Profiles")].map((label) => (
               <span
                 key={label}
                 style={{

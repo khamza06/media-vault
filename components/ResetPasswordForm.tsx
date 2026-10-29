@@ -1,4 +1,8 @@
 'use client'
+import { translateMessage, translateError } from '../lib/ui-i18n'
+
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
 
 import { useEffect, useState, type FormEvent } from 'react'
 
@@ -9,6 +13,8 @@ import { useToast } from './ToastProvider'
 type MessageTone = 'error' | 'success'
 
 export default function ResetPasswordForm() {
+  const { locale } = useLocale()
+
   const { showToast } = useToast()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -36,7 +42,7 @@ export default function ResetPasswordForm() {
       } catch {
         if (isMounted) {
           setIsReady(hasRecoveryHint)
-          setMessage('Unable to check the recovery link. Check your connection and reload.')
+          setMessage(ui(locale, "Unable to check the recovery link. Check your connection and reload."))
           setMessageTone('error')
         }
       } finally {
@@ -59,7 +65,7 @@ export default function ResetPasswordForm() {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [locale])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -67,13 +73,13 @@ export default function ResetPasswordForm() {
     setMessageTone(null)
 
     if (password.length < 6) {
-      setMessage('Password must be at least 6 characters.')
+      setMessage(ui(locale, "Password must be at least 6 characters."))
       setMessageTone('error')
       return
     }
 
     if (password !== confirmPassword) {
-      setMessage('Passwords do not match.')
+      setMessage(ui(locale, "Passwords do not match."))
       setMessageTone('error')
       return
     }
@@ -110,18 +116,18 @@ export default function ResetPasswordForm() {
         })
 
         if (loginResult.success) {
-          showToast('Password updated. You are signed in.')
+          showToast(ui(locale, "Password updated. You are signed in."))
           window.location.replace('/')
           return
         }
       }
 
-      setMessage('Password updated. Please sign in with your new password.')
+      setMessage(ui(locale, "Password updated. Please sign in with your new password."))
       setMessageTone('success')
-      showToast('Password updated. Please sign in with your new password.')
+      showToast(ui(locale, "Password updated. Please sign in with your new password."))
       window.location.replace('/login?reset=1')
     } catch {
-      const nextMessage = 'Unable to update your password right now. Check your connection and try again.'
+      const nextMessage = ui(locale, "Unable to update your password right now. Check your connection and try again.")
       setMessage(nextMessage)
       setMessageTone('error')
       showToast(nextMessage, 'error')
@@ -133,51 +139,37 @@ export default function ResetPasswordForm() {
   return (
     <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.45)] sm:p-7">
       <div className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
-          Account recovery
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
-          Set a new password
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-slate-300">
-          Use the password reset link from your email to choose a new password for
-          Media Vault.
-        </p>
+        <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400"> {ui(locale, "Account recovery")} </p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-white"> {ui(locale, "Set a new password")} </h1>
+        <p className="mt-2 text-sm leading-6 text-slate-300"> {ui(locale, "Use the password reset link from your email to choose a new password for Media Vault.")} </p>
       </div>
 
       {!isCheckingLink && !isReady ? (
-        <p className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          Open the password reset link from your email before changing your password.
-          If the link expired, request a new reset email from the sign-in page.
-        </p>
+        <p className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"> {ui(locale, "Open the password reset link from your email before changing your password. If the link expired, request a new reset email from the sign-in page.")} </p>
       ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-200">
-            New password
-          </span>
+          <span className="mb-2 block text-sm font-medium text-slate-200"> {ui(locale, "New password")} </span>
           <input
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             className="h-12 w-full rounded-xl border border-slate-800 bg-slate-950 px-4 text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
-            placeholder="At least 6 characters"
+            placeholder={ui(locale, "At least 6 characters")}
             autoComplete="new-password"
             disabled={isSubmitting || isCheckingLink || !isReady}
           />
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-200">
-            Confirm password
-          </span>
+          <span className="mb-2 block text-sm font-medium text-slate-200"> {ui(locale, "Confirm password")} </span>
           <input
             type="password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             className="h-12 w-full rounded-xl border border-slate-800 bg-slate-950 px-4 text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
-            placeholder="Repeat your new password"
+            placeholder={ui(locale, "Repeat your new password")}
             autoComplete="new-password"
             disabled={isSubmitting || isCheckingLink || !isReady}
           />
@@ -192,7 +184,7 @@ export default function ResetPasswordForm() {
                 : 'border border-red-500/30 bg-red-500/10 text-red-200'
             }`}
           >
-            {message}
+            {messageTone === 'error' ? translateError(locale, message) : translateMessage(locale, message)}
           </p>
         ) : null}
 
@@ -202,10 +194,10 @@ export default function ResetPasswordForm() {
           disabled={isSubmitting || isCheckingLink || !isReady}
         >
           {isCheckingLink
-            ? 'Checking link...'
+            ? ui(locale, "Checking link...")
             : isSubmitting
-              ? 'Updating...'
-              : 'Update password'}
+              ? ui(locale, "Updating...")
+              : ui(locale, "Update password")}
         </button>
       </form>
     </div>

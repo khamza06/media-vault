@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ getCurrentUser: vi.fn(), resolveQuickImport: v
 vi.mock('../lib/auth/dal', () => mocks)
 vi.mock('../lib/quick-import-resolver', () => mocks)
 vi.mock('../lib/supabase/server', () => ({ createSupabaseServerClient: () => ({ rpc: mocks.rpc }) }))
-vi.mock('../lib/i18n-server', () => ({ getRequestLocale: async () => 'en' }))
+vi.mock('../lib/i18n-server', () => ({ getRequestLocale: async () => 'en', getRequestMetadataLanguage: async () => 'en' }))
 import { POST } from '../app/api/quick-import/route'
 const request = (body: unknown) => new Request('https://media-vault.app/api/quick-import', { method: 'POST', body: JSON.stringify(body) })
 beforeEach(() => { vi.resetAllMocks(); mocks.getCurrentUser.mockResolvedValue({ id: 'owner', accessToken: 'synthetic' }); mocks.rpc.mockResolvedValue({ data: true, error: null }); mocks.resolveQuickImport.mockResolvedValue({ candidates: [], requiresSelection: true }) })
@@ -43,7 +43,7 @@ describe('identification API boundary', () => {
   it('supports native titles and explicit media type with no caching', async () => {
     const response = await POST(request({ query: '나 혼자만 레벨업', type: 'manhwa', locale: 'ru' }))
     expect(response.status).toBe(200)
-    expect(mocks.resolveQuickImport).toHaveBeenCalledWith('나 혼자만 레벨업', 'ru', 'manhwa')
+    expect(mocks.resolveQuickImport).toHaveBeenCalledWith('나 혼자만 레벨업', 'ru', 'manhwa', 'en')
     expect(response.headers.get('Cache-Control')).toBe('no-store')
     expect(mocks.rpc).toHaveBeenCalledWith('consume_quick_import_quota')
   })

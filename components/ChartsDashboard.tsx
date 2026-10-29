@@ -1,4 +1,8 @@
 'use client'
+import { translateMessage } from '../lib/ui-i18n'
+
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
 
 import { useMemo, type ReactNode } from 'react'
 import {
@@ -37,6 +41,8 @@ type MediaTypeDatum = {
 }
 
 export default function ChartsDashboard({ items }: ChartsDashboardProps) {
+  const { locale } = useLocale()
+
   const ratingDistribution = useMemo<RatingDistributionDatum[]>(() => {
     const counts = new Map<number, number>()
 
@@ -78,12 +84,12 @@ export default function ChartsDashboard({ items }: ChartsDashboardProps) {
   return (
     <section className="mt-8 pb-8">
       <div className="mb-4">
-        <p className="text-sm uppercase tracking-[0.25em] text-slate-500">Visual Analytics</p>
-        <h2 className="mt-2 text-xl font-bold text-white">Charts Dashboard</h2>
+        <p className="text-sm uppercase tracking-[0.25em] text-slate-500"> {ui(locale, "Visual Analytics")} </p>
+        <h2 className="mt-2 text-xl font-bold text-white"> {ui(locale, "Charts Dashboard")} </h2>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Rating Distribution">
+        <ChartCard title={ui(locale, "Rating Distribution")}>
           {hasRatedItems ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={ratingDistribution} margin={{ top: 12, right: 12, left: -18, bottom: 0 }}>
@@ -106,19 +112,19 @@ export default function ChartsDashboard({ items }: ChartsDashboardProps) {
                   labelStyle={tooltipLabelStyle}
                   formatter={(value) => {
                     const count = toCount(value)
-                    return [`${count} item${count === 1 ? '' : 's'}`, 'Count']
+                    return [ui(locale, '{value0} item{value1}', { value0: count, value1: count === 1 ? '' : 's' }), ui(locale, 'Count')]
                   }}
-                  labelFormatter={(label) => `Rating ${label}`}
+                  labelFormatter={(label) => ui(locale, "Rating {value0}", { value0: label })}
                 />
                 <Bar dataKey="count" fill="#3b82f6" maxBarSize={34} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyChartMessage message="No rated items yet. Add ratings to see your distribution." />
+            <EmptyChartMessage message={ui(locale, "No rated items yet. Add ratings to see your distribution.")} />
           )}
         </ChartCard>
 
-        <ChartCard title="Media Type Breakdown">
+        <ChartCard title={ui(locale, "Media Type Breakdown")}>
           {hasMediaTypes ? (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px] xl:items-center">
               <ResponsiveContainer width="100%" height={300}>
@@ -129,7 +135,7 @@ export default function ChartsDashboard({ items }: ChartsDashboardProps) {
                     labelStyle={tooltipLabelStyle}
                     formatter={(value, name) => {
                       const count = toCount(value)
-                      return [`${count} item${count === 1 ? '' : 's'}`, String(name)]
+                      return [ui(locale, '{value0} item{value1}', { value0: count, value1: count === 1 ? '' : 's' }), String(name)]
                     }}
                   />
                   <Pie
@@ -175,7 +181,7 @@ export default function ChartsDashboard({ items }: ChartsDashboardProps) {
               </div>
             </div>
           ) : (
-            <EmptyChartMessage message="No media items yet. Add items to see your library breakdown." />
+            <EmptyChartMessage message={ui(locale, "No media items yet. Add items to see your library breakdown.")} />
           )}
         </ChartCard>
       </div>
@@ -193,9 +199,11 @@ function ChartCard({ children, title }: { children: ReactNode; title: string }) 
 }
 
 function EmptyChartMessage({ message }: { message: string }) {
+  const { locale } = useLocale()
+
   return (
     <div className="flex h-[300px] items-center justify-center rounded-xl border border-dashed border-slate-800 bg-slate-950 px-6 text-center text-sm text-slate-400">
-      {message}
+      {translateMessage(locale, message)}
     </div>
   )
 }

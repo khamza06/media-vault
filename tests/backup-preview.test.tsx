@@ -1,6 +1,7 @@
+import { render } from './render-with-locale'
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ restoreBackupItemsAction: vi.fn(), restoreBackupCollectionsAction: vi.fn() }))
 vi.mock('../app/actions/backup', () => mocks)

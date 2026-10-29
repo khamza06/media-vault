@@ -1,4 +1,8 @@
 'use client'
+import { translateMessage } from '../../lib/ui-i18n'
+
+import { ui, formatNumber } from '../../lib/ui-i18n'
+import { useLocale } from '../LocaleProvider'
 
 import { useMemo, type ReactNode } from 'react'
 import {
@@ -14,6 +18,7 @@ import {
 } from 'recharts'
 
 import type { MediaItem } from '../../lib/media'
+import { translateGenre } from '../../lib/genres'
 
 type StatsDashboardProps = {
   items: readonly MediaItem[]
@@ -33,21 +38,23 @@ const chartPalette = ['#3b82f6', '#8b5cf6', '#14b8a6', '#6366f1', '#f97316', '#e
 const inProgressStatuses = new Set(['Watching', 'Reading', 'Re-Watching'])
 
 export default function StatsDashboard({ items }: StatsDashboardProps) {
-  const analytics = useMemo(() => buildAnalytics(items), [items])
+  const { locale } = useLocale()
+
+  const analytics = useMemo(() => buildAnalytics(items, locale), [items, locale])
 
   return (
     <section className="mt-8 min-w-0 space-y-8 pb-8">
       <div className="grid min-w-0 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-        <MetricCard label="Total items" value={analytics.totalItems.toString()} />
-        <MetricCard label="Completed" value={analytics.completedItems.toString()} />
-        <MetricCard label="In progress" value={analytics.inProgressItems.toString()} />
-        <MetricCard label="Planned" value={analytics.plannedItems.toString()} />
-        <MetricCard label="Average rating" value={analytics.averageRatingLabel} />
-        <MetricCard label="No cover" value={analytics.itemsWithoutCovers.toString()} />
+        <MetricCard label={ui(locale, "Total items")} value={analytics.totalItems.toString()} />
+        <MetricCard label={ui(locale, "Completed")} value={analytics.completedItems.toString()} />
+        <MetricCard label={ui(locale, "In progress")} value={analytics.inProgressItems.toString()} />
+        <MetricCard label={ui(locale, "Planned")} value={analytics.plannedItems.toString()} />
+        <MetricCard label={ui(locale, "Average rating")} value={analytics.averageRatingLabel} />
+        <MetricCard label={ui(locale, "No cover")} value={analytics.itemsWithoutCovers.toString()} />
       </div>
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-        <ChartCard title="Rating Distribution">
+        <ChartCard title={ui(locale, "Rating Distribution")}>
           {analytics.hasRatedItems ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
@@ -71,30 +78,30 @@ export default function StatsDashboard({ items }: StatsDashboardProps) {
                   contentStyle={tooltipContentStyle}
                   itemStyle={tooltipItemStyle}
                   labelStyle={tooltipLabelStyle}
-                  formatter={(value) => formatCountTooltip(value)}
-                  labelFormatter={(label) => `Rating ${label}`}
+                  formatter={(value) => formatCountTooltip(value, locale)}
+                  labelFormatter={(label) => ui(locale, "Rating {value0}", { value0: label })}
                 />
                 <Bar dataKey="count" fill="#3b82f6" maxBarSize={34} radius={[10, 10, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyChartMessage message="No rated items yet. Add ratings to see your distribution." />
+            <EmptyChartMessage message={ui(locale, "No rated items yet. Add ratings to see your distribution.")} />
           )}
         </ChartCard>
 
         <DonutChartCard
           data={analytics.mediaTypeBreakdown}
-          emptyMessage="No media items yet. Add items to see your library breakdown."
-          title="Media Type Breakdown"
+          emptyMessage={ui(locale, "No media items yet. Add items to see your library breakdown.")}
+          title={ui(locale, "Media Type Breakdown")}
         />
 
         <DonutChartCard
           data={analytics.statusBreakdown}
-          emptyMessage="No status data available yet."
-          title="Status Breakdown"
+          emptyMessage={ui(locale, "No status data available yet.")}
+          title={ui(locale, "Status Breakdown")}
         />
 
-        <ChartCard title="Top Genres">
+        <ChartCard title={ui(locale, "Top Genres")}>
           {analytics.topGenres.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
@@ -122,17 +129,17 @@ export default function StatsDashboard({ items }: StatsDashboardProps) {
                   contentStyle={tooltipContentStyle}
                   itemStyle={tooltipItemStyle}
                   labelStyle={tooltipLabelStyle}
-                  formatter={(value) => formatCountTooltip(value)}
+                  formatter={(value) => formatCountTooltip(value, locale)}
                 />
                 <Bar dataKey="count" fill="#8b5cf6" maxBarSize={18} radius={[0, 10, 10, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyChartMessage message="No genre data available yet." />
+            <EmptyChartMessage message={ui(locale, "No genre data available yet.")} />
           )}
         </ChartCard>
 
-        <ChartCard title="Monthly Additions">
+        <ChartCard title={ui(locale, "Monthly Additions")}>
           {analytics.hasCreatedAtData ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
@@ -156,14 +163,14 @@ export default function StatsDashboard({ items }: StatsDashboardProps) {
                   contentStyle={tooltipContentStyle}
                   itemStyle={tooltipItemStyle}
                   labelStyle={tooltipLabelStyle}
-                  formatter={(value) => formatCountTooltip(value)}
+                  formatter={(value) => formatCountTooltip(value, locale)}
                   labelFormatter={(label) => `${label}`}
                 />
                 <Bar dataKey="count" fill="#14b8a6" maxBarSize={34} radius={[10, 10, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyChartMessage message="No created date data available yet." />
+            <EmptyChartMessage message={ui(locale, "No created date data available yet.")} />
           )}
         </ChartCard>
 
@@ -173,7 +180,7 @@ export default function StatsDashboard({ items }: StatsDashboardProps) {
   )
 }
 
-function buildAnalytics(items: readonly MediaItem[]) {
+function buildAnalytics(items: readonly MediaItem[], locale: import('../../lib/i18n').Locale = 'en') {
   const totalItems = items.length
   const completedItems = items.filter((item) => item.status === 'Completed').length
   const inProgressItems = items.filter((item) => inProgressStatuses.has(item.status)).length
@@ -196,7 +203,7 @@ function buildAnalytics(items: readonly MediaItem[]) {
 
   const mediaTypeBreakdown = toSortedCountData(
     items.reduce((counts, item) => {
-      const label = getMediaTypeLabel(item.type)
+      const label = translateMessage(locale, getMediaTypeLabel(item.type))
       counts.set(label, (counts.get(label) ?? 0) + 1)
       return counts
     }, new Map<string, number>())
@@ -204,7 +211,7 @@ function buildAnalytics(items: readonly MediaItem[]) {
 
   const statusBreakdown = toSortedCountData(
     items.reduce((counts, item) => {
-      const label = getStatusLabel(item.status)
+      const label = translateMessage(locale, getStatusLabel(item.status, locale))
       counts.set(label, (counts.get(label) ?? 0) + 1)
       return counts
     }, new Map<string, number>())
@@ -213,7 +220,7 @@ function buildAnalytics(items: readonly MediaItem[]) {
   const topGenres = toSortedCountData(
     items.reduce((counts, item) => {
       for (const genre of item.genres) {
-        const label = genre.trim()
+        const label = translateGenre(genre.trim(), locale)
 
         if (label) {
           counts.set(label, (counts.get(label) ?? 0) + 1)
@@ -224,7 +231,7 @@ function buildAnalytics(items: readonly MediaItem[]) {
     }, new Map<string, number>())
   ).slice(0, 8)
 
-  const monthlyAdditions = getMonthlyAdditions(items)
+  const monthlyAdditions = getMonthlyAdditions(items, locale)
   const hasCreatedAtData = items.some((item) => isValidDate(item.createdAt))
   const insights = buildInsights({
     averageRating,
@@ -235,10 +242,10 @@ function buildAnalytics(items: readonly MediaItem[]) {
     plannedItems,
     statusBreakdown,
     totalItems,
-  })
+  }, locale)
 
   return {
-    averageRatingLabel: averageRating === null ? 'N/A' : `${averageRating.toFixed(1)} / 10`,
+    averageRatingLabel: averageRating === null ? ui(locale, 'N/A') : `${formatNumber(locale, averageRating)} / 10`,
     completedItems,
     hasCreatedAtData,
     hasRatedItems: ratings.length > 0,
@@ -264,6 +271,7 @@ function DonutChartCard({
   emptyMessage: string
   title: string
 }) {
+  const { locale } = useLocale()
   const total = data.reduce((sum, item) => sum + item.count, 0)
 
   return (
@@ -278,7 +286,7 @@ function DonutChartCard({
                 labelStyle={tooltipLabelStyle}
                 formatter={(value, name) => {
                   const count = toCount(value)
-                  return [`${count} item${count === 1 ? '' : 's'}`, String(name)]
+                  return [ui(locale, '{value0} item{value1}', { value0: count, value1: count === 1 ? '' : 's' }), String(name)]
                 }}
               />
               <Pie
@@ -330,9 +338,11 @@ function DonutChartCard({
 }
 
 function InsightsCard({ insights }: { insights: string[] }) {
+  const { locale } = useLocale()
+
   return (
     <section className="min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h2 className="text-lg font-bold text-white">Personal Insights</h2>
+      <h2 className="text-lg font-bold text-white"> {ui(locale, "Personal Insights")} </h2>
       <div className="mt-4 space-y-3">
         {insights.length > 0 ? (
           insights.map((insight) => (
@@ -344,7 +354,7 @@ function InsightsCard({ insights }: { insights: string[] }) {
             </div>
           ))
         ) : (
-          <EmptyChartMessage message="Add a few items to unlock personal insights." />
+          <EmptyChartMessage message={ui(locale, "Add a few items to unlock personal insights.")} />
         )}
       </div>
     </section>
@@ -370,9 +380,11 @@ function ChartCard({ children, title }: { children: ReactNode; title: string }) 
 }
 
 function EmptyChartMessage({ message }: { message: string }) {
+  const { locale } = useLocale()
+
   return (
     <div className="flex h-[300px] items-center justify-center rounded-xl border border-dashed border-slate-800 bg-slate-950 px-6 text-center text-sm text-slate-400">
-      {message}
+      {translateMessage(locale, message)}
     </div>
   )
 }
@@ -395,7 +407,7 @@ function buildInsights({
   plannedItems: number
   statusBreakdown: CountDatum[]
   totalItems: number
-}) {
+}, locale: import('../../lib/i18n').Locale = 'en') {
   if (totalItems === 0) {
     return []
   }
@@ -405,37 +417,37 @@ function buildInsights({
   const topStatus = statusBreakdown[0]
 
   if (topType) {
-    insights.push(`Your most common media type is ${topType.name}.`)
+    insights.push(ui(locale, "Your most common media type is {value0}.", { value0: topType.name }))
   }
 
   if (plannedItems > 0) {
-    insights.push(`You have ${plannedItems} planned item${plannedItems === 1 ? '' : 's'} waiting.`)
+    insights.push(ui(locale, "You have {value0} planned item{value1} waiting.", { value0: plannedItems, value1: plannedItems === 1 ? '' : 's' }))
   }
 
   if (inProgressItems > 0) {
-    insights.push(`You are actively tracking ${inProgressItems} item${inProgressItems === 1 ? '' : 's'}.`)
+    insights.push(ui(locale, "You are actively tracking {value0} item{value1}.", { value0: inProgressItems, value1: inProgressItems === 1 ? '' : 's' }))
   }
 
   if (averageRating !== null) {
-    insights.push(`Your average personal rating is ${averageRating.toFixed(1)}/10.`)
+    insights.push(ui(locale, "Your average personal rating is {value0}/10.", { value0: formatNumber(locale, averageRating) }))
   }
 
   if (itemsWithoutCovers > 0) {
-    insights.push(`You have ${itemsWithoutCovers} item${itemsWithoutCovers === 1 ? '' : 's'} without covers.`)
+    insights.push(ui(locale, "You have {value0} item{value1} without covers.", { value0: itemsWithoutCovers, value1: itemsWithoutCovers === 1 ? '' : 's' }))
   }
 
   if (topStatus) {
-    insights.push(`Your most common status is ${topStatus.name}.`)
+    insights.push(ui(locale, "Your most common status is {value0}.", { value0: topStatus.name }))
   }
 
   if (completedItems > 0) {
-    insights.push(`Your completed universe has ${completedItems} finished item${completedItems === 1 ? '' : 's'}.`)
+    insights.push(ui(locale, "Your completed universe has {value0} finished item{value1}.", { value0: completedItems, value1: completedItems === 1 ? '' : 's' }))
   }
 
   return insights.slice(0, 6)
 }
 
-function getMonthlyAdditions(items: readonly MediaItem[]) {
+function getMonthlyAdditions(items: readonly MediaItem[], locale: import('../../lib/i18n').Locale) {
   const now = new Date()
   const months: MonthDatum[] = []
 
@@ -443,7 +455,7 @@ function getMonthlyAdditions(items: readonly MediaItem[]) {
     const date = new Date(now.getFullYear(), now.getMonth() - offset, 1)
     months.push({
       count: 0,
-      month: formatMonthLabel(date),
+      month: formatMonthLabel(date, locale),
     })
   }
 
@@ -456,7 +468,7 @@ function getMonthlyAdditions(items: readonly MediaItem[]) {
       continue
     }
 
-    const label = formatMonthLabel(new Date(createdAt))
+    const label = formatMonthLabel(new Date(createdAt), locale)
     const index = indexByMonth.get(label)
 
     if (typeof index === 'number') {
@@ -470,8 +482,8 @@ function getMonthlyAdditions(items: readonly MediaItem[]) {
   return months
 }
 
-function formatMonthLabel(date: Date) {
-  return date.toLocaleDateString('en-US', {
+function formatMonthLabel(date: Date, locale: import('../../lib/i18n').Locale) {
+  return date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', {
     month: 'short',
   })
 }
@@ -510,7 +522,7 @@ function getMediaTypeLabel(type: string | null | undefined) {
   }
 }
 
-function getStatusLabel(status: string | null | undefined) {
+function getStatusLabel(status: string | null | undefined, locale: import('../../lib/i18n').Locale = 'en') {
   const normalized = status?.trim()
 
   switch (normalized) {
@@ -524,7 +536,7 @@ function getStatusLabel(status: string | null | undefined) {
     case 'On Hold':
     case 'On-Hold':
     case 'on_hold':
-      return 'On Hold'
+      return ui(locale, "On Hold")
     default:
       return normalized || 'Other'
   }
@@ -541,9 +553,9 @@ function isValidDate(value: string | null | undefined): value is string {
   return Boolean(value) && !Number.isNaN(new Date(value as string).getTime())
 }
 
-function formatCountTooltip(value: unknown) {
+function formatCountTooltip(value: unknown, locale: import('../../lib/i18n').Locale) {
   const count = toCount(value)
-  return [`${count} item${count === 1 ? '' : 's'}`, 'Count']
+  return [ui(locale, '{value0} item{value1}', { value0: count, value1: count === 1 ? '' : 's' }), ui(locale, 'Count')]
 }
 
 function toCount(value: unknown) {

@@ -1,5 +1,8 @@
 'use client'
 
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
+
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
@@ -25,6 +28,8 @@ function isLocalLikeHost(hostname: string) {
 }
 
 export default function PwaShell() {
+  const { locale } = useLocale()
+
   const pathname = usePathname()
   const [clientState, setClientState] = useState({
     dismissed: true,
@@ -159,25 +164,16 @@ export default function PwaShell() {
       <div className="glass-panel surface-highlight pointer-events-auto mx-auto flex max-h-[calc(100dvh-9rem)] max-w-md flex-col gap-4 overflow-y-auto rounded-xl p-4 sm:p-5 md:max-h-[calc(100dvh-2rem)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.28em] text-blue-300/70">
-              Install App
-            </p>
-            <h2 className="mt-2 text-lg font-semibold tracking-tight text-white">
-              Use Media Vault like an app
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Keep the vault on your Home Screen for faster access on iPhone, iPad,
-              and laptop.
-            </p>
+            <p className="text-xs font-medium uppercase tracking-[0.28em] text-blue-300/70"> {ui(locale, "Install App")} </p>
+            <h2 className="mt-2 text-lg font-semibold tracking-tight text-white"> {ui(locale, "Use Media Vault like an app")} </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300"> {ui(locale, "Keep the vault on your Home Screen for faster access on iPhone, iPad, and laptop.")} </p>
           </div>
 
           <button
             type="button"
             onClick={dismissPrompt}
             className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
-          >
-            Not now
-          </button>
+          > {ui(locale, "Not now")} </button>
         </div>
 
         {deferredPrompt ? (
@@ -185,15 +181,11 @@ export default function PwaShell() {
             type="button"
             onClick={() => void handleInstall()}
             className="min-h-12 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(59,130,246,0.32)] transition hover:bg-blue-400"
-          >
-            Install Media Vault
-          </button>
+          > {ui(locale, "Install Media Vault")} </button>
         ) : null}
 
         {clientState.isIOS ? (
-          <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-slate-200">
-            On iPhone or iPad, tap Share in Safari and choose Add to Home Screen.
-          </p>
+          <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-slate-200"> {ui(locale, "On iPhone or iPad, tap Share in Safari and choose Add to Home Screen.")} </p>
         ) : null}
       </div>
     </div>

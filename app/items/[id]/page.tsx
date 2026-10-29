@@ -1,3 +1,6 @@
+
+import { ui } from '../../../lib/ui-i18n'
+import { getRequestLocale } from '../../../lib/i18n-server'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -20,6 +23,8 @@ export const dynamic = 'force-dynamic'
 export async function generateMetadata(
   props: PageProps<'/items/[id]'>
 ): Promise<Metadata> {
+  const locale = await getRequestLocale()
+
   const { id } = await props.params
   const { data: item } = await getItemById(id)
 
@@ -30,12 +35,14 @@ export async function generateMetadata(
   }
 
   return {
-    title: `${item.title} | Media Vault`,
-    description: `${item.type} entry currently marked as ${item.status}.`,
+    title: ui(locale, "{value0} | Media Vault", { value0: item.title }),
+    description: ui(locale, "{value0} entry currently marked as {value1}.", { value0: item.type, value1: item.status }),
   }
 }
 
 export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
+  const locale = await getRequestLocale()
+
   const { id } = await props.params
   const searchParams = await props.searchParams
   const [{ data: item, error }, listsResult] = await Promise.all([getItemById(id), getCustomLists()])
@@ -45,10 +52,10 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
   }
 
   const createdAt = item.created_at
-    ? new Intl.DateTimeFormat('en', {
+    ? new Intl.DateTimeFormat(locale === 'ru' ? 'ru-RU' : 'en-US', {
         dateStyle: 'medium',
       }).format(new Date(item.created_at))
-    : 'Unknown'
+    : ui(locale, 'Unknown')
   const mediaItem = toMediaItem(item as MediaItemRecord)
   const safeReturnTo = getSafeReturnTo(searchParams.returnTo)
   const backParam =
@@ -72,9 +79,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
         <Link
           href={backQuery}
           className="glass-panel-soft inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
-        >
-          Back to vault
-        </Link>
+        > {ui(locale, "Back to vault")} </Link>
       </div>
 
       <section className="grid min-w-0 gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start xl:grid-cols-[280px_minmax(0,1fr)] xl:gap-6">
@@ -99,17 +104,14 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
 
           <div className="glass-panel order-1 min-w-0 space-y-4 rounded-xl p-5 sm:p-6 lg:col-start-2 lg:row-start-1">
             <div className="flex flex-wrap gap-2">
-              {mediaItem.favorite ? <Badge tone="favorite">Favorite</Badge> : null}
+              {mediaItem.favorite ? <Badge tone="favorite"> {ui(locale, "Favorite")} </Badge> : null}
               <Badge>{item.status}</Badge>
               <Badge tone="muted">{item.type}</Badge>
             </div>
 
             <div>
               <h1 className="vault-title">{item.title}</h1>
-              <p className="mt-3 max-w-2xl text-slate-400">
-                A focused view for this entry with its current status, progress, and saved
-                metadata.
-              </p>
+              <p className="mt-3 max-w-2xl text-slate-400"> {ui(locale, "A focused view for this entry with its current status, progress, and saved metadata.")} </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -126,9 +128,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
                   },
                 }}
                 className="glass-panel-soft inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
-              >
-                Edit
-              </Link>
+              > {ui(locale, "Edit")} </Link>
               <AddToListButton
                 itemId={item.id}
                 itemTitle={item.title}
@@ -150,7 +150,7 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
 
           {mediaItem.genres.length > 0 ? (
             <section className="rounded-xl border border-slate-800 bg-slate-900/80 px-5 py-5">
-              <p className="text-sm text-slate-400">Saved genres</p>
+              <p className="text-sm text-slate-400"> {ui(locale, "Saved genres")} </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {mediaItem.genres.map((genre) => (
                   <Badge key={genre} tone="muted">
@@ -166,21 +166,21 @@ export default async function ItemDetailsPage(props: PageProps<'/items/[id]'>) {
   )
 }
 
-function ItemSnapshot({ addedAt, item }: { addedAt: string; item: MediaItem }) {
+async function ItemSnapshot({ addedAt, item }: { addedAt: string; item: MediaItem }) {
+  const locale = await getRequestLocale()
+
   const progressLabel =
-    item.progress > 0 || item.totalProgress !== null ? formatProgressValue(item) : 'Not started'
+    item.progress > 0 || item.totalProgress !== null ? formatProgressValue(item, locale) : ui(locale, "Not started")
 
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-        Quick snapshot
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"> {ui(locale, "Quick snapshot")} </p>
       <dl className="mt-4 space-y-3">
-        <SnapshotRow label="Type" value={item.type} />
-        <SnapshotRow label="Status" value={item.status} />
-        <SnapshotRow label="My rating" value={item.rating ? `${item.rating} / 10` : 'Not rated'} />
-        <SnapshotRow label="Progress" value={progressLabel} />
-        <SnapshotRow label="Added" value={addedAt} />
+        <SnapshotRow label={ui(locale, "Type")} value={item.type} />
+        <SnapshotRow label={ui(locale, "Status")} value={item.status} />
+        <SnapshotRow label={ui(locale, "My rating")} value={item.rating ? `${item.rating} / 10` : ui(locale, "Not rated")} />
+        <SnapshotRow label={ui(locale, "Progress")} value={progressLabel} />
+        <SnapshotRow label={ui(locale, "Added")} value={addedAt} />
       </dl>
     </section>
   )

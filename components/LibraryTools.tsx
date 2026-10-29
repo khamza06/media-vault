@@ -1,4 +1,6 @@
 'use client'
+import { translateError } from '../lib/ui-i18n'
+
 
 import Image from 'next/image'
 import Link from 'next/link'
@@ -57,7 +59,7 @@ function SavedViews({ filters, favoritesOnly, pathname }: { filters: LibraryFilt
           className="min-h-11 w-full min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30" />
         <button type="submit" className={buttonClass}>{t('savedViews.save')}</button>
       </form>
-      {error ? <p role="alert" className="mt-3 text-sm text-red-200">{error}</p> : null}
+      {error ? <p role="alert" className="mt-3 text-sm text-red-200">{translateError(locale, error)}</p> : null}
       {savedViews.length === 0 ? <p className="mt-3 text-xs text-slate-500">{t('savedViews.empty')}</p> : (
         <ul className="mt-3 space-y-2">
           {savedViews.map((view) => <li key={view.id} className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 px-3 py-1">

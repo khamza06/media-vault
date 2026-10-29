@@ -1,4 +1,7 @@
 'use client'
+import { translateError } from '../lib/ui-i18n'
+
+import { ui } from '../lib/ui-i18n'
 
 import Image from 'next/image'
 import { Star } from 'lucide-react'
@@ -183,9 +186,7 @@ export default function MediaItemForm({
                         className="object-cover"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-[10px] text-slate-500">
-                        N/A
-                      </div>
+                      <div className="flex h-full items-center justify-center text-[10px] text-slate-500"> {ui(locale, "N/A")} </div>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -222,7 +223,7 @@ export default function MediaItemForm({
           value={form.genres}
           onChange={(event) => onChange('genres', event.target.value)}
           className="glass-panel-soft min-h-12 w-full rounded-2xl px-4 py-3 text-base text-white outline-none transition focus:border-blue-400/40"
-          placeholder="Action, Drama, Sci-Fi"
+          placeholder={ui(locale, "Action, Drama, Sci-Fi")}
           disabled={isSubmitting}
         />
         <span className="mt-2 block text-xs text-slate-500">{t('form.genreHint')}</span>
@@ -356,7 +357,7 @@ export default function MediaItemForm({
 
       {isSubmitting ? <ActionFeedback tone="pending">{t('common.saving')}</ActionFeedback> : errorMessage ? (
         <ActionFeedback tone="error">
-          {errorMessage}
+          {translateError(locale, errorMessage)}
         </ActionFeedback>
       ) : null}
 
@@ -384,7 +385,7 @@ function CustomFileField({
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
-  const { t } = useLocale()
+  const { locale, t } = useLocale()
 
   return (
     <div className="block">
@@ -415,8 +416,8 @@ function CustomFileField({
         </button>
         <span className="min-w-0 flex-1 truncate text-sm text-slate-300">{coverFileName || t('form.noFileSelected')}</span>
       </div>
-      <p className="mt-2 text-xs text-slate-400">JPG, PNG, WEBP, GIF · ≤ 5 MB</p>
-      {fileError && <p role="alert" className="mt-2 text-sm text-red-300">{fileError}</p>}
+      <p className="mt-2 text-xs text-slate-400"> {ui(locale, "JPG, PNG, WEBP, GIF · ≤ 5 MB")} </p>
+      {fileError && <p role="alert" className="mt-2 text-sm text-red-300">{translateError(locale, fileError)}</p>}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 'use client'
+import { translateError } from '../lib/ui-i18n'
 
 import Link from 'next/link'
 import { ChevronDown, ExternalLink } from 'lucide-react'
@@ -6,13 +7,19 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { ProviderDetails } from '../lib/provider-details'
 import RelatedTitles from './catalog/RelatedTitles'
 import { useLocale } from './LocaleProvider'
+import { translateMessage, ui } from '../lib/ui-i18n'
 import type { MessageKey } from '../lib/i18n'
 
 type LoadState = { status: 'idle' | 'loading' | 'error'; error?: string; errorKey?: MessageKey }
   | { status: 'ready'; data: ProviderDetails }
 
-export default function ItemProviderPanel({ itemId, supported }: { itemId: string; supported: boolean }) {
-  const { t } = useLocale()
+export default function ItemProviderPanel(props: { itemId: string; supported: boolean }) {
+  const { metadataLanguage } = useLocale()
+  return <LocalizedProviderPanel key={metadataLanguage} {...props} />
+}
+
+function LocalizedProviderPanel({ itemId, supported }: { itemId: string; supported: boolean }) {
+  const { locale, t, metadataLanguage = 'en' } = useLocale()
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [state, setState] = useState<LoadState>({ status: 'idle' })
@@ -27,7 +34,7 @@ export default function ItemProviderPanel({ itemId, supported }: { itemId: strin
     controllerRef.current = controller
     setState({ status: 'loading' })
     try {
-      const response = await fetch(`/api/items/${encodeURIComponent(itemId)}/provider`, {
+      const response = await fetch(`/api/items/${encodeURIComponent(itemId)}/provider?metadataLanguage=${metadataLanguage}`, {
         signal: controller.signal, cache: 'no-store',
       })
       const payload = await response.json() as { data?: ProviderDetails; error?: string }
@@ -52,11 +59,11 @@ export default function ItemProviderPanel({ itemId, supported }: { itemId: strin
         {!supported ? <p className="text-sm leading-6 text-slate-400">{t('provider.unsupported')}<Link href="/discover" className="text-blue-200 underline">{t('nav.discover')}</Link>{t('provider.unsupportedEnd')}</p> : null}
         {state.status === 'loading' ? <p role="status" className="text-sm text-slate-400">{t('catalog.loadingDetails')}</p> : null}
         {state.status === 'error' ? <div role="alert" className="space-y-3 text-sm text-slate-300">
-          <p>{state.error ?? t(state.errorKey ?? 'provider.unavailable')}</p><button type="button" onClick={() => void load()} className="min-h-11 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 font-semibold text-blue-200">{t('catalog.tryAgain')}</button>
+          <p>{state.error ? translateError(locale, state.error) : t(state.errorKey ?? 'provider.unavailable')}</p><button type="button" onClick={() => void load()} className="min-h-11 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 font-semibold text-blue-200">{t('catalog.tryAgain')}</button>
         </div> : null}
         {state.status === 'ready' ? <>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-            {[state.data.provider, state.data.year, state.data.format, state.data.durationMinutes ? `${state.data.durationMinutes} min` : null]
+            {[state.data.provider, state.data.year, state.data.format ? translateMessage(locale, state.data.format) : null, state.data.durationMinutes ? ui(locale, '{value0} min', { value0: state.data.durationMinutes }) : null]
               .filter(Boolean).map((label, index) => <span key={`${index}-${label}`} className="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2">{label}</span>)}
           </div>
           {state.data.title ? <p className="break-words text-sm font-semibold text-slate-100">{state.data.title}</p> : null}

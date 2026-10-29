@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { translateMessage, translateError } from '../lib/ui-i18n'
 import { useLocale } from './LocaleProvider'
 
 type ToastTone = 'error' | 'success'
@@ -30,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const idRef = useRef(0)
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>())
-  const { t } = useLocale()
+  const { locale, t } = useLocale()
 
   const pauseToast = useCallback((id: number) => {
     clearTimeout(timers.current.get(id))
@@ -86,7 +87,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <p className="min-w-0 break-words text-sm">{toast.message}</p>
+              <p className="min-w-0 break-words text-sm">{toast.tone === 'error' ? translateError(locale, toast.message) : translateMessage(locale, toast.message)}</p>
               <button
                 type="button"
                 onClick={() => dismissToast(toast.id)}

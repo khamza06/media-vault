@@ -1,5 +1,10 @@
 'use client'
 
+import { translateType, translateStatus } from '../../lib/i18n'
+
+import { ui, countNoun } from '../../lib/ui-i18n'
+import { useLocale } from '../LocaleProvider'
+
 import CoverPlaceholder from '../CoverPlaceholder'
 
 import Image from 'next/image'
@@ -31,6 +36,8 @@ export default function ListDetailManager({
   availableItems: MediaItem[]
   list: ListDetail
 }) {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const { showToast } = useToast()
   const runRequest = useListActionRequest()
@@ -115,15 +122,15 @@ export default function ListDetailManager({
       setSelectedIds(new Set())
       showToast(
         result.skipped > 0
-          ? `Added ${result.added} items. ${result.skipped} were already in the list.`
-          : `Added ${result.added} items.`
+          ? ui(locale, "Added {value0} items. {value1} were already in the list.", { value0: result.added, value1: result.skipped })
+          : ui(locale, "Added {value0} items.", { value0: result.added })
       )
       router.refresh()
       return
     }
 
     setSelectedIds(new Set())
-    showToast('Those items were already in the list.')
+    showToast(ui(locale, "Those items were already in the list."))
     router.refresh()
   }
 
@@ -147,7 +154,7 @@ export default function ListDetailManager({
 
     setLiveItems((current) => current.filter((candidate) => candidate.id !== item.id))
     setLiveAvailableItems((current) => [item, ...current])
-    showToast('Item removed from list. It is still in your vault.')
+    showToast(ui(locale, "Item removed from list. It is still in your vault."))
     router.refresh()
   }
 
@@ -158,15 +165,11 @@ export default function ListDetailManager({
           href="/lists"
           className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to lists
-        </Link>
+          <ArrowLeft className="h-4 w-4" /> {ui(locale, "Back to lists")} </Link>
 
         <div className="mt-6 flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
-              Custom List
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75"> {ui(locale, "Custom List")} </p>
             <h1 className="vault-title mt-2">
               {list.name}
             </h1>
@@ -179,9 +182,7 @@ export default function ListDetailManager({
             onClick={() => setIsAddPanelOpen((current) => !current)}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-400"
           >
-            <Plus className="h-4 w-4" />
-            Add items
-          </button>
+            <Plus className="h-4 w-4" /> {ui(locale, "Add items")} </button>
         </div>
       </header>
 
@@ -189,14 +190,10 @@ export default function ListDetailManager({
         <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
           <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
-              <h2 className="text-xl font-bold tracking-tight text-slate-100">Add vault items</h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Search your existing vault and add selected items to this list.
-              </p>
+              <h2 className="text-xl font-bold tracking-tight text-slate-100"> {ui(locale, "Add vault items")} </h2>
+              <p className="mt-2 text-sm text-slate-400"> {ui(locale, "Search your existing vault and add selected items to this list.")} </p>
             </div>
-            <p className="text-sm text-slate-400">
-              Selected {selectedIds.size} of {liveAvailableItems.length} available
-            </p>
+            <p className="text-sm text-slate-400"> {ui(locale, "Selected")} {selectedIds.size} {ui(locale, "of")} {liveAvailableItems.length} {ui(locale, "available")} </p>
           </div>
 
           <div className="mt-5 flex min-w-0 flex-col gap-3 lg:flex-row">
@@ -205,7 +202,7 @@ export default function ListDetailManager({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search title, type, status, genres..."
+                placeholder={ui(locale, "Search title, type, status, genres...")}
                 className="min-h-12 w-full rounded-xl border border-slate-700 bg-slate-950 py-3 pl-11 pr-4 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
               />
             </label>
@@ -223,24 +220,20 @@ export default function ListDetailManager({
                 }
                 disabled={filteredAvailableItems.length === 0 || isAdding}
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:opacity-60"
-              >
-                Select filtered
-              </button>
+              > {ui(locale, "Select filtered")} </button>
               <button
                 type="button"
                 onClick={() => setSelectedIds(new Set())}
                 disabled={selectedIds.size === 0 || isAdding}
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:opacity-60"
-              >
-                Clear
-              </button>
+              > {ui(locale, "Clear")} </button>
               <button
                 type="button"
                 onClick={handleAddSelected}
                 disabled={selectedIds.size === 0 || isAdding}
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-400 disabled:opacity-60"
               >
-                {isAdding ? 'Adding...' : `Add ${selectedIds.size || ''}`.trim()}
+                {isAdding ? ui(locale, "Adding...") : ui(locale, "Add {value0}", { value0: selectedIds.size || '' }).trim()}
               </button>
             </div>
           </div>
@@ -249,8 +242,8 @@ export default function ListDetailManager({
             {previewAvailableItems.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">
                 {liveAvailableItems.length === 0
-                  ? 'All vault items are already in this list.'
-                  : 'No available items match this search.'}
+                  ? ui(locale, "All vault items are already in this list.")
+                  : ui(locale, "No available items match this search.")}
               </div>
             ) : (
               <div className="grid gap-2">
@@ -281,7 +274,7 @@ export default function ListDetailManager({
                           {item.title}
                         </span>
                         <span className="mt-1 block truncate text-xs text-slate-400">
-                          {item.type} · {item.status} · {formatProgressValue(item)}
+                          {translateType(locale, item.type)} · {translateStatus(locale, item.status)} · {formatProgressValue(item, locale)}
                         </span>
                       </span>
                     </button>
@@ -292,10 +285,7 @@ export default function ListDetailManager({
           </div>
 
           {filteredAvailableItems.length > previewAvailableItems.length ? (
-            <p className="mt-3 text-xs text-slate-500">
-              Showing the first {previewAvailableItems.length} matches. Use search to narrow a large
-              vault.
-            </p>
+            <p className="mt-3 text-xs text-slate-500"> {ui(locale, "Showing the first")} {previewAvailableItems.length} {ui(locale, "matches. Use search to narrow a large vault.")} </p>
           ) : null}
         </section>
       ) : null}
@@ -303,21 +293,17 @@ export default function ListDetailManager({
       <section className="min-w-0 space-y-4">
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
-              List Items
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75"> {ui(locale, "List Items")} </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">
-              {liveItems.length} item{liveItems.length === 1 ? '' : 's'}
+              {liveItems.length} {countNoun(locale, liveItems.length, "item")}
             </h2>
           </div>
         </div>
 
         {liveItems.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900 p-8 text-center">
-            <h3 className="text-lg font-semibold text-slate-100">This list is empty.</h3>
-            <p className="mt-2 text-sm text-slate-400">
-              Add existing vault items to turn it into a useful collection.
-            </p>
+            <h3 className="text-lg font-semibold text-slate-100"> {ui(locale, "This list is empty.")} </h3>
+            <p className="mt-2 text-sm text-slate-400"> {ui(locale, "Add existing vault items to turn it into a useful collection.")} </p>
           </div>
         ) : (
           <div className={mediaCardGridClassName}>
@@ -345,6 +331,7 @@ function ListItemCard({
   item: MediaItem
   onRemove: () => void
 }) {
+  const { locale } = useLocale()
   return (
     <article className="group">
       <Link href={`/items/${item.id}`} className="block">
@@ -359,16 +346,16 @@ function ListItemCard({
               className="object-cover transition duration-300 group-hover:scale-105"
             />
           ) : (
-            <CoverPlaceholder title={item.title} type={item.type} />
+            <CoverPlaceholder title={item.title} type={translateType(locale, item.type)} />
           )}
           <span className="absolute bottom-2 left-2 z-20 rounded-xl bg-slate-800/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-            {item.status}
+            {translateStatus(locale, item.status)}
           </span>
         </div>
         <h3 className="mt-3 line-clamp-2 text-sm font-bold text-slate-100 group-hover:text-blue-300">
           {item.title}
         </h3>
-        <p className="mt-1 text-xs text-slate-400">{item.type}</p>
+        <p className="mt-1 text-xs text-slate-400">{translateType(locale, item.type)}</p>
       </Link>
       <div className="mt-3 flex gap-2">
         <button
@@ -378,7 +365,7 @@ function ListItemCard({
           className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
         >
           <X className="h-4 w-4" />
-          {isRemoving ? 'Removing...' : 'Remove'}
+          {isRemoving ? ui(locale, "Removing...") : ui(locale, "Remove")}
         </button>
       </div>
     </article>

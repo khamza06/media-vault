@@ -1,5 +1,10 @@
 'use client'
 
+import { translateMessage } from '../../lib/ui-i18n'
+
+import { ui } from '../../lib/ui-i18n'
+import { useLocale } from '../LocaleProvider'
+
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -35,6 +40,8 @@ const sortOptions: Array<{ label: string; value: SortMode }> = [
 ]
 
 export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps) {
+  const { locale } = useLocale()
+
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -70,7 +77,7 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
 
     const nextItems = items.filter((item) => {
       if (normalizedQuery) {
-        const haystack = [item.title, item.type, item.status, ...item.genres]
+        const haystack = [item.title, item.type, item.status, translateMessage(locale, item.type), translateMessage(locale, item.status), ...item.genres]
           .join(' ')
           .toLowerCase()
 
@@ -91,7 +98,7 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
     })
 
     return sortPublicItems(nextItems, sortMode)
-  }, [items, query, ratingFilter, sortMode, statusFilter, typeFilter])
+  }, [items, locale, query, ratingFilter, sortMode, statusFilter, typeFilter])
 
   const hasActiveFilters =
     query.trim().length > 0 ||
@@ -116,13 +123,8 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
-              <SlidersHorizontal className="h-4 w-4" />
-              Public Vault
-            </div>
-            <p className="mt-3 text-sm text-slate-400">
-              Showing <span className="font-semibold text-slate-100">{filteredItems.length}</span>{' '}
-              of <span className="font-semibold text-slate-100">{items.length}</span> public items
-            </p>
+              <SlidersHorizontal className="h-4 w-4" /> {ui(locale, "Public Vault")} </div>
+            <p className="mt-3 text-sm text-slate-400"> {ui(locale, "Showing")} <span className="font-semibold text-slate-100">{filteredItems.length}</span>{' '} {ui(locale, "of")} <span className="font-semibold text-slate-100">{items.length}</span> {ui(locale, "public items")} </p>
           </div>
 
           {hasActiveFilters ? (
@@ -131,17 +133,13 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
               onClick={clearFilters}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
             >
-              <X className="h-4 w-4" />
-              Clear filters
-            </button>
+              <X className="h-4 w-4" /> {ui(locale, "Clear filters")} </button>
           ) : null}
         </div>
 
         <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="min-w-0 space-y-2 sm:col-span-2 lg:col-span-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-              Search
-            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"> {ui(locale, "Search")} </span>
             <div className="relative">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
@@ -150,68 +148,60 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
                 onChange={(event) =>
                   updateUrl({ q: event.target.value.trim().length > 0 ? event.target.value : null })
                 }
-                placeholder="Search public titles, types, statuses, genres..."
+                placeholder={ui(locale, "Search public titles, types, statuses, genres...")}
                 className={`${controlClassName} pl-11`}
               />
             </div>
           </label>
 
           <label className="min-w-0 space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-              Type
-            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"> {ui(locale, "Type")} </span>
             <AppSelect
-              ariaLabel="Type filter"
+              ariaLabel={ui(locale, "Type filter")}
               value={typeFilter}
               onValueChange={(value) => updateUrl({ type: value === 'all' ? null : value })}
               options={[
-                { label: 'All types', value: 'all' },
-                ...typeOptions.map((type) => ({ label: type, value: type })),
+                { label: ui(locale, "All types"), value: 'all' },
+                ...typeOptions.map((type) => ({ label: translateMessage(locale, type), value: type })),
               ]}
               className={controlClassName}
             />
           </label>
 
           <label className="min-w-0 space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-              Status
-            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"> {ui(locale, "Status")} </span>
             <AppSelect
-              ariaLabel="Status filter"
+              ariaLabel={ui(locale, "Status filter")}
               value={statusFilter}
               onValueChange={(value) => updateUrl({ status: value === 'all' ? null : value })}
               options={[
-                { label: 'All statuses', value: 'all' },
-                ...statusOptions.map((status) => ({ label: status, value: status })),
+                { label: ui(locale, "All statuses"), value: 'all' },
+                ...statusOptions.map((status) => ({ label: translateMessage(locale, status), value: status })),
               ]}
               className={controlClassName}
             />
           </label>
 
           <label className="min-w-0 space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-              Rating
-            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"> {ui(locale, "Rating")} </span>
             <AppSelect
-              ariaLabel="Rating filter"
+              ariaLabel={ui(locale, "Rating filter")}
               value={ratingFilter}
               onValueChange={(value) =>
                 updateUrl({ rating: value === 'all' ? null : value })
               }
-              options={ratingOptions}
+              options={ratingOptions.map(option => ({ ...option, label: translateMessage(locale, option.label) }))}
               className={controlClassName}
             />
           </label>
 
           <label className="min-w-0 space-y-2 sm:col-span-2 lg:col-span-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-              Sort
-            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"> {ui(locale, "Sort")} </span>
             <AppSelect
-              ariaLabel="Sort public vault"
+              ariaLabel={ui(locale, "Sort public vault")}
               value={sortMode}
               onValueChange={(value) => updateUrl({ sort: value === 'recent' ? null : value })}
-              options={sortOptions}
+              options={sortOptions.map(option => ({ ...option, label: translateMessage(locale, option.label) }))}
               className={controlClassName}
             />
           </label>
@@ -220,7 +210,7 @@ export default function PublicVaultExplorer({ items }: PublicVaultExplorerProps)
 
       <PublicLibraryGrid
         emptyMessage={
-          items.length === 0 ? 'No public items yet.' : 'No items match these filters.'
+          items.length === 0 ? ui(locale, "No public items yet.") : ui(locale, "No items match these filters.")
         }
         items={filteredItems}
       />

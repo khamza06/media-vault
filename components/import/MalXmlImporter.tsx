@@ -1,4 +1,9 @@
 'use client'
+import LocalizedFileInput from '../ui/LocalizedFileInput'
+import { translateError } from '../../lib/ui-i18n'
+
+import { ui } from '../../lib/ui-i18n'
+import { useLocale } from '../LocaleProvider'
 
 import ActionFeedback from '../ui/ActionFeedback'
 
@@ -162,7 +167,7 @@ function getCandidateKey(candidate: ImportCandidate, index: number) {
   return `${candidate.external_source}:${candidate.type}:${candidate.external_id ?? 'no-id'}:${candidate.title}:${index}`
 }
 
-function formatImportResult(result: MalImportResult) {
+function formatImportResult(result: MalImportResult, locale: import('../../lib/i18n').Locale = 'en') {
   if (result.error) {
     return result.error
   }
@@ -171,13 +176,13 @@ function formatImportResult(result: MalImportResult) {
     const withoutMetadata = Math.max(result.imported - result.enriched, 0)
     const metadataCopy =
       withoutMetadata > 0
-        ? `Enriched ${result.enriched} with covers. ${withoutMetadata} imported without metadata.`
-        : `Enriched ${result.enriched} with covers.`
+        ? ui(locale, "Enriched {value0} with covers. {value1} imported without metadata.", { value0: result.enriched, value1: withoutMetadata })
+        : ui(locale, "Enriched {value0} with covers.", { value0: result.enriched })
 
-    return `Imported ${result.imported} items. ${metadataCopy} Skipped ${result.skipped} duplicates.`
+    return ui(locale, "Imported {value0} items. {value1} Skipped {value2} duplicates.", { value0: result.imported, value1: metadataCopy, value2: result.skipped })
   }
 
-  return `No items imported. ${result.skipped} items were skipped as duplicates.`
+  return ui(locale, "No items imported. {value0} items were skipped as duplicates.", { value0: result.skipped })
 }
 
 function createEmptyCoverFillProgress(status: CoverFillStatus): CoverFillProgress {
@@ -226,32 +231,32 @@ function waitForNextCoverBatch() {
   })
 }
 
-function formatCoverFillResult(result: CoverFillProgress) {
+function formatCoverFillResult(result: CoverFillProgress, locale: import('../../lib/i18n').Locale = 'en') {
   const found = getFoundCount(result)
-  const totals = `Checked ${result.checked}. Found ${found}. Updated ${result.updated}. Skipped ${result.skipped}. Failed ${result.failed}.`
+  const totals = ui(locale, "Checked {value0}. Found {value1}. Updated {value2}. Skipped {value3}. Failed {value4}.", { value0: result.checked, value1: found, value2: result.updated, value3: result.skipped, value4: result.failed })
 
   if (result.status === 'running') {
-    return `Batch ${result.batches + 1} running... ${totals}`
+    return ui(locale, "Batch {value0} running... {value1}", { value0: result.batches + 1, value1: totals })
   }
 
   if (result.status === 'cancelled') {
-    return `Cancelled after batch ${result.batches}. ${totals}`
+    return ui(locale, "Cancelled after batch {value0}. {value1}", { value0: result.batches, value1: totals })
   }
 
   if (result.status === 'error') {
-    return `Stopped after batch ${result.batches} because enrichment failed. ${totals} ${result.error ?? ''}`.trim()
+    return ui(locale, "Stopped after batch {value0} because enrichment failed. {value1} {value2}", { value0: result.batches, value1: totals, value2: result.error ?? '' }).trim()
   }
 
   if (result.status === 'max-batches') {
-    return `Paused after ${MAX_COVER_FILL_BATCHES} safe batches. ${totals} Click again to continue if needed.`
+    return ui(locale, "Paused after {value0} safe batches. {value1} Click again to continue if needed.", { value0: MAX_COVER_FILL_BATCHES, value1: totals })
   }
 
   if (result.status === 'stalled') {
-    return `Finished because the last batches had no new matches. ${totals}`
+    return ui(locale, "Finished because the last batches had no new matches. {value0}", { value0: totals })
   }
 
   if (result.checked === 0) {
-    return 'Finished. No anime or manga items with missing covers were found.'
+    return ui(locale, "Finished. No anime or manga items with missing covers were found.")
   }
 
   return `Finished. ${totals}`
@@ -262,6 +267,8 @@ export default function MalXmlImporter({
 }: {
   canDeleteMalImports?: boolean
 }) {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const coverFillCancelRef = useRef(false)
   const coverFillRunIdRef = useRef(0)
@@ -317,7 +324,7 @@ export default function MalXmlImporter({
     setFileName(file.name)
 
     if (!file.name.toLowerCase().endsWith('.xml')) {
-      setErrorMessage('Please upload a .xml file exported from MyAnimeList.')
+      setErrorMessage(ui(locale, "Please upload a .xml file exported from MyAnimeList."))
       return
     }
 
@@ -330,7 +337,7 @@ export default function MalXmlImporter({
       setSelectedKeys(new Set(parsedCandidates.map(getCandidateKey)))
     } catch {
       setErrorMessage(
-        'Could not parse this XML file. Please make sure it is a valid MyAnimeList export.'
+        ui(locale, "Could not parse this XML file. Please make sure it is a valid MyAnimeList export.")
       )
     } finally {
       setIsParsing(false)
@@ -360,7 +367,7 @@ export default function MalXmlImporter({
     } catch {
       setImportResult({
         enriched: 0,
-        error: 'Import failed. Please try again.',
+        error: ui(locale, "Import failed. Please try again."),
         failed: selectedCandidates.length,
         imported: 0,
         skipped: 0,
@@ -443,7 +450,7 @@ export default function MalXmlImporter({
     } catch {
       totals = {
         ...totals,
-        error: 'Could not fill missing covers. Please try again.',
+        error: ui(locale, "Could not fill missing covers. Please try again."),
         status: 'error',
       }
       setCoverFillProgress(totals)
@@ -477,7 +484,7 @@ export default function MalXmlImporter({
     } catch {
       setCleanupResult({
         deleted: 0,
-        error: 'Could not delete MyAnimeList imports. Please try again.',
+        error: ui(locale, "Could not delete MyAnimeList imports. Please try again."),
         success: false,
       })
     } finally {
@@ -522,29 +529,22 @@ export default function MalXmlImporter({
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-        <label className="block text-sm font-semibold text-slate-100" htmlFor="mal-xml-file">
-          MyAnimeList XML export
-        </label>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
-          Choose your MyAnimeList XML export file to preview your library before importing.
-        </p>
-        <input
+        <label className="block text-sm font-semibold text-slate-100" htmlFor="mal-xml-file"> {ui(locale, "MyAnimeList XML export")} </label>
+        <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "Choose your MyAnimeList XML export file to preview your library before importing.")} </p>
+        <LocalizedFileInput
           id="mal-xml-file"
           type="file"
           accept=".xml,text/xml,application/xml"
           onChange={handleFileChange}
-          className="mt-4 block min-h-12 w-full cursor-pointer rounded-xl border border-slate-800 bg-slate-900 text-sm text-slate-300 file:mr-4 file:min-h-12 file:cursor-pointer file:rounded-xl file:border-0 file:bg-blue-500 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-white hover:border-slate-700"
+
         />
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-base font-semibold text-slate-100">Fill Missing Covers</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              Search AniList for anime and manga items in your library that do not have cover
-              images yet.
-            </p>
+            <h3 className="text-base font-semibold text-slate-100"> {ui(locale, "Fill Missing Covers")} </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "Search AniList for anime and manga items in your library that do not have cover images yet.")} </p>
           </div>
           <div className="flex flex-col gap-2 sm:min-w-56">
             <button
@@ -553,16 +553,14 @@ export default function MalXmlImporter({
               disabled={isFillingCovers}
               className="min-h-12 rounded-xl border border-blue-400/20 bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-500"
             >
-              {isFillingCovers ? 'Filling covers...' : 'Fill missing covers'}
+              {isFillingCovers ? ui(locale, "Filling covers...") : ui(locale, "Fill missing covers")}
             </button>
             {isFillingCovers ? (
               <button
                 type="button"
                 onClick={handleCancelCoverFill}
                 className="min-h-12 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-red-400/50 hover:text-red-100"
-              >
-                Cancel
-              </button>
+              > {ui(locale, "Cancel")} </button>
             ) : null}
           </div>
         </div>
@@ -576,18 +574,17 @@ export default function MalXmlImporter({
                   : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
             }`}
           >
-            <p className="font-semibold">{formatCoverFillResult(coverFillProgress)}</p>
+            <p className="font-semibold">{formatCoverFillResult(coverFillProgress, locale)}</p>
             <div className="mt-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-              <CoverFillMetric label="Batches" value={coverFillProgress.batches} />
-              <CoverFillMetric label="Checked" value={coverFillProgress.checked} />
-              <CoverFillMetric label="Found" value={getFoundCount(coverFillProgress)} />
-              <CoverFillMetric label="Updated" value={coverFillProgress.updated} />
-              <CoverFillMetric label="Skipped" value={coverFillProgress.skipped} />
-              <CoverFillMetric label="Failed" value={coverFillProgress.failed} />
+              <CoverFillMetric label={ui(locale, "Batches")} value={coverFillProgress.batches} />
+              <CoverFillMetric label={ui(locale, "Checked")} value={coverFillProgress.checked} />
+              <CoverFillMetric label={ui(locale, "Found")} value={getFoundCount(coverFillProgress)} />
+              <CoverFillMetric label={ui(locale, "Updated")} value={coverFillProgress.updated} />
+              <CoverFillMetric label={ui(locale, "Skipped")} value={coverFillProgress.skipped} />
+              <CoverFillMetric label={ui(locale, "Failed")} value={coverFillProgress.failed} />
             </div>
             <p className="mt-3 text-xs leading-5 opacity-80">
-              MAL ID: {coverFillProgress.foundByMalId} | Jikan: {coverFillProgress.foundByJikan} |
-              Title search: {coverFillProgress.foundByTitle}
+              MAL ID: {coverFillProgress.foundByMalId} | Jikan: {coverFillProgress.foundByJikan} {ui(locale, "| Title search:")} {coverFillProgress.foundByTitle}
             </p>
           </div>
         ) : null}
@@ -595,39 +592,33 @@ export default function MalXmlImporter({
 
       {errorMessage ? (
         <ActionFeedback tone="error">
-          {errorMessage}
+          {translateError(locale, errorMessage)}
         </ActionFeedback>
       ) : null}
 
       {isParsing ? (
-        <ActionFeedback tone="pending">
-          Parsing XML preview...
-        </ActionFeedback>
+        <ActionFeedback tone="pending"> {ui(locale, "Parsing XML preview...")} </ActionFeedback>
       ) : null}
 
       {!fileName && !isParsing ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-          Upload a MyAnimeList XML export file to preview your library.
-        </div>
+        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400"> {ui(locale, "Upload a MyAnimeList XML export file to preview your library.")} </div>
       ) : null}
 
       {showNoEntriesMessage ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-          No valid MyAnimeList entries were found in this file.
-        </div>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100"> {ui(locale, "No valid MyAnimeList entries were found in this file.")} </div>
       ) : null}
 
       {hasParsedCandidates ? (
         <section className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <SummaryCard label="Parsed items" value={summary.total.toString()} />
-            <SummaryCard label="Anime" value={summary.byType.anime.toString()} />
-            <SummaryCard label="Manga" value={summary.byType.manga.toString()} />
+            <SummaryCard label={ui(locale, "Parsed items")} value={summary.total.toString()} />
+            <SummaryCard label={ui(locale, "Anime")} value={summary.byType.anime.toString()} />
+            <SummaryCard label={ui(locale, "Manga")} value={summary.byType.manga.toString()} />
           </div>
 
           {summary.byStatus.length > 0 ? (
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <h3 className="text-sm font-semibold text-slate-100">Status breakdown</h3>
+              <h3 className="text-sm font-semibold text-slate-100"> {ui(locale, "Status breakdown")} </h3>
               <div className="mt-3 flex flex-wrap gap-2">
                 {summary.byStatus.map(([status, count]) => (
                   <span
@@ -644,13 +635,9 @@ export default function MalXmlImporter({
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-100">Preview</h3>
-                <p className="text-sm text-slate-400">
-                  Review the parsed items, choose what to import, then save them to your vault.
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-200">
-                  Selected {selectedCount} of {candidates.length} items
-                </p>
+                <h3 className="text-lg font-semibold text-slate-100"> {ui(locale, "Preview")} </h3>
+                <p className="text-sm text-slate-400"> {ui(locale, "Review the parsed items, choose what to import, then save them to your vault.")} </p>
+                <p className="mt-2 text-sm font-medium text-slate-200"> {ui(locale, "Selected")} {selectedCount} {ui(locale, "of")} {candidates.length} {ui(locale, "items")} </p>
               </div>
               <div className="flex flex-col gap-2 sm:items-end">
                 <div className="flex flex-wrap gap-2">
@@ -658,21 +645,15 @@ export default function MalXmlImporter({
                     type="button"
                     onClick={selectAllCandidates}
                     className="min-h-11 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
-                  >
-                    Select all
-                  </button>
+                  > {ui(locale, "Select all")} </button>
                   <button
                     type="button"
                     onClick={deselectAllCandidates}
                     className="min-h-11 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
-                  >
-                    Deselect all
-                  </button>
+                  > {ui(locale, "Deselect all")} </button>
                 </div>
                 {candidates.length > PREVIEW_LIMIT ? (
-                  <p className="text-xs text-slate-400">
-                    Showing first {PREVIEW_LIMIT} of {candidates.length} items.
-                  </p>
+                  <p className="text-xs text-slate-400"> {ui(locale, "Showing first")} {PREVIEW_LIMIT} {ui(locale, "of")} {candidates.length} {ui(locale, "items.")} </p>
                 ) : null}
               </div>
             </div>
@@ -689,7 +670,7 @@ export default function MalXmlImporter({
                       checked={selectedKeys.has(getCandidateKey(candidate, index))}
                       onChange={() => toggleCandidate(candidate, index)}
                       className="mt-1 h-5 w-5 rounded-xl border-slate-700 bg-slate-950 text-blue-500"
-                      aria-label={`Select ${candidate.title}`}
+                      aria-label={ui(locale, "Select {value0}", { value0: candidate.title })}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -706,13 +687,13 @@ export default function MalXmlImporter({
                       </div>
 
                       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                        <PreviewField label="Status" value={candidate.status ?? 'Unknown'} />
+                        <PreviewField label={ui(locale, "Status")} value={candidate.status ?? 'Unknown'} />
                         <PreviewField
-                          label="Rating"
-                          value={candidate.rating == null ? 'Unrated' : `${candidate.rating} / 10`}
+                          label={ui(locale, "Rating")}
+                          value={candidate.rating == null ? ui(locale, "Unrated") : `${candidate.rating} / 10`}
                         />
                         <PreviewField
-                          label="Progress"
+                          label={ui(locale, "Progress")}
                           value={candidate.progress == null ? 'Not started' : candidate.progress}
                         />
                       </dl>
@@ -723,17 +704,15 @@ export default function MalXmlImporter({
             </div>
           </div>
 
-          {isImporting ? <ActionFeedback tone="pending">Importing selected items...</ActionFeedback> : null}
+          {isImporting ? <ActionFeedback tone="pending"> {ui(locale, "Importing selected items...")} </ActionFeedback> : null}
           {importResult ? (
             <ActionFeedback tone={importResult.error ? 'error' : 'success'}>
-              <p className="font-semibold">{formatImportResult(importResult)}</p>
+              <p className="font-semibold">{formatImportResult(importResult, locale)}</p>
               {!importResult.error && importResult.imported > 0 ? (
                 <Link
                   href="/"
                   className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-emerald-300/20 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-500/25"
-                >
-                  Go to Library
-                </Link>
+                > {ui(locale, "Go to Library")} </Link>
               ) : null}
             </ActionFeedback>
           ) : null}
@@ -745,27 +724,20 @@ export default function MalXmlImporter({
               onClick={() => void handleImportSelected()}
               className="min-h-12 w-full rounded-xl border border-blue-400/20 bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-500"
             >
-              {isImporting ? 'Importing...' : 'Import selected items'}
+              {isImporting ? 'Importing...' : ui(locale, "Import selected items")}
             </button>
-            <p className="mt-3 text-center text-sm text-slate-400">
-              Selected items will be added to your vault. Existing title/type duplicates are skipped.
-            </p>
+            <p className="mt-3 text-center text-sm text-slate-400"> {ui(locale, "Selected items will be added to your vault. Existing title/type duplicates are skipped.")} </p>
           </div>
         </section>
       ) : null}
 
       {canDeleteMalImports ? (
         <section className="rounded-xl border border-red-900/50 bg-slate-900 p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-red-200/70">
-            Danger Zone
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-red-200/70"> {ui(locale, "Danger Zone")} </p>
           <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-100">Delete MyAnimeList imports</h3>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                Remove items imported from MyAnimeList from your vault. Manually added items will
-                not be affected.
-              </p>
+              <h3 className="text-lg font-bold text-slate-100"> {ui(locale, "Delete MyAnimeList imports")} </h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400"> {ui(locale, "Remove items imported from MyAnimeList from your vault. Manually added items will not be affected.")} </p>
             </div>
             <button
               type="button"
@@ -776,9 +748,7 @@ export default function MalXmlImporter({
               }}
               disabled={isDeletingMalImports}
               className="min-h-12 rounded-xl border border-red-500/40 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Delete MyAnimeList imports
-            </button>
+            > {ui(locale, "Delete MyAnimeList imports")} </button>
           </div>
 
           {cleanupResult ? (
@@ -790,9 +760,7 @@ export default function MalXmlImporter({
               }`}
             >
               {cleanupResult.success
-                ? `Deleted ${cleanupResult.deleted} MyAnimeList imported item${
-                    cleanupResult.deleted === 1 ? '' : 's'
-                  }.`
+                ? ui(locale, "Deleted {value0} MyAnimeList imported item{value1}.", { value0: cleanupResult.deleted, value1: cleanupResult.deleted === 1 ? '' : 's' })
                 : cleanupResult.error}
             </div>
           ) : null}
@@ -807,17 +775,10 @@ export default function MalXmlImporter({
             aria-labelledby="mal-cleanup-title"
             className="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
           >
-            <h2 id="mal-cleanup-title" className="text-xl font-bold text-slate-100">
-              Delete all MyAnimeList imports?
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              This will permanently remove items imported from MyAnimeList from your vault. This
-              action cannot be undone.
-            </p>
+            <h2 id="mal-cleanup-title" className="text-xl font-bold text-slate-100"> {ui(locale, "Delete all MyAnimeList imports?")} </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400"> {ui(locale, "This will permanently remove items imported from MyAnimeList from your vault. This action cannot be undone.")} </p>
             <label className="mt-5 block">
-              <span className="text-sm font-semibold text-slate-200">
-                Type DELETE to confirm
-              </span>
+              <span className="text-sm font-semibold text-slate-200"> {ui(locale, "Type DELETE to confirm")} </span>
               <input
                 type="text"
                 value={cleanupConfirmText}
@@ -844,16 +805,14 @@ export default function MalXmlImporter({
                 }}
                 disabled={isDeletingMalImports}
                 className="min-h-11 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
+              > {ui(locale, "Cancel")} </button>
               <button
                 type="button"
                 onClick={() => void handleDeleteMyAnimeListImports()}
                 disabled={cleanupConfirmText !== 'DELETE' || isDeletingMalImports}
                 className="min-h-11 rounded-xl border border-red-500/40 bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isDeletingMalImports ? 'Deleting...' : 'Delete MyAnimeList imports'}
+                {isDeletingMalImports ? ui(locale, "Deleting...") : ui(locale, "Delete MyAnimeList imports")}
               </button>
             </div>
           </div>

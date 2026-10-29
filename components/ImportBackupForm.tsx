@@ -1,4 +1,9 @@
 'use client'
+import LocalizedFileInput from './ui/LocalizedFileInput'
+import { translateMessage, translateError } from '../lib/ui-i18n'
+
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -28,6 +33,8 @@ function isCollectionResult(value: RestoreResult): value is CollectionRestoreRes
 const PREVIEW_LIMIT = 250
 
 export default function ImportBackupForm() {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const { showToast } = useToast()
   const [fileName, setFileName] = useState('')
@@ -75,7 +82,7 @@ export default function ImportBackupForm() {
 
     try {
       if (file.size > 20 * 1024 * 1024) {
-        setMessage('Backup is too large to preview. Choose a JSON file smaller than 20 MB.')
+        setMessage(ui(locale, "Backup is too large to preview. Choose a JSON file smaller than 20 MB."))
         setMessageTone('error')
         return
       }
@@ -83,7 +90,7 @@ export default function ImportBackupForm() {
       const items = extractBackupItems(parsed)
 
       if (!items) {
-        setMessage('Backup file format is not recognized.')
+        setMessage(ui(locale, "Backup file format is not recognized."))
         setMessageTone('error')
         setIsParsing(false)
         return
@@ -98,7 +105,7 @@ export default function ImportBackupForm() {
       setIsV2(version2)
       setPreviewLists(collections.lists)
 
-      const candidates = items.map((item, index) => normalizePreviewCandidate(item, index))
+      const candidates = items.map((item, index) => normalizePreviewCandidate(item, index, locale))
       const validKeys = candidates
         .filter((candidate) => candidate.valid)
         .map((candidate) => candidate.key)
@@ -107,12 +114,12 @@ export default function ImportBackupForm() {
       setSelectedKeys(new Set(validKeys))
       setMessage(
         validKeys.length > 0 || collections.lists.length > 0
-          ? 'Backup parsed. Review the preview, choose items and optional lists, then restore your selection.'
-          : 'No valid Media Vault items were found in this backup.'
+          ? ui(locale, "Backup parsed. Review the preview, choose items and optional lists, then restore your selection.")
+          : ui(locale, "No valid Media Vault items were found in this backup.")
       )
       setMessageTone(validKeys.length > 0 || collections.lists.length > 0 ? 'success' : 'error')
     } catch {
-      setMessage('Backup file is not valid JSON.')
+      setMessage(ui(locale, "Backup file is not valid JSON."))
       setMessageTone('error')
     } finally {
       setIsParsing(false)
@@ -144,12 +151,12 @@ export default function ImportBackupForm() {
   async function handleRestore() {
     if (restoringRef.current) return
     if (selectedItems.length === 0 && selectedLists.length === 0) {
-      setMessage('Select at least one valid backup item or list to restore.')
+      setMessage(ui(locale, "Select at least one valid backup item or list to restore."))
       setMessageTone('error')
       return
     }
     if (isV2 && new TextEncoder().encode(JSON.stringify({ items: selectedItems, lists: selectedLists })).byteLength > MAX_BACKUP_RESTORE_BYTES) {
-      setMessage('Selection is too large. Choose fewer items/lists and restore in smaller groups.')
+      setMessage(ui(locale, "Selection is too large. Choose fewer items/lists and restore in smaller groups."))
       setMessageTone('error')
       return
     }
@@ -175,13 +182,13 @@ export default function ImportBackupForm() {
         return
       }
 
-      const summary = `Restored ${result.restored} items. Skipped ${result.skipped} duplicates. Failed ${result.failed}.`
+      const summary = ui(locale, "Restored {value0} items. Skipped {value1} duplicates. Failed {value2}.", { value0: result.restored, value1: result.skipped, value2: result.failed })
       setMessage(summary)
       setMessageTone('success')
       showToast(summary)
       router.refresh()
     } catch {
-      setMessage('Could not finish restoring. Some changes may have saved. Refresh and review your vault and lists before retrying; matching items and list names are skipped, not overwritten.')
+      setMessage(ui(locale, "Could not finish restoring. Some changes may have saved. Refresh and review your vault and lists before retrying; matching items and list names are skipped, not overwritten."))
       setMessageTone('error')
     } finally {
       restoringRef.current = false
@@ -196,77 +203,63 @@ export default function ImportBackupForm() {
           <RotateCcw className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">Restore Preview</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Upload a Media Vault JSON backup, preview the contents, then restore selected
-            items and optional lists. Existing matching items and list names are skipped, not overwritten.
-          </p>
-          <p className="mt-2 text-xs leading-5 text-slate-500">
-            JSON is recommended for restoring your vault. CSV is best for spreadsheets and
-            may not preserve every field.
-          </p>
+          <h2 className="text-2xl font-semibold tracking-tight text-white"> {ui(locale, "Restore Preview")} </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-300"> {ui(locale, "Upload a Media Vault JSON backup, preview the contents, then restore selected items and optional lists. Existing matching items and list names are skipped, not overwritten.")} </p>
+          <p className="mt-2 text-xs leading-5 text-slate-500"> {ui(locale, "JSON is recommended for restoring your vault. CSV is best for spreadsheets and may not preserve every field.")} </p>
         </div>
       </div>
 
       <div className="mt-5 space-y-4">
-        <input
-          aria-label="Media Vault backup file"
+        <LocalizedFileInput
+          aria-label={ui(locale, "Media Vault backup file")}
           type="file"
           accept="application/json,.json"
           onChange={(event) => void handleFileChange(event.target.files?.[0] ?? null)}
-          className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-4 text-sm text-slate-200 file:mr-4 file:rounded-xl file:border-0 file:bg-blue-500 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-400"
+
           disabled={isParsing || isRestoring}
         />
 
         {fileName ? (
-          <p className="text-sm text-slate-300">Selected: {fileName}</p>
+          <p className="text-sm text-slate-300"> {ui(locale, "Selected:")} {fileName}</p>
         ) : (
-          <p className="text-sm text-slate-400">
-            Choose a Media Vault JSON export to preview before restoring.
-          </p>
+          <p className="text-sm text-slate-400"> {ui(locale, "Choose a Media Vault JSON export to preview before restoring.")} </p>
         )}
 
         {isRestoring || isParsing ? (
-          <ActionFeedback tone="pending">{isRestoring ? 'Restoring selected items...' : 'Reading backup...'}</ActionFeedback>
-        ) : message ? <ActionFeedback tone={messageTone ?? 'success'}>{message}</ActionFeedback> : null}
+          <ActionFeedback tone="pending">{isRestoring ? ui(locale, "Restoring selected items...") : ui(locale, "Reading backup...")}</ActionFeedback>
+        ) : message ? <ActionFeedback tone={messageTone ?? 'success'}>{messageTone === 'error' ? translateError(locale, message) : translateMessage(locale, message)}</ActionFeedback> : null}
 
         {previewItems.length > 0 || previewLists.length > 0 ? (
           <div className="min-w-0 space-y-4 rounded-xl border border-slate-800 bg-slate-950 p-4">
             <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <PreviewStat label="Total in backup" value={String(previewItems.length)} />
-              <PreviewStat label="Valid items" value={String(validItems.length)} />
+              <PreviewStat label={ui(locale, "Total in backup")} value={String(previewItems.length)} />
+              <PreviewStat label={ui(locale, "Valid items")} value={String(validItems.length)} />
               <PreviewStat
-                label="Invalid/skipped"
+                label={ui(locale, "Invalid/skipped")}
                 value={String(previewItems.length - validItems.length)}
               />
-              <PreviewStat label="Selected" value={String(selectedItems.length)} />
+              <PreviewStat label={ui(locale, "Selected")} value={String(selectedItems.length)} />
             </div>
 
-            <Breakdown title="Type breakdown" items={typeBreakdown} />
-            <Breakdown title="Status breakdown" items={statusBreakdown} />
+            <Breakdown title={ui(locale, "Type breakdown")} items={typeBreakdown} />
+            <Breakdown title={ui(locale, "Status breakdown")} items={statusBreakdown} />
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-slate-400">
-                Showing first {Math.min(PREVIEW_LIMIT, previewItems.length)} of{' '}
-                {previewItems.length} rows. Selection applies to all valid parsed items.
-              </p>
+              <p className="text-sm text-slate-400"> {ui(locale, "Showing first")} {Math.min(PREVIEW_LIMIT, previewItems.length)} {ui(locale, "of")} {' '}
+                {previewItems.length} {ui(locale, "rows. Selection applies to all valid parsed items.")} </p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   type="button"
                   onClick={selectAll}
                   disabled={isRestoring || validItems.length === 0}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:opacity-60"
-                >
-                  Select all
-                </button>
+                > {ui(locale, "Select all")} </button>
                 <button
                   type="button"
                   onClick={deselectAll}
                   disabled={isRestoring || selectedKeys.size === 0}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:opacity-60"
-                >
-                  Deselect all
-                </button>
+                > {ui(locale, "Deselect all")} </button>
               </div>
             </div>
 
@@ -284,17 +277,17 @@ export default function ImportBackupForm() {
 
             {isV2 ? (
               <section className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4">
-                <h3 className="font-semibold text-slate-100">Lists in backup: {previewLists.length}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">List restore is optional. New lists are private. Existing list names are skipped, not merged. Only selected items with an unambiguous vault match can be linked; omitted items will not be restored automatically.</p>
-                <p className="mt-2 text-xs text-slate-400">Selected lists: {selectedLists.length}. Restore up to 100 lists and 2,000 items in one group.</p>
+                <h3 className="font-semibold text-slate-100"> {ui(locale, "Lists in backup:")} {previewLists.length}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "List restore is optional. New lists are private. Existing list names are skipped, not merged. Only selected items with an unambiguous vault match can be linked; omitted items will not be restored automatically.")} </p>
+                <p className="mt-2 text-xs text-slate-400"> {ui(locale, "Selected lists:")} {selectedLists.length} {ui(locale, ". Restore up to 100 lists and 2,000 items in one group.")} </p>
                 <div className="my-3 flex flex-wrap gap-2">
-                  <button type="button" disabled={isRestoring || !previewLists.length} onClick={() => setSelectedListIds(new Set(previewLists.map((list) => list.id)))} className="min-h-11 rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-100 disabled:opacity-50">Select all lists</button>
-                  <button type="button" disabled={isRestoring || !selectedListIds.size} onClick={() => setSelectedListIds(new Set())} className="min-h-11 rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-100 disabled:opacity-50">Deselect lists</button>
+                  <button type="button" disabled={isRestoring || !previewLists.length} onClick={() => setSelectedListIds(new Set(previewLists.map((list) => list.id)))} className="min-h-11 rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-100 disabled:opacity-50"> {ui(locale, "Select all lists")} </button>
+                  <button type="button" disabled={isRestoring || !selectedListIds.size} onClick={() => setSelectedListIds(new Set())} className="min-h-11 rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-100 disabled:opacity-50"> {ui(locale, "Deselect lists")} </button>
                 </div>
                 <div className="max-h-80 space-y-2 overflow-y-auto">
                   {previewLists.slice(0, PREVIEW_LIMIT).map((list) => (
                     <label key={list.id} className="flex min-w-0 items-start gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 focus-within:ring-2 focus-within:ring-blue-400">
-                      <input aria-label={`Restore list ${list.name}`} type="checkbox" checked={selectedListIds.has(list.id)} disabled={isRestoring} className="mt-1 h-5 w-5 shrink-0 accent-blue-500" onChange={() => setSelectedListIds((current) => {
+                      <input aria-label={ui(locale, "Restore list {value0}", { value0: list.name })} type="checkbox" checked={selectedListIds.has(list.id)} disabled={isRestoring} className="mt-1 h-5 w-5 shrink-0 accent-blue-500" onChange={() => setSelectedListIds((current) => {
                         const next = new Set(current)
                         if (next.has(list.id)) next.delete(list.id)
                         else next.add(list.id)
@@ -302,42 +295,35 @@ export default function ImportBackupForm() {
                       })} />
                       <span className="min-w-0 text-sm"><span className="block break-words font-semibold text-slate-100">{list.name}</span>
                         {list.description ? <span className="mt-1 block whitespace-pre-wrap break-words text-slate-400">{list.description}</span> : null}
-                        <span className="mt-1 block text-xs text-slate-400">{list.item_ids.length} links; {list.item_ids.filter((id) => selectedItemIds.has(id)).length} reference selected items</span>
+                        <span className="mt-1 block text-xs text-slate-400">{list.item_ids.length} {ui(locale, "links;")} {list.item_ids.filter((id) => selectedItemIds.has(id)).length} {ui(locale, "reference selected items")} </span>
                       </span>
                     </label>
                   ))}
                 </div>
-                {previewLists.length > PREVIEW_LIMIT ? <p className="mt-2 text-xs text-slate-400">Showing first {PREVIEW_LIMIT} lists. Select all applies to every parsed list; restore in smaller groups if needed.</p> : null}
+                {previewLists.length > PREVIEW_LIMIT ? <p className="mt-2 text-xs text-slate-400"> {ui(locale, "Showing first")} {PREVIEW_LIMIT} {ui(locale, "lists. Select all applies to every parsed list; restore in smaller groups if needed.")} </p> : null}
               </section>
-            ) : <p className="text-xs text-slate-400">This legacy backup contains items only. Export JSON v2 to include lists.</p>}
+            ) : <p className="text-xs text-slate-400"> {ui(locale, "This legacy backup contains items only. Export JSON v2 to include lists.")} </p>}
           </div>
         ) : null}
 
         {restoreResult ? (
           <div className={`rounded-xl border px-4 py-3 text-sm ${restoreResult.success ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100' : 'border-amber-500/30 bg-amber-500/10 text-amber-100'}`}>
-            <p className="font-semibold">
-              Restored {restoreResult.restored} items. Skipped {restoreResult.skipped}{' '}
-              duplicates. Invalid {restoreResult.invalid}. Failed {restoreResult.failed}.
+            <p className="font-semibold"> {ui(locale, "Restored")} {restoreResult.restored} {ui(locale, "items. Skipped")} {restoreResult.skipped}{' '} {ui(locale, "duplicates. Invalid")} {restoreResult.invalid} {ui(locale, ". Failed")} {restoreResult.failed}.
             </p>
             {isCollectionResult(restoreResult) ? <div className="mt-2 space-y-2">
-              <p>Lists: restored {restoreResult.listsRestored}, skipped {restoreResult.listsSkipped}, failed {restoreResult.listsFailed}.</p>
-              <p>Memberships: restored {restoreResult.membershipsRestored}, skipped {restoreResult.membershipsSkipped}, failed {restoreResult.membershipsFailed}.</p>
+              <p> {ui(locale, "Lists: restored")} {restoreResult.listsRestored} {ui(locale, ", skipped")} {restoreResult.listsSkipped} {ui(locale, ", failed")} {restoreResult.listsFailed}.</p>
+              <p> {ui(locale, "Memberships: restored")} {restoreResult.membershipsRestored} {ui(locale, ", skipped")} {restoreResult.membershipsSkipped} {ui(locale, ", failed")} {restoreResult.membershipsFailed}.</p>
               {restoreResult.warnings.map((warning) => <p key={warning} className="text-xs leading-5">{warning}</p>)}
-              {restoreResult.listsRestored > 0 ? <Link href="/lists" className="inline-flex min-h-11 items-center rounded-xl border border-slate-600 px-3 py-2 text-sm text-white">Review restored lists</Link> : null}
+              {restoreResult.listsRestored > 0 ? <Link href="/lists" className="inline-flex min-h-11 items-center rounded-xl border border-slate-600 px-3 py-2 text-sm text-white"> {ui(locale, "Review restored lists")} </Link> : null}
             </div> : null}
             {!restoreResult.usedExternalIdColumns ? (
-              <p className="mt-2 text-emerald-100/80">
-                External source/id columns were not available, so duplicates were checked by
-                title and type.
-              </p>
+              <p className="mt-2 text-emerald-100/80"> {ui(locale, "External source/id columns were not available, so duplicates were checked by title and type.")} </p>
             ) : null}
             {restoreResult.restored > 0 ? (
               <Link
                 href="/"
                 className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-300/40 bg-emerald-500/20 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-400/25"
-              >
-                Go to Library
-              </Link>
+              > {ui(locale, "Go to Library")} </Link>
             ) : null}
           </div>
         ) : null}
@@ -349,7 +335,7 @@ export default function ImportBackupForm() {
           className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(59,130,246,0.32)] transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
         >
           <FileJson2 className="h-4 w-4" />
-          {isRestoring ? 'Restoring...' : selectedLists.length ? 'Restore selected items and lists' : 'Restore selected items'}
+          {isRestoring ? 'Restoring...' : selectedLists.length ? ui(locale, "Restore selected items and lists") : ui(locale, "Restore selected items")}
         </button>
       </div>
     </section>
@@ -402,6 +388,8 @@ function PreviewRow({
   disabled: boolean
   onToggle: () => void
 }) {
+  const { locale } = useLocale()
+
   const item = candidate.item
 
   return (
@@ -430,16 +418,16 @@ function PreviewRow({
       <span className="min-w-0">
         <span className="block truncate text-sm font-bold text-white">{item.title}</span>
         <span className="mt-1 block text-xs text-slate-400">
-          {item.type || 'Unknown type'} · {item.status || 'Unknown status'} · Progress{' '}
+          {item.type || 'Unknown type'} · {item.status || 'Unknown status'} {ui(locale, "· Progress")} {' '}
           {item.progress ?? 0}
-          {typeof item.rating === 'number' ? ` · Rating ${item.rating}/10` : ' · Unrated'}
+          {typeof item.rating === 'number' ? ui(locale, " · Rating {value0}/10", { value0: item.rating }) : ui(locale, " · Unrated")}
         </span>
         <span className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
           <span className="rounded-xl border border-slate-700 bg-slate-950 px-2 py-1 text-slate-300">
-            {item.notes ? 'Has notes' : 'No notes'}
+            {item.notes ? ui(locale, "Has notes") : ui(locale, "No notes")}
           </span>
           <span className="rounded-xl border border-slate-700 bg-slate-950 px-2 py-1 text-slate-300">
-            {item.image_url ? 'Has cover' : 'No cover'}
+            {item.image_url ? ui(locale, "Has cover") : ui(locale, "No cover")}
           </span>
           {item.external_source && item.external_id ? (
             <span className="rounded-xl border border-slate-700 bg-slate-950 px-2 py-1 text-slate-300">
@@ -455,10 +443,10 @@ function PreviewRow({
   )
 }
 
-function normalizePreviewCandidate(value: unknown, index: number): PreviewCandidate {
+function normalizePreviewCandidate(value: unknown, index: number, locale: import('../lib/i18n').Locale = 'en'): PreviewCandidate {
   const record = isRecord(value) ? value : {}
   const item = toPreviewItem(record, index)
-  const reason = getBackupTrackingError(value) ?? validatePreviewItem(item)
+  const reason = getBackupTrackingError(value) ?? validatePreviewItem(item, locale)
 
   return {
     item,
@@ -494,25 +482,25 @@ function toPreviewItem(record: Record<string, unknown>, index: number): VaultExp
   }
 }
 
-function validatePreviewItem(item: VaultExportItem) {
+function validatePreviewItem(item: VaultExportItem, locale: import('../lib/i18n').Locale = 'en') {
   if (!item.title.trim()) {
-    return 'Missing title.'
+    return ui(locale, "Missing title.")
   }
 
   if (!mediaTypes.includes(item.type as (typeof mediaTypes)[number])) {
-    return 'Unsupported media type.'
+    return ui(locale, "Unsupported media type.")
   }
 
   if (!mediaStatuses.includes(item.status as (typeof mediaStatuses)[number])) {
-    return 'Unsupported status.'
+    return ui(locale, "Unsupported status.")
   }
 
   if (typeof item.rating === 'number' && (!Number.isInteger(item.rating) || item.rating < 1 || item.rating > 10)) {
-    return 'Rating must be 1-10.'
+    return ui(locale, "Rating must be 1-10.")
   }
 
   if (!Number.isInteger(item.progress) || item.progress < 0) {
-    return 'Progress must be 0 or more.'
+    return ui(locale, "Progress must be 0 or more.")
   }
 
   return null

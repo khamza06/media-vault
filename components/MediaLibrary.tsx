@@ -1,5 +1,7 @@
 'use client'
 
+import { ui } from '../lib/ui-i18n'
+
 import { Check, Plus } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -31,11 +33,11 @@ const focusStatuses = new Set(['Planning', 'Watching', 'Reading'])
 const archiveStatuses = new Set(['Completed', 'Dropped'])
 
 export default function MediaLibrary({ items }: MediaLibraryProps) {
-  const { t } = useLocale()
+  const { locale, t  } = useLocale()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const copy = getLibraryCopy()
+  const copy = getLibraryCopy(locale)
 
   const [liveItems, setLiveItems] = useState(items)
   const [activeAccent, setActiveAccent] = useState<string | null>(null)
@@ -407,7 +409,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
           {statusOptions.map((status) => (
             <FilterButton
               key={status}
-              label={translateStatus('en', status)}
+              label={translateStatus(locale, status)}
               isActive={selectedStatus === status}
               count={statusCounts[status] ?? 0}
               onClick={() => updateQueryString({ status })}
@@ -425,7 +427,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
           {mediaTypes.map((type) => (
             <FilterButton
               key={type}
-              label={translateType('en', type)}
+              label={translateType(locale, type)}
               isActive={selectedType === type}
               count={typeCounts[type] ?? 0}
               onClick={() => updateQueryString({ type })}
@@ -489,7 +491,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
 
       <div className={mediaCardGridClassName}>
         {liveItems.length === 0 ? (
-            <EmptyVaultState message="Your vault is empty. Time to start a new adventure!" />
+            <EmptyVaultState message={ui(locale, "Your vault is empty. Time to start a new adventure!")} />
         ) : null}
 
         {liveItems.length > 0 && shelfItems.length === 0 ? (
@@ -527,7 +529,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
               role={selectionMode ? 'button' : undefined}
               aria-pressed={selectionMode ? isSelected : undefined}
               aria-label={
-                selectionMode ? (isSelected ? `Deselect ${item.title}` : `Select ${item.title}`) : undefined
+                selectionMode ? (isSelected ? ui(locale, "Deselect {value0}", { value0: item.title }) : ui(locale, "Select {value0}", { value0: item.title })) : undefined
               }
               className="block"
             >
@@ -572,7 +574,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
                     </span>
                   ) : null}
                   <span className="rounded-md bg-slate-700/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
-                    {translateStatus('en', item.status)}
+                    {translateStatus(locale, item.status)}
                   </span>
                   {item.rating ? (
                     <span className="rounded-md bg-blue-600/90 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
@@ -589,11 +591,11 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
                 {item.title}
               </h3>
               <p className="flex items-center gap-2 text-sm text-slate-400">
-                <span className="capitalize">{translateType('en', item.type)}</span>
+                <span className="capitalize">{translateType(locale, item.type)}</span>
                 {item.progress > 0 || item.totalProgress !== null ? (
                   <>
                     <span className="h-1 w-1 rounded-full bg-slate-600" />
-                    <span>{formatProgressValue(item)}</span>
+                    <span>{formatProgressValue(item, locale)}</span>
                   </>
                 ) : null}
               </p>
@@ -607,7 +609,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
                         genre
                       )}`}
                     >
-                      {translateGenre(genre, 'en')}
+                      {translateGenre(genre, locale)}
                     </span>
                   ))}
                   {item.genres.length > 3 ? (
@@ -630,7 +632,7 @@ export default function MediaLibrary({ items }: MediaLibraryProps) {
                 }}
                 disabled={Boolean(progressBusyIds[item.id])}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-100 transition hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label={`Add progress for ${item.title}`}
+                aria-label={ui(locale, "Add progress for {value0}", { value0: item.title })}
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -735,19 +737,19 @@ function getShelfParam(value: string | null): LibraryShelf {
   return value === 'archive' ? 'archive' : 'focus'
 }
 
-function getLibraryCopy() {
+function getLibraryCopy(locale: import('../lib/i18n').Locale = 'en') {
   return {
-    eyebrow: 'Shelves',
-    focusShelf: 'Focus Shelf',
-    archiveShelf: 'Archive Shelf',
-    focusTitle: 'Focus Shelf',
-    archiveTitle: 'Archive Shelf',
-    focusDescription: 'Titles you are actively reading, watching, or keeping close in your near-term stack.',
-    archiveDescription: 'Completed and dropped titles live here, so the main library stays shorter and easier to scan.',
-    searchLabel: 'Search titles',
-    sortLabel: 'Sort items',
-    showing: 'Showing {filtered} of {total} in this shelf',
-    emptyShelf: 'This shelf is empty right now.',
+    eyebrow: ui(locale, 'Shelves'),
+    focusShelf: ui(locale, "Focus Shelf"),
+    archiveShelf: ui(locale, "Archive Shelf"),
+    focusTitle: ui(locale, "Focus Shelf"),
+    archiveTitle: ui(locale, "Archive Shelf"),
+    focusDescription: ui(locale, "Titles you are actively reading, watching, or keeping close in your near-term stack."),
+    archiveDescription: ui(locale, "Completed and dropped titles live here, so the main library stays shorter and easier to scan."),
+    searchLabel: ui(locale, "Search titles"),
+    sortLabel: ui(locale, "Sort items"),
+    showing: ui(locale, "Showing {filtered} of {total} in this shelf"),
+    emptyShelf: ui(locale, "This shelf is empty right now."),
   }
 }
 

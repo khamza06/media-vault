@@ -5,7 +5,8 @@ import {
   searchCatalogPage,
 } from '../../../lib/catalog-search'
 import type { CatalogSearchSource } from '../../../lib/catalog-types'
-import { getRequestLocale } from '../../../lib/i18n-server'
+import { getRequestLocale, getRequestMetadataLanguage } from '../../../lib/i18n-server'
+import { resolveMetadataLanguage } from '../../../lib/metadata-language'
 import { resolveLocale } from '../../../lib/i18n'
 import { buildQuickImportSearchTerms } from '../../../lib/quick-import-parser'
 import {
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
 
   const query = typeof payload.query === 'string' ? payload.query.trim() : ''
   const locale = resolveLocale(typeof payload.locale === 'string' ? payload.locale : await getRequestLocale())
+  const metadataLanguage = resolveMetadataLanguage(payload.metadataLanguage ?? await getRequestMetadataLanguage())
   const searchType = typeof payload.type === 'string' ? payload.type.trim().toLowerCase() : ''
   if (query.length > 200) {
     return Response.json({ error: 'Search titles must be 200 characters or fewer.' }, { status: 400 })
@@ -101,9 +103,9 @@ export async function POST(request: Request) {
 
   try {
     if (fullSearch) {
-      return Response.json(await searchCatalogPage(query, searchType, locale, source as CatalogSearchSource, page as number))
+      return Response.json(await searchCatalogPage(query, searchType, locale, source as CatalogSearchSource, page as number, metadataLanguage))
     }
-    const candidates = await searchCatalogByMediaType(searchTerms, searchType, locale)
+    const candidates = await searchCatalogByMediaType(searchTerms, searchType, locale, metadataLanguage)
 
     console.info('[catalog-search] response', {
       queryLength: query.length,

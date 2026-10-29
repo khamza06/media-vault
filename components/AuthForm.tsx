@@ -1,4 +1,8 @@
 'use client'
+import { translateMessage, translateError } from '../lib/ui-i18n'
+
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
 
 import { useState, type FormEvent } from 'react'
 
@@ -23,6 +27,8 @@ export default function AuthForm({
   initialMessage?: string
   initialMessageTone?: MessageTone | null
 }) {
+  const { locale } = useLocale()
+
   const { showToast } = useToast()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState(initialEmail)
@@ -59,7 +65,7 @@ export default function AuthForm({
             ? await loginAction({ email, password })
             : await signupAction({ email, password })
     } catch {
-      const nextMessage = 'Unable to reach Media Vault. Check your connection and try again.'
+      const nextMessage = ui(locale, "Unable to reach Media Vault. Check your connection and try again.")
       setMessage(nextMessage)
       setMessageTone('error')
       showToast(nextMessage, 'error')
@@ -107,7 +113,7 @@ export default function AuthForm({
     try {
       result = await resendSignupConfirmationAction(email)
     } catch {
-      const nextMessage = 'Unable to send the email right now. Check your connection and try again.'
+      const nextMessage = ui(locale, "Unable to send the email right now. Check your connection and try again.")
       setMessage(nextMessage)
       setMessageTone('error')
       showToast(nextMessage, 'error')
@@ -132,20 +138,18 @@ export default function AuthForm({
   }
 
   const title =
-    mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Reset password'
+    mode === 'login' ? ui(locale, "Sign in") : mode === 'signup' ? ui(locale, "Create account") : ui(locale, "Reset password")
   const subtitle =
     mode === 'login'
-      ? 'Access your private media vault.'
+      ? ui(locale, "Access your private media vault.")
       : mode === 'signup'
-        ? 'Create a personal media vault.'
-        : 'Enter your email and we will send a secure password reset link.'
+        ? ui(locale, "Create a personal media vault.")
+        : ui(locale, "Enter your email and we will send a secure password reset link.")
 
   return (
     <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-[0_16px_48px_rgba(2,6,23,0.25)] sm:p-7">
       <div className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
-          Account
-        </p>
+        <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400"> {ui(locale, "Account")} </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-slate-300">{subtitle}</p>
       </div>
@@ -153,13 +157,13 @@ export default function AuthForm({
       <div className="relative z-10 mb-6 grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-950 p-1">
         <ModeButton
           isActive={mode === 'login'}
-          label="Sign in"
+          label={ui(locale, "Sign in")}
           disabled={isSubmitting || isResending}
           onClick={() => switchMode('login')}
         />
         <ModeButton
           isActive={mode === 'signup'}
-          label="Sign up"
+          label={ui(locale, "Sign up")}
           disabled={isSubmitting || isResending}
           onClick={() => switchMode('signup')}
         />
@@ -167,7 +171,7 @@ export default function AuthForm({
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-200">Email</span>
+          <span className="mb-2 block text-sm font-medium text-slate-200"> {ui(locale, "Email")} </span>
           <input
             type="email"
             value={email}
@@ -181,13 +185,13 @@ export default function AuthForm({
 
         {!isResetMode ? (
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-200">Password</span>
+            <span className="mb-2 block text-sm font-medium text-slate-200"> {ui(locale, "Password")} </span>
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="h-12 w-full rounded-xl border border-slate-800 bg-slate-950 px-4 text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
-              placeholder="At least 6 characters"
+              placeholder={ui(locale, "At least 6 characters")}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               disabled={isSubmitting || isResending}
             />
@@ -200,9 +204,7 @@ export default function AuthForm({
             onClick={() => switchMode('reset')}
             disabled={isSubmitting || isResending}
             className="text-sm font-medium text-blue-300 transition hover:text-blue-200"
-          >
-            Forgot password?
-          </button>
+          > {ui(locale, "Forgot password?")} </button>
         ) : null}
 
         {message ? (
@@ -214,7 +216,7 @@ export default function AuthForm({
                 : 'border border-red-500/30 bg-red-500/10 text-red-200'
             }`}
           >
-            {message}
+            {messageTone === 'error' ? translateError(locale, message) : translateMessage(locale, message)}
           </p>
         ) : null}
 
@@ -225,7 +227,7 @@ export default function AuthForm({
             disabled={isResending || isSubmitting}
             className="min-h-12 w-full touch-manipulation rounded-xl border border-slate-800 bg-slate-950 px-5 py-3 text-sm font-medium text-slate-200 transition hover:border-blue-400/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isResending ? 'Sending...' : 'Resend confirmation email'}
+            {isResending ? ui(locale, "Sending...") : ui(locale, "Resend confirmation email")}
           </button>
         ) : null}
 
@@ -235,12 +237,12 @@ export default function AuthForm({
           disabled={isSubmitting || isResending}
         >
           {isSubmitting
-            ? 'Please wait...'
+            ? ui(locale, "Please wait...")
             : mode === 'login'
-              ? 'Sign in'
+              ? ui(locale, "Sign in")
               : mode === 'signup'
-                ? 'Create account'
-                : 'Send reset link'}
+                ? ui(locale, "Create account")
+                : ui(locale, "Send reset link")}
         </button>
 
         {isResetMode ? (
@@ -248,15 +250,10 @@ export default function AuthForm({
             type="button"
             onClick={() => switchMode('login')}
             className="min-h-11 w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-300 transition hover:text-white"
-          >
-            Back to sign in
-          </button>
+          > {ui(locale, "Back to sign in")} </button>
         ) : null}
 
-        <p className="text-xs leading-5 text-slate-400">
-          If confirmation or reset emails do not arrive, check spam and verify the
-          Supabase Auth email settings for this project.
-        </p>
+        <p className="text-xs leading-5 text-slate-400"> {ui(locale, "If confirmation or reset emails do not arrive, check spam and verify the Supabase Auth email settings for this project.")} </p>
       </form>
     </div>
   )

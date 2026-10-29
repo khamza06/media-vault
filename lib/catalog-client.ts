@@ -6,6 +6,7 @@ export type CatalogPageRequest = {
   query: string
   type: CatalogSearchType
   source: CatalogSearchSource
+  metadataLanguage?: import('./metadata-language').MetadataLanguage
   locale: Locale
   page: number
 }

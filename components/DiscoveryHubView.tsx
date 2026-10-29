@@ -1,5 +1,10 @@
 'use client'
 
+import { translateType, translateStatus } from '../lib/i18n'
+
+import { ui, translateMessage } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
+
 import CoverPlaceholder from './CoverPlaceholder'
 
 import {
@@ -78,6 +83,9 @@ export default function DiscoveryHubView({
   totalCount,
   isOwnerView = false,
 }: DiscoveryHubViewProps) {
+  const { locale } = useLocale()
+  const uiLabel = (value: string) => translateMessage(locale, value)
+
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -105,19 +113,19 @@ export default function DiscoveryHubView({
     }
 
     if (draftFilters.genres.length > 0) {
-      parts.push(`${draftFilters.genres.length} genres`)
+      parts.push(`${draftFilters.genres.length} ${ui(locale, 'Genres').toLocaleLowerCase(locale)}`)
     }
 
     if (draftFilters.status !== 'All') {
-      parts.push(`status: ${draftFilters.status}`)
+      parts.push(`${ui(locale, 'Status').toLocaleLowerCase(locale)}: ${translateStatus(locale, draftFilters.status)}`)
     }
 
     if (draftFilters.ratingMin > 1 || draftFilters.ratingMax < 10) {
-      parts.push(`rating: ${draftFilters.ratingMin}-${draftFilters.ratingMax}`)
+      parts.push(`${ui(locale, 'Rating').toLocaleLowerCase(locale)}: ${draftFilters.ratingMin}-${draftFilters.ratingMax}`)
     }
 
-    return parts.length > 0 ? parts.join(' / ') : 'No filters applied.'
-  }, [draftFilters])
+    return parts.length > 0 ? parts.join(' / ') : ui(locale, "No filters applied.")
+  }, [draftFilters, locale])
 
   const activeFilterCount = useMemo(() => {
     let count = 0
@@ -224,23 +232,19 @@ export default function DiscoveryHubView({
     <div className="space-y-4">
       <section className="glass-panel-soft rounded-xl border border-white/10 p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-          <Search className="h-4 w-4 text-blue-300" />
-          Search
-        </div>
+          <Search className="h-4 w-4 text-blue-300" /> {ui(locale, "Search")} </div>
         <input
           type="search"
           value={draftFilters.query}
           onChange={(event) => updateDraft('query', event.target.value)}
-          placeholder={isOwnerView ? 'Search title, notes...' : 'Search public titles...'}
+          placeholder={isOwnerView ? ui(locale, "Search title, notes...") : ui(locale, "Search public titles...")}
           className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/30"
         />
       </section>
 
       <section className="glass-panel-soft rounded-xl border border-white/10 p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-          <Sparkles className="h-4 w-4 text-blue-300" />
-          Media Type
-        </div>
+          <Sparkles className="h-4 w-4 text-blue-300" /> {ui(locale, "Media Type")} </div>
         <div className="flex flex-wrap gap-2">
           {typeOptions.map((option) => {
             const Icon = option.icon
@@ -266,21 +270,19 @@ export default function DiscoveryHubView({
       </section>
 
       <section className="glass-panel-soft rounded-xl border border-white/10 p-4">
-        <div className="mb-3 text-sm font-semibold text-white">Status</div>
+        <div className="mb-3 text-sm font-semibold text-white"> {ui(locale, "Status")} </div>
         <AppSelect
-          ariaLabel="Status filter"
+          ariaLabel={ui(locale, "Status filter")}
           value={draftFilters.status}
           onValueChange={(value) => updateDraft('status', value)}
-          options={statusSelectOptions}
+          options={statusSelectOptions.map(option => ({ ...option, label: uiLabel(option.label) }))}
           className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/30"
         />
       </section>
 
       <section className="glass-panel-soft rounded-xl border border-white/10 p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-          <Star className="h-4 w-4 text-blue-300" />
-          Rating Range
-        </div>
+          <Star className="h-4 w-4 text-blue-300" /> {ui(locale, "Rating Range")} </div>
 
         <div className="rounded-xl border border-white/10 bg-slate-900/60 px-4 py-4">
           <div className="mb-3 flex items-center justify-between text-sm text-slate-300">
@@ -290,9 +292,7 @@ export default function DiscoveryHubView({
 
           <div className="space-y-4">
             <label className="block">
-              <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">
-                Minimum
-              </span>
+              <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500"> {ui(locale, "Minimum")} </span>
               <input
                 type="range"
                 min={1}
@@ -307,9 +307,7 @@ export default function DiscoveryHubView({
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">
-                Maximum
-              </span>
+              <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500"> {ui(locale, "Maximum")} </span>
               <input
                 type="range"
                 min={1}
@@ -328,9 +326,7 @@ export default function DiscoveryHubView({
 
       <section className="glass-panel-soft rounded-xl border border-white/10 p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-          <SlidersHorizontal className="h-4 w-4 text-blue-300" />
-          Genre Cloud
-        </div>
+          <SlidersHorizontal className="h-4 w-4 text-blue-300" /> {ui(locale, "Genre Cloud")} </div>
         {availableGenres.length > 0 ? (
           <div className="flex max-h-[320px] flex-wrap gap-2 overflow-y-auto pr-1">
             {availableGenres.map((genre) => {
@@ -345,13 +341,13 @@ export default function DiscoveryHubView({
                     genre
                   )} ${isActive ? 'ring-2 ring-white/25' : 'opacity-90 hover:opacity-100'}`}
                 >
-                  {translateGenre(genre, 'en')}
+                  {translateGenre(genre, locale)}
                 </button>
               )
             })}
           </div>
         ) : (
-          <p className="text-sm text-slate-400">No genres available in this library yet.</p>
+          <p className="text-sm text-slate-400"> {ui(locale, "No genres available in this library yet.")} </p>
         )}
       </section>
     </div>
@@ -365,9 +361,7 @@ export default function DiscoveryHubView({
         disabled={isPending}
         className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_24px_rgba(59,130,246,0.28)] transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isPending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />}
-        Apply filters
-      </button>
+        {isPending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />} {ui(locale, "Apply filters")} </button>
 
       {activeFilterCount > 0 ? (
         <button
@@ -375,9 +369,7 @@ export default function DiscoveryHubView({
           onClick={clearFilters}
           disabled={isPending}
           className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-300 transition hover:border-blue-400/20 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          Clear filters
-        </button>
+        > {ui(locale, "Clear filters")} </button>
       ) : null}
     </div>
   )
@@ -386,13 +378,11 @@ export default function DiscoveryHubView({
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/95 shadow-2xl shadow-slate-950/30">
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800 px-4 py-4">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-100">
-            Filters
-          </h2>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-100"> {ui(locale, "Filters")} </h2>
           <p className="mt-1 text-xs text-slate-400">
             {activeFilterCount > 0
-              ? `${activeFilterCount} active filter${activeFilterCount === 1 ? '' : 's'}`
-              : 'No filters active'}
+              ? ui(locale, "{value0} active filter{value1}", { value0: activeFilterCount, value1: activeFilterCount === 1 ? '' : 's' })
+              : ui(locale, "No filters active")}
           </p>
         </div>
         <Filter className="h-5 w-5 shrink-0 text-blue-300" />
@@ -417,9 +407,7 @@ export default function DiscoveryHubView({
       <div className="min-w-0 space-y-4">
         <div className="glass-panel-soft flex min-w-0 flex-col gap-4 rounded-xl border border-white/10 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-white">
-              Showing {items.length} of {totalCount} items found.
-            </p>
+            <p className="text-sm font-medium text-white"> {ui(locale, "Showing")} {items.length} {ui(locale, "of")} {totalCount} {ui(locale, "items found.")} </p>
             <p className="mt-1 text-xs text-slate-400">{activeSummary}</p>
           </div>
 
@@ -429,15 +417,14 @@ export default function DiscoveryHubView({
               onClick={() => setIsDrawerOpen(true)}
               className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 transition hover:border-blue-400/20 hover:bg-white/10 lg:hidden"
             >
-              <Filter className="h-4 w-4" />
-              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              <Filter className="h-4 w-4" /> {ui(locale, "Filters")} {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </button>
 
             <AppSelect
-              ariaLabel="Sort results"
+              ariaLabel={ui(locale, "Sort results")}
               value={activeSort}
               onValueChange={(value) => updateSort(value as SortMode)}
-              options={sortSelectOptions}
+              options={sortSelectOptions.map(option => ({ ...option, label: uiLabel(option.label) }))}
               className="min-h-11 rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm text-white outline-none transition focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/30"
             />
 
@@ -448,7 +435,7 @@ export default function DiscoveryHubView({
                 className={`inline-flex min-h-11 min-w-11 items-center justify-center px-3 ${
                   activeLayout === 'grid' ? 'bg-blue-500/20 text-white' : 'text-slate-300'
                 }`}
-                aria-label="Grid view"
+                aria-label={ui(locale, "Grid view")}
               >
                 <Grid2X2 className="h-4 w-4" />
               </button>
@@ -458,7 +445,7 @@ export default function DiscoveryHubView({
                 className={`inline-flex min-h-11 min-w-11 items-center justify-center px-3 ${
                   activeLayout === 'list' ? 'bg-blue-500/20 text-white' : 'text-slate-300'
                 }`}
-                aria-label="List view"
+                aria-label={ui(locale, "List view")}
               >
                 <List className="h-4 w-4" />
               </button>
@@ -469,10 +456,10 @@ export default function DiscoveryHubView({
         {isPending ? (
           <div className="glass-panel-soft flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-xl border border-white/10">
             <LoaderCircle className="h-8 w-8 animate-spin text-blue-300" />
-            <p className="text-sm text-slate-300">Loading filtered results...</p>
+            <p className="text-sm text-slate-300"> {ui(locale, "Loading filtered results...")} </p>
           </div>
         ) : items.length === 0 ? (
-          <EmptyVaultState message="No titles matched this filter set. Try broadening the search." />
+          <EmptyVaultState message={ui(locale, "No titles matched this filter set. Try broadening the search.")} />
         ) : activeLayout === 'list' ? (
           <div className="space-y-3">
             {items.map((item) => (
@@ -502,14 +489,14 @@ export default function DiscoveryHubView({
         >
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-white">Filters</p>
-              <p className="text-xs text-slate-400">Fine-tune this library view.</p>
+              <p className="text-sm font-semibold text-white"> {ui(locale, "Filters")} </p>
+              <p className="text-xs text-slate-400"> {ui(locale, "Fine-tune this library view.")} </p>
             </div>
             <button
               type="button"
               onClick={() => setIsDrawerOpen(false)}
               className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200"
-              aria-label="Close filters"
+              aria-label={ui(locale, "Close filters")}
             >
               <X className="h-4 w-4" />
             </button>
@@ -522,6 +509,8 @@ export default function DiscoveryHubView({
 }
 
 function DiscoveryGridCard({ item }: { item: MediaItem }) {
+  const { locale } = useLocale()
+
   return (
     <article className="group">
       <div className="glass-panel-soft relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 transition-all duration-300 group-hover:border-blue-400/30 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.2)]">
@@ -534,7 +523,7 @@ function DiscoveryGridCard({ item }: { item: MediaItem }) {
             className="object-cover"
           />
         ) : (
-          <CoverPlaceholder title={item.title} type={item.type} />
+          <CoverPlaceholder title={item.title} type={translateType(locale, item.type)} />
         )}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-3">
           <div className="flex items-center justify-between gap-2">
@@ -561,7 +550,7 @@ function DiscoveryGridCard({ item }: { item: MediaItem }) {
               key={genre}
               className={`rounded-xl border px-2 py-1 text-[10px] ${getGenreBadgeClass(genre)}`}
             >
-              {translateGenre(genre, 'en')}
+              {translateGenre(genre, locale)}
             </span>
           ))}
           {item.genres.length > 3 ? (
@@ -576,13 +565,15 @@ function DiscoveryGridCard({ item }: { item: MediaItem }) {
 }
 
 function DiscoveryListCard({ item }: { item: MediaItem }) {
+  const { locale } = useLocale()
+
   return (
     <article className="glass-panel-soft flex gap-4 rounded-xl border border-white/10 p-4">
       <div className="relative h-28 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-slate-900/80">
         {item.imageUrl ? (
           <Image src={item.imageUrl} alt={item.title} fill sizes="80px" className="object-cover" />
         ) : (
-          <CoverPlaceholder title={item.title} type={item.type} compact />
+          <CoverPlaceholder title={item.title} type={translateType(locale, item.type)} compact />
         )}
       </div>
 
@@ -590,10 +581,10 @@ function DiscoveryListCard({ item }: { item: MediaItem }) {
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="truncate text-lg font-semibold text-white">{item.title}</h3>
           <span className="rounded-xl border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300">
-            {item.type}
+            {translateType(locale, item.type)}
           </span>
           <span className="rounded-xl border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300">
-            {item.status}
+            {translateStatus(locale, item.status)}
           </span>
           {item.rating ? (
             <span className="rounded-xl border border-blue-400/20 bg-blue-500/10 px-2 py-1 text-xs font-semibold text-blue-100">
@@ -607,7 +598,7 @@ function DiscoveryListCard({ item }: { item: MediaItem }) {
           ) : null}
         </div>
 
-        <p className="mt-2 text-sm text-slate-400">{formatProgressValue(item)}</p>
+        <p className="mt-2 text-sm text-slate-400">{formatProgressValue(item, locale)}</p>
 
         {item.genres.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -616,7 +607,7 @@ function DiscoveryListCard({ item }: { item: MediaItem }) {
                 key={genre}
                 className={`rounded-xl border px-2 py-1 text-[10px] ${getGenreBadgeClass(genre)}`}
               >
-                {translateGenre(genre, 'en')}
+                {translateGenre(genre, locale)}
               </span>
             ))}
           </div>

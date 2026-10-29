@@ -1,3 +1,6 @@
+
+import { ui } from '../../../../lib/ui-i18n'
+import { getRequestLocale } from '../../../../lib/i18n-server'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -12,6 +15,8 @@ export const dynamic = 'force-dynamic'
 export async function generateMetadata(
   props: PageProps<'/items/[id]/edit'>
 ): Promise<Metadata> {
+  const locale = await getRequestLocale()
+
   const { id } = await props.params
   const { data: item } = await getItemById(id)
 
@@ -22,12 +27,14 @@ export async function generateMetadata(
   }
 
   return {
-    title: `Edit ${item.title} | Media Vault`,
-    description: `Update ${item.title} in your media vault.`,
+    title: ui(locale, "Edit {value0} | Media Vault", { value0: item.title }),
+    description: ui(locale, "Update {value0} in your media vault.", { value0: item.title }),
   }
 }
 
 export default async function EditItemPage(props: PageProps<'/items/[id]/edit'>) {
+  const locale = await getRequestLocale()
+
   const { id } = await props.params
   const searchParams = await props.searchParams
   const { data: item, error } = await getItemById(id)
@@ -47,9 +54,7 @@ export default async function EditItemPage(props: PageProps<'/items/[id]/edit'>)
         <Link
           href={returnTo}
           className="glass-panel-soft inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400/40 hover:text-white"
-        >
-          Back
-        </Link>
+        > {ui(locale, "Back")} </Link>
       </div>
 
       <EditItemPageForm item={toMediaItem(item)} returnTo={returnTo} />

@@ -1,4 +1,9 @@
 'use client'
+import LocalizedFileInput from '../ui/LocalizedFileInput'
+import { translateError } from '../../lib/ui-i18n'
+
+import { ui } from '../../lib/ui-i18n'
+import { useLocale } from '../LocaleProvider'
 
 import ActionFeedback from '../ui/ActionFeedback'
 
@@ -129,11 +134,11 @@ function normalizeHeader(value: string) {
     .replace(/[\s_-]+/g, '')
 }
 
-function makeUniqueHeaders(headers: string[]) {
+function makeUniqueHeaders(headers: string[], locale: import('../../lib/i18n').Locale = 'en') {
   const seen = new Map<string, number>()
 
   return headers.map((header, index) => {
-    const fallback = `Column ${index + 1}`
+    const fallback = ui(locale, "Column {value0}", { value0: index + 1 })
     const baseHeader = header.trim() || fallback
     const count = seen.get(baseHeader) ?? 0
     seen.set(baseHeader, count + 1)
@@ -142,7 +147,7 @@ function makeUniqueHeaders(headers: string[]) {
   })
 }
 
-function parseCsv(text: string): CsvParseResult {
+function parseCsv(text: string, locale: import('../../lib/i18n').Locale = 'en'): CsvParseResult {
   const normalizedText = text.replace(/^\uFEFF/, '')
   const parsedRows: string[][] = []
   let currentField = ''
@@ -192,7 +197,7 @@ function parseCsv(text: string): CsvParseResult {
   }
 
   if (inQuotes) {
-    throw new Error('Unclosed quoted field.')
+    throw new Error(ui(locale, "Unclosed quoted field."))
   }
 
   if (currentField.length > 0 || currentRow.length > 0) {
@@ -205,10 +210,10 @@ function parseCsv(text: string): CsvParseResult {
   )
 
   if (!rawHeaders || rawHeaders.length === 0) {
-    throw new Error('CSV file has no header row.')
+    throw new Error(ui(locale, "CSV file has no header row."))
   }
 
-  const headers = makeUniqueHeaders(rawHeaders)
+  const headers = makeUniqueHeaders(rawHeaders, locale)
   const rows = rawRows
     .filter((row) => row.some((cell) => cell.trim().length > 0))
     .map((row) =>
@@ -336,19 +341,21 @@ function formatTypeLabel(type: CsvImportCandidate['type']) {
   }
 }
 
-function formatImportResult(result: CsvImportResult) {
+function formatImportResult(result: CsvImportResult, locale: import('../../lib/i18n').Locale = 'en') {
   if (result.error) {
     return result.error
   }
 
   if (result.imported > 0) {
-    return `Imported ${result.imported} CSV items. Skipped ${result.skipped} duplicates or invalid rows. Failed ${result.failed}.`
+    return ui(locale, "Imported {value0} CSV items. Skipped {value1} duplicates or invalid rows. Failed {value2}.", { value0: result.imported, value1: result.skipped, value2: result.failed })
   }
 
-  return `No CSV items imported. Skipped ${result.skipped} duplicates or invalid rows. Failed ${result.failed}.`
+  return ui(locale, "No CSV items imported. Skipped {value0} duplicates or invalid rows. Failed {value1}.", { value0: result.skipped, value1: result.failed })
 }
 
 export default function CsvImporter({ canImport = false }: { canImport?: boolean }) {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const [csvData, setCsvData] = useState<CsvParseResult | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
@@ -403,7 +410,7 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
     setFileName(file.name)
 
     if (!file.name.toLowerCase().endsWith('.csv')) {
-      setErrorMessage('Please upload a .csv file.')
+      setErrorMessage(ui(locale, "Please upload a .csv file."))
       return
     }
 
@@ -411,7 +418,7 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
 
     try {
       const text = await file.text()
-      const parsed = parseCsv(text)
+      const parsed = parseCsv(text, locale)
       const detectedMapping = detectMapping(parsed.headers)
       const detectedCandidates = parsed.rows
         .map((row, index) => toPreviewCandidate(row, index, detectedMapping))
@@ -423,8 +430,8 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
     } catch (error) {
       setErrorMessage(
         error instanceof Error && error.message
-          ? `Could not parse this CSV file. ${error.message}`
-          : 'Could not parse this CSV file. Please make sure it is a valid CSV export.'
+          ? ui(locale, "Could not parse this CSV file. {value0}", { value0: error.message })
+          : ui(locale, "Could not parse this CSV file. Please make sure it is a valid CSV export.")
       )
     } finally {
       setIsParsing(false)
@@ -463,7 +470,7 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
       }
     } catch {
       setImportResult({
-        error: 'CSV import failed. Please try again.',
+        error: ui(locale, "CSV import failed. Please try again."),
         failed: selectedCandidates.length,
         imported: 0,
         invalid: 0,
@@ -508,44 +515,33 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
   return (
     <div className="space-y-5">
       {!canImport ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-          Sign in to import CSV rows into your vault.
-        </div>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100"> {ui(locale, "Sign in to import CSV rows into your vault.")} </div>
       ) : null}
 
       <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-        <label className="block text-sm font-semibold text-slate-100" htmlFor="csv-import-file">
-          CSV file
-        </label>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
-          Preview a comma-separated file locally. Only selected rows are sent when you import;
-          the raw file stays in your browser.
-        </p>
-        <input
+        <label className="block text-sm font-semibold text-slate-100" htmlFor="csv-import-file"> {ui(locale, "CSV file")} </label>
+        <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "Preview a comma-separated file locally. Only selected rows are sent when you import; the raw file stays in your browser.")} </p>
+        <LocalizedFileInput
           id="csv-import-file"
           type="file"
           accept=".csv,text/csv"
           onChange={handleFileChange}
-          className="mt-4 block min-h-12 w-full cursor-pointer rounded-xl border border-slate-800 bg-slate-900 text-sm text-slate-300 file:mr-4 file:min-h-12 file:cursor-pointer file:rounded-xl file:border-0 file:bg-blue-500 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-white hover:border-slate-700"
+
         />
       </div>
 
       {errorMessage ? (
         <ActionFeedback tone="error">
-          {errorMessage}
+          {translateError(locale, errorMessage)}
         </ActionFeedback>
       ) : null}
 
       {isParsing ? (
-        <ActionFeedback tone="pending">
-          Parsing CSV preview...
-        </ActionFeedback>
+        <ActionFeedback tone="pending"> {ui(locale, "Parsing CSV preview...")} </ActionFeedback>
       ) : null}
 
       {!fileName && !isParsing ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-          Upload a CSV file to map columns and preview rows.
-        </div>
+        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400"> {ui(locale, "Upload a CSV file to map columns and preview rows.")} </div>
       ) : null}
 
       {csvData ? (
@@ -553,14 +549,11 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-100">Column mapping</h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  Map your CSV headers to Media Vault fields. Title and Type are required.
-                </p>
+                <h3 className="text-lg font-semibold text-slate-100"> {ui(locale, "Column mapping")} </h3>
+                <p className="mt-1 text-sm text-slate-400"> {ui(locale, "Map your CSV headers to Media Vault fields. Title and Type are required.")} </p>
               </div>
               <span className="w-fit rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300">
-                {csvData.rows.length} rows detected
-              </span>
+                {csvData.rows.length} {ui(locale, "rows detected")} </span>
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -580,7 +573,7 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
                     value={mapping[fieldDefinition.field]}
                     onValueChange={(value) => updateMapping(fieldDefinition.field, value)}
                     options={[
-                      { label: 'Do not import', value: '' },
+                      { label: ui(locale, "Do not import"), value: '' },
                       ...csvData.headers.map((header) => ({ label: header, value: header })),
                     ]}
                     className="mt-2 min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-blue-400"
@@ -594,21 +587,19 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
           </div>
 
           {!isMappingReady ? (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-              Map both Title and Type before previewing importable rows.
-            </div>
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100"> {ui(locale, "Map both Title and Type before previewing importable rows.")} </div>
           ) : null}
 
           <div className="grid gap-3 sm:grid-cols-4">
-            <SummaryCard label="Valid rows" value={candidates.length.toString()} />
-            <SummaryCard label="Skipped rows" value={invalidRowsCount.toString()} />
-            <SummaryCard label="Selected" value={selectedCount.toString()} />
-            <SummaryCard label="Headers" value={csvData.headers.length.toString()} />
+            <SummaryCard label={ui(locale, "Valid rows")} value={candidates.length.toString()} />
+            <SummaryCard label={ui(locale, "Skipped rows")} value={invalidRowsCount.toString()} />
+            <SummaryCard label={ui(locale, "Selected")} value={selectedCount.toString()} />
+            <SummaryCard label={ui(locale, "Headers")} value={csvData.headers.length.toString()} />
           </div>
 
           {Object.keys(typeBreakdown).length > 0 ? (
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <h3 className="text-sm font-semibold text-slate-100">Type breakdown</h3>
+              <h3 className="text-sm font-semibold text-slate-100"> {ui(locale, "Type breakdown")} </h3>
               <div className="mt-3 flex flex-wrap gap-2">
                 {Object.entries(typeBreakdown).map(([type, count]) => (
                   <span
@@ -625,38 +616,26 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-100">CSV preview</h3>
-                <p className="text-sm text-slate-400">
-                  Select rows to save. Duplicate title/type pairs and matching external IDs are
-                  skipped.
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-200">
-                  Selected {selectedCount} of {candidates.length} valid rows
-                </p>
+                <h3 className="text-lg font-semibold text-slate-100"> {ui(locale, "CSV preview")} </h3>
+                <p className="text-sm text-slate-400"> {ui(locale, "Select rows to save. Duplicate title/type pairs and matching external IDs are skipped.")} </p>
+                <p className="mt-2 text-sm font-medium text-slate-200"> {ui(locale, "Selected")} {selectedCount} {ui(locale, "of")} {candidates.length} {ui(locale, "valid rows")} </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={selectAllCandidates}
                   className="min-h-11 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
-                >
-                  Select all
-                </button>
+                > {ui(locale, "Select all")} </button>
                 <button
                   type="button"
                   onClick={deselectAllCandidates}
                   className="min-h-11 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
-                >
-                  Deselect all
-                </button>
+                > {ui(locale, "Deselect all")} </button>
               </div>
             </div>
 
             {candidates.length > PREVIEW_LIMIT ? (
-              <p className="mt-3 text-xs text-slate-400">
-                Showing first {PREVIEW_LIMIT} of {candidates.length} valid rows. Selection still
-                applies to the full valid list.
-              </p>
+              <p className="mt-3 text-xs text-slate-400"> {ui(locale, "Showing first")} {PREVIEW_LIMIT} {ui(locale, "of")} {candidates.length} {ui(locale, "valid rows. Selection still applies to the full valid list.")} </p>
             ) : null}
 
             {hasCandidates ? (
@@ -672,14 +651,13 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
                         checked={selectedIndexes.has(candidate.rowIndex)}
                         onChange={() => toggleCandidate(candidate)}
                         className="mt-1 h-5 w-5 rounded-xl border-slate-700 bg-slate-950 text-blue-500"
-                        aria-label={`Select ${candidate.title}`}
+                        aria-label={ui(locale, "Select {value0}", { value0: candidate.title })}
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div>
                             <h4 className="font-semibold text-slate-100">{candidate.title}</h4>
-                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">
-                              CSV row {candidate.rowIndex + 2}
+                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500"> {ui(locale, "CSV row")} {candidate.rowIndex + 2}
                               {candidate.external_source && candidate.external_id
                                 ? ` | ${candidate.external_source} #${candidate.external_id}`
                                 : ''}
@@ -691,21 +669,21 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
                         </div>
 
                         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
-                          <PreviewField label="Status" value={candidate.status ?? 'Default'} />
+                          <PreviewField label={ui(locale, "Status")} value={candidate.status ?? 'Default'} />
                           <PreviewField
-                            label="Rating"
+                            label={ui(locale, "Rating")}
                             value={
-                              candidate.rating == null ? 'Unrated' : `${candidate.rating} / 10`
+                              candidate.rating == null ? ui(locale, "Unrated") : `${candidate.rating} / 10`
                             }
                           />
                           <PreviewField
-                            label="Progress"
+                            label={ui(locale, "Progress")}
                             value={
                               candidate.progress == null ? 'Not started' : candidate.progress
                             }
                           />
                           <PreviewField
-                            label="Notes"
+                            label={ui(locale, "Notes")}
                             value={candidate.notes.trim() ? 'Included' : 'None'}
                           />
                         </dl>
@@ -715,24 +693,19 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
                 ))}
               </div>
             ) : (
-              <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-                No valid rows match the current mapping. Check that Title and Type point to the
-                correct columns.
-              </div>
+              <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100"> {ui(locale, "No valid rows match the current mapping. Check that Title and Type point to the correct columns.")} </div>
             )}
           </div>
 
-          {isImporting ? <ActionFeedback tone="pending">Importing selected items...</ActionFeedback> : null}
+          {isImporting ? <ActionFeedback tone="pending"> {ui(locale, "Importing selected items...")} </ActionFeedback> : null}
           {importResult ? (
             <ActionFeedback tone={importResult.error ? 'error' : 'success'}>
-              <p className="font-semibold">{formatImportResult(importResult)}</p>
+              <p className="font-semibold">{formatImportResult(importResult, locale)}</p>
               {!importResult.error && importResult.imported > 0 ? (
                 <Link
                   href="/"
                   className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-emerald-300/20 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-500/25"
-                >
-                  Go to Library
-                </Link>
+                > {ui(locale, "Go to Library")} </Link>
               ) : null}
             </ActionFeedback>
           ) : null}
@@ -744,11 +717,9 @@ export default function CsvImporter({ canImport = false }: { canImport?: boolean
               onClick={() => void handleImportSelected()}
               className="min-h-12 w-full rounded-xl border border-blue-400/20 bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-500"
             >
-              {isImporting ? 'Importing...' : 'Import selected CSV rows'}
+              {isImporting ? 'Importing...' : ui(locale, "Import selected CSV rows")}
             </button>
-            <p className="mt-3 text-center text-sm text-slate-400">
-              Selected rows are saved to your vault. The CSV file itself is not uploaded.
-            </p>
+            <p className="mt-3 text-center text-sm text-slate-400"> {ui(locale, "Selected rows are saved to your vault. The CSV file itself is not uploaded.")} </p>
           </div>
         </section>
       ) : null}

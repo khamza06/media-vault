@@ -1,5 +1,8 @@
+
+import { ui } from '../../lib/ui-i18n'
 import { redirectIfAuthenticated } from '../../lib/auth/dal'
 import AuthForm from '../../components/AuthForm'
+import LanguageToggle from '../../components/LanguageToggle'
 import { t } from '../../lib/i18n'
 import { getRequestLocale } from '../../lib/i18n-server'
 
@@ -23,6 +26,7 @@ export default async function LoginPage(props: PageProps<'/login'>) {
     <main className="vault-container flex min-h-[100svh] items-center py-8 sm:py-12">
       <div className="grid w-full min-w-0 gap-8 lg:grid-cols-2 lg:items-center lg:gap-16">
         <section className="min-w-0 space-y-5">
+          <LanguageToggle interfaceOnly />
           <div className="inline-flex items-center gap-3 text-2xl font-bold tracking-tight text-white">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/20 text-sm font-semibold text-blue-200 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
               MV
@@ -49,7 +53,7 @@ export default async function LoginPage(props: PageProps<'/login'>) {
               confirmed
                 ? t(locale, 'auth.emailConfirmed')
                 : passwordReset
-                  ? 'Password updated. Please sign in with your new password.'
+                  ? ui(locale, "Password updated. Please sign in with your new password.")
                   : authError ?? ''
             }
             initialMessageTone={confirmed || passwordReset ? 'success' : authError ? 'error' : null}

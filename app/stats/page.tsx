@@ -1,3 +1,6 @@
+import { translateMessage } from '../../lib/ui-i18n'
+
+import { ui } from '../../lib/ui-i18n'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 
@@ -20,9 +23,12 @@ import {
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = {
-  title: 'Stats | Media Vault',
-  description: 'Analytics and trends for your media collection.',
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale()
+  return {
+  title: ui(locale, "Stats | Media Vault"),
+  description: ui(locale, "Analytics and trends for your media collection."),
+}
 }
 
 export default async function StatsPage() {
@@ -72,15 +78,13 @@ export default async function StatsPage() {
               <>
                 <CopyShareLinkButton
                   path={publicProfilePath}
-                  label="Copy public profile link"
-                  copiedLabel="Public profile link copied"
+                  label={ui(locale, "Copy public profile link")}
+                  copiedLabel={ui(locale, "Public profile link copied")}
                 />
                 <Link
                   href={publicProfilePath}
                   className="inline-flex min-h-11 items-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-900"
-                >
-                  Open public profile
-                </Link>
+                > {ui(locale, "Open public profile")} </Link>
               </>
             ) : (
               <Link
@@ -272,6 +276,8 @@ function RankedItem({
   )
 }
 
-function EmptyPanel({ message }: { message: string }) {
-  return <p className="text-sm text-slate-400">{message}</p>
+async function EmptyPanel({ message }: { message: string }) {
+  const locale = await getRequestLocale()
+
+  return <p className="text-sm text-slate-400">{translateMessage(locale, message)}</p>
 }

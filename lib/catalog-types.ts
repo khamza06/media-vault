@@ -10,6 +10,8 @@ export type CatalogSearchPage = {
 }
 
 export type CatalogSearchCandidate = {
+  /** Localized display only; canonical genres remain in `genres` for existing save/import rules. */
+  displayGenres?: string[]
   alternativeTitles?: string[]
   authors?: string[]
   identification?: { confidence: 'exact' | 'high' | 'possible' | 'low'; score: number; signals: string[] }

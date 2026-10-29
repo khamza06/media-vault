@@ -1,3 +1,9 @@
+'use client'
+
+import { translateType, translateStatus } from '../lib/i18n'
+
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
 import Image from 'next/image'
 import { Star } from 'lucide-react'
 
@@ -13,11 +19,13 @@ type PublicLibraryGridProps = {
 }
 
 export default function PublicLibraryGrid({
-  emptyMessage = 'This public vault is empty right now.',
+  emptyMessage,
   items,
 }: PublicLibraryGridProps) {
+  const { locale } = useLocale()
+
   if (items.length === 0) {
-    return <EmptyVaultState message={emptyMessage} />
+    return <EmptyVaultState message={emptyMessage ?? ui(locale, "This public vault is empty right now.")} />
   }
 
   return (
@@ -34,16 +42,16 @@ export default function PublicLibraryGrid({
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
-              <CoverPlaceholder title={item.title} type={item.type} />
+              <CoverPlaceholder title={item.title} type={translateType(locale, item.type)} />
             )}
 
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-transparent p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-xl border border-white/10 bg-slate-900/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-100">
-                  {item.status}
+                  {translateStatus(locale, item.status)}
                 </span>
                 <span className="rounded-xl border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-slate-300">
-                  {item.type}
+                  {translateType(locale, item.type)}
                 </span>
               </div>
             </div>
@@ -53,12 +61,11 @@ export default function PublicLibraryGrid({
             <h2 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-white" title={item.title}>
               {item.title}
             </h2>
-            <p className="text-xs text-slate-400">{formatProgressValue(item)}</p>
+            <p className="text-xs text-slate-400">{formatProgressValue(item, locale)}</p>
 
             <div className="flex flex-wrap items-center gap-2">
               {item.rating ? (
-                <span className="rounded-xl border border-blue-400/20 bg-blue-500/10 px-2 py-1 text-[11px] font-semibold text-blue-100">
-                  My {item.rating}/10
+                <span className="rounded-xl border border-blue-400/20 bg-blue-500/10 px-2 py-1 text-[11px] font-semibold text-blue-100"> {ui(locale, "My")} {item.rating}/10
                 </span>
               ) : null}
 
@@ -77,7 +84,7 @@ export default function PublicLibraryGrid({
                     key={genre}
                     className={`rounded-xl border px-2 py-1 text-[10px] ${getGenreBadgeClass(genre)}`}
                   >
-                    {translateGenre(genre, 'en')}
+                    {translateGenre(genre, locale)}
                   </span>
                 ))}
                 {item.genres.length > 3 ? (

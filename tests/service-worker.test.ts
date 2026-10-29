@@ -46,7 +46,7 @@ describe('offline cache authorization boundary', () => {
     w.handlers.activate({ waitUntil: p => { pending = p } }); await pending
     expect(w.entries.has('media-vault-shell-v2')).toBe(false)
     expect(w.entries.has('other-app-cache')).toBe(true)
-    expect(w.entries.has('media-vault-shell-v3')).toBe(true)
+    expect(w.entries.has('media-vault-shell-v4')).toBe(true)
   })
   it('serves the static fallback for failed navigation but never intercepts writes or arbitrary images', async () => {
     const w = worker()
@@ -65,6 +65,10 @@ describe('offline cache authorization boundary', () => {
     const html = readFileSync('public/offline.html', 'utf8')
     expect(html).toContain('Media Vault is temporarily offline')
     expect(html).toContain('lang="ru"')
-    expect(html).not.toMatch(/<script|_next\/|userId|accountLabel|<link[^>]*stylesheet/)
+    expect(html).not.toMatch(/_next\/|userId|accountLabel|<link[^>]*stylesheet/)
+    expect(html.match(/<script[^>]*>/g)).toEqual(['<script src="/offline-locale.js" defer>'])
+    const script = readFileSync('public/offline-locale.js', 'utf8')
+    expect(script).not.toMatch(/fetch\(|access[_-]?token|refresh[_-]?token|userId|Authorization/)
+    expect(script).toContain('media-vault-locale=')
   })
 })

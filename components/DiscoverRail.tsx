@@ -1,5 +1,8 @@
 ﻿'use client'
 
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
+
 import Image from 'next/image'
 import { Compass, Sparkles } from 'lucide-react'
 
@@ -10,10 +13,12 @@ export default function DiscoverRail({
 }: {
   recommendations: DiscoverRecommendation[]
 }) {
-  const title = 'Discover'
-  const description = 'Recommendations powered by the titles you rated highest.'
+  const { locale } = useLocale()
+
+  const title = ui(locale, "Discover")
+  const description = ui(locale, "Recommendations powered by the titles you rated highest.")
   const emptyMessage =
-    'Rate a few titles 9-10 and this rail will start suggesting what to watch or read next.'
+    ui(locale, "Rate a few titles 9-10 and this rail will start suggesting what to watch or read next.")
 
   return (
     <section className="glass-panel surface-highlight rounded-[28px] p-5 sm:p-6">

@@ -1,4 +1,9 @@
 'use client'
+import { translateMessage } from '../lib/ui-i18n'
+import { translateError } from '../lib/ui-i18n'
+
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
 
 import { Minus, Plus, Save, Star } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -45,6 +50,8 @@ const ratingOptions = [
 ]
 
 export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const { showToast } = useToast()
   const [status, setStatus] = useState(item.status)
@@ -63,7 +70,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   const allowedStatuses = getAllowedStatuses(item.type)
   const totalProgress = item.totalProgress
   const progressAtLimit = typeof totalProgress === 'number' && totalProgress > 0 && progress >= totalProgress
-  const officialRating = formatOfficialRating(item.externalRatingLabel, item.externalRatingValue)
+  const officialRating = formatOfficialRating(item.externalRatingLabel, item.externalRatingValue, locale)
   const officialRatingUnavailable = officialRating === 'Not available'
 
   async function saveQuickChange(
@@ -89,7 +96,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
       router.refresh()
       return true
     } catch {
-      setInlineError('Could not save this change. Check your connection and try again. Your draft is still here.')
+      setInlineError(ui(locale, "Could not save this change. Check your connection and try again. Your draft is still here."))
       return false
     } finally {
       savingRef.current = false
@@ -102,7 +109,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
     const previousStatus = status
     setStatus(nextStatus)
 
-    const saved = await saveQuickChange('status', { status: nextStatus }, 'Status updated.')
+    const saved = await saveQuickChange('status', { status: nextStatus }, ui(locale, "Status updated."))
 
     if (!saved) {
       setStatus(previousStatus)
@@ -119,7 +126,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
     const saved = await saveQuickChange(
       'rating',
       { rating: nextRating },
-      nextRating ? 'Rating updated.' : 'Rating cleared.'
+      nextRating ? ui(locale, "Rating updated.") : ui(locale, "Rating cleared.")
     )
 
     if (!saved) {
@@ -136,7 +143,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
     setProgress(clampedProgress)
     setProgressDraft(String(clampedProgress))
 
-    const saved = await saveQuickChange('progress', { progress: clampedProgress }, 'Progress updated.')
+    const saved = await saveQuickChange('progress', { progress: clampedProgress }, ui(locale, "Progress updated."))
 
     if (!saved) {
       setProgress(previousProgress)
@@ -155,7 +162,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
     const parsedProgress = progressDraft.trim() ? Number(progressDraft.trim()) : 0
 
     if (!Number.isInteger(parsedProgress) || parsedProgress < 0) {
-      const message = 'Progress must be a whole number of 0 or more.'
+      const message = ui(locale, "Progress must be a whole number of 0 or more.")
       setFeedbackField('progress')
       setInlineError(message)
       showToast(message, 'error')
@@ -166,7 +173,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   }
 
   async function handleNotesSave() {
-    const saved = await saveQuickChange('notes', { notes }, 'Notes saved.')
+    const saved = await saveQuickChange('notes', { notes }, ui(locale, "Notes saved."))
 
     if (saved) {
       setSavedNotes(notes)
@@ -175,11 +182,11 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
   }
 
   const feedback = savingField ? (
-    <ActionFeedback tone="pending">Saving {savingField}...</ActionFeedback>
+    <ActionFeedback tone="pending">{ui(locale, 'Saving...')}</ActionFeedback>
   ) : inlineError ? (
-    <ActionFeedback tone="error">{inlineError}</ActionFeedback>
+    <ActionFeedback tone="error">{translateError(locale, inlineError)}</ActionFeedback>
   ) : savedMessage ? (
-    <ActionFeedback tone="success">{savedMessage}</ActionFeedback>
+    <ActionFeedback tone="success">{translateMessage(locale, savedMessage)}</ActionFeedback>
   ) : null
 
   return (
@@ -189,54 +196,48 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
         <div className="flex min-w-0 flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Status
-              </p>
-              <p className="mt-2 text-sm text-slate-400">Quickly move this item through your vault.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"> {ui(locale, "Status")} </p>
+              <p className="mt-2 text-sm text-slate-400"> {ui(locale, "Quickly move this item through your vault.")} </p>
             </div>
             {savingField === 'status' ? (
-              <span className="rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-100">
-                Saving...
-              </span>
+              <span className="rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-100"> {ui(locale, "Saving...")} </span>
             ) : null}
           </div>
           <AppSelect
-            ariaLabel="Status"
+            ariaLabel={ui(locale, "Status")}
             value={status}
             onValueChange={(value) => void handleStatusChange(value)}
             disabled={savingField !== null}
-            options={allowedStatuses.map((option) => ({ label: option, value: option }))}
+            options={allowedStatuses.map((option) => ({ label: translateMessage(locale, option), value: option }))}
             size="compact"
             className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
           />
         </div>
 
         <div className="@container min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-            Ratings
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"> {ui(locale, "Ratings")} </p>
           <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 @min-[18rem]:grid-cols-2">
             <div className={metricCardClassName}>
-              <p className={metricLabelClassName}>My Rating</p>
+              <p className={metricLabelClassName}> {ui(locale, "My Rating")} </p>
               <AppSelect
-                ariaLabel="My rating"
+                ariaLabel={ui(locale, "My rating")}
                 value={rating == null ? '' : String(rating)}
                 onValueChange={(value) => void handleRatingChange(value)}
                 disabled={savingField !== null}
-                options={ratingOptions}
+                options={ratingOptions.map(option => ({ ...option, label: translateMessage(locale, option.label) }))}
                 size="compact"
                 className="mt-3 h-14 min-h-14 w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 text-sm font-semibold text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
                 contentClassName="min-w-[8rem]"
               />
             </div>
             <div className={metricCardClassName}>
-              <p className={metricLabelClassName}>Official Rating</p>
+              <p className={metricLabelClassName}> {ui(locale, "Official Rating")} </p>
               <p className={centeredMetricValueClassName}>
                 <Star aria-hidden="true" className="h-4 w-4 shrink-0 fill-yellow-400 text-yellow-400" />
                 {officialRatingUnavailable ? (
                   <span className="flex min-w-[4.75rem] max-w-full flex-col items-center justify-center text-center leading-tight">
-                    <span className="whitespace-nowrap break-normal">Not</span>
-                    <span className="whitespace-nowrap break-normal">available</span>
+                    <span className="whitespace-nowrap break-normal"> {ui(locale, "Not")} </span>
+                    <span className="whitespace-nowrap break-normal"> {ui(locale, "available")} </span>
                   </span>
                 ) : (
                   <span className="min-w-0 max-w-full whitespace-normal break-normal text-center leading-snug">
@@ -251,17 +252,13 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
         <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 xl:col-span-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Progress
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"> {ui(locale, "Progress")} </p>
               <p className="mt-2 text-lg font-semibold text-white">
-                {formatProgressValue({ progress, totalProgress, type: item.type })}
+                {formatProgressValue({ progress, totalProgress, type: item.type }, locale)}
               </p>
             </div>
             {savingField === 'progress' ? (
-              <span className="rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-100">
-                Saving...
-              </span>
+              <span className="rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-100"> {ui(locale, "Saving...")} </span>
             ) : null}
           </div>
 
@@ -276,7 +273,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
               -1
             </button>
             <label className="block">
-              <span className="sr-only">{getCurrentProgressLabel(item.type)}</span>
+              <span className="sr-only">{getCurrentProgressLabel(item.type, locale)}</span>
               <input
                 type="number"
                 min={0}
@@ -304,8 +301,8 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-400">
               {totalProgress
-                ? `${getTotalProgressLabel(item.type)}: ${totalProgress}`
-                : `${getTotalProgressLabel(item.type)} is not set.`}
+                ? `${getTotalProgressLabel(item.type, locale)}: ${totalProgress}`
+                : ui(locale, "{value0} is not set.", { value0: getTotalProgressLabel(item.type, locale) })}
             </p>
             <button
               type="button"
@@ -314,7 +311,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
-              {savingField === 'progress' ? 'Saving...' : 'Save progress'}
+              {savingField === 'progress' ? ui(locale, "Saving...") : ui(locale, "Save progress")}
             </button>
           </div>
         </div>
@@ -323,19 +320,15 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Notes
-            </p>
-            <p className="mt-2 text-sm text-slate-400">
-              Supports Markdown for bold text, links, and lists.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"> {ui(locale, "Notes")} </p>
+            <p className="mt-2 text-sm text-slate-400"> {ui(locale, "Supports Markdown for bold text, links, and lists.")} </p>
           </div>
           <button
             type="button"
             onClick={() => setShowPreview((current) => !current)}
             className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40"
           >
-            {showPreview ? 'Edit notes' : 'Preview'}
+            {showPreview ? ui(locale, "Edit notes") : ui(locale, "Preview")}
           </button>
         </div>
 
@@ -344,25 +337,25 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             {notes.trim() ? (
               <ReactMarkdown>{notes}</ReactMarkdown>
             ) : (
-              <p className="m-0 text-sm text-slate-400">No notes yet.</p>
+              <p className="m-0 text-sm text-slate-400"> {ui(locale, "No notes yet.")} </p>
             )}
           </div>
         ) : (
           <textarea
-            aria-label="Notes"
+            aria-label={ui(locale, "Notes")}
             value={notes}
             onChange={(event) => {
               setNotes(event.target.value)
               setSavedMessage(null)
             }}
             className="mt-4 min-h-40 w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm leading-6 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
-            placeholder="Write notes, theories, favorite arcs, or watch reminders..."
+            placeholder={ui(locale, "Write notes, theories, favorite arcs, or watch reminders...")}
           />
         )}
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-slate-400">
-            {notes === savedNotes ? 'Notes are up to date.' : 'You have unsaved notes.'}
+            {notes === savedNotes ? ui(locale, "Notes are up to date.") : ui(locale, "You have unsaved notes.")}
           </p>
           <button
             type="button"
@@ -371,7 +364,7 @@ export default function ItemQuickEditPanel({ item }: ItemQuickEditPanelProps) {
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            {savingField === 'notes' ? 'Saving notes...' : 'Save notes'}
+            {savingField === 'notes' ? ui(locale, "Saving notes...") : ui(locale, "Save notes")}
           </button>
         </div>
 
@@ -391,9 +384,9 @@ function clampProgress(value: number, totalProgress: number | null) {
   return normalized
 }
 
-function formatOfficialRating(label?: string | null, value?: number | null) {
+function formatOfficialRating(label?: string | null, value?: number | null, locale: import('../lib/i18n').Locale = 'en') {
   if (!label || typeof value !== 'number') {
-    return 'Not available'
+    return ui(locale, "Not available")
   }
 
   return formatExternalRatingValue(label, value)

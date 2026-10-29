@@ -1,7 +1,7 @@
 const CACHE_PREFIX = 'media-vault-shell-'
-const CACHE_NAME = `${CACHE_PREFIX}v3`
+const CACHE_NAME = `${CACHE_PREFIX}v4`
 const OFFLINE_URL = '/offline.html'
-const APP_SHELL = [OFFLINE_URL, '/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
+const APP_SHELL = [OFFLINE_URL, '/offline-locale.js', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

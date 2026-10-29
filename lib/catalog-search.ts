@@ -8,6 +8,8 @@ import { plainProviderDescription, type ProviderDetails } from './provider-detai
 import { discardInvalidProviderCache, publicProviderCacheOptions } from './provider-cache'
 import { isMangaCatalogSearchType, mapCatalogSearchTypeToMediaType, type CatalogSearchType } from './search-safety'
 import { normalizeMediaTitle } from './title-identification'
+import { tmdbLanguage, type MetadataLanguage } from './metadata-language'
+import { localizeTmdbText } from './tmdb-localization'
 
 const ANILIST_ANIME_FORMATS = new Set([
   'MOVIE',
@@ -20,6 +22,7 @@ const ANILIST_ANIME_FORMATS = new Set([
 ])
 
 type CatalogSearchOptions = {
+  metadataLanguage?: MetadataLanguage
   language?: string
   signal?: AbortSignal
   anilistId?: number
@@ -548,11 +551,11 @@ export async function searchShikimoriCandidates(
 
 type TmdbGenre = { id: number; name: string }
 
-async function getTmdbGenres(apiKey: string, mediaType: 'movie' | 'tv') {
+async function getTmdbGenres(apiKey: string, mediaType: 'movie' | 'tv', language = 'en-US') {
   const payload = await safeFetchJson<{ genres?: TmdbGenre[] }>(
-    `https://api.themoviedb.org/3/genre/${mediaType}/list?api_key=${apiKey}&language=${getTmdbLanguage()}`,
+    `https://api.themoviedb.org/3/genre/${mediaType}/list?api_key=${apiKey}&language=${getTmdbLanguage(language)}`,
     {
-      ...publicProviderCacheOptions('tmdb', mediaType, 'genres'),
+      ...publicProviderCacheOptions('tmdb', mediaType, 'genres', language),
       headers: {
         Accept: 'application/json',
       },
@@ -560,7 +563,7 @@ async function getTmdbGenres(apiKey: string, mediaType: 'movie' | 'tv') {
   )
 
   if (!payload || !Array.isArray(payload.genres)) {
-    discardInvalidProviderCache('tmdb', mediaType, 'genres')
+    discardInvalidProviderCache('tmdb', mediaType, 'genres', language)
     return new Map<number, string>()
   }
 
@@ -571,9 +574,16 @@ async function getTmdbDetails(
   apiKey: string,
   id: number,
   mediaType: 'movie' | 'tv',
-  cachePublicDetails = false
+  cachePublicDetails = false,
+  metadataLanguage: MetadataLanguage = 'en',
+  signal?: AbortSignal
 ) {
-  return safeFetchJson<{
+  const details = await safeFetchJson<{
+    id?: number
+    original_title?: string | null
+    original_name?: string | null
+    original_language?: string
+    translations?: import('./tmdb-localization').TmdbText['translations']
     genres?: Array<{ id: number; name: string }>
     runtime?: number | null
     number_of_episodes?: number | null
@@ -586,22 +596,24 @@ async function getTmdbDetails(
     name?: string | null
     overview?: string | null
   }>(
-    `https://api.themoviedb.org/3/${mediaType}/${id}?api_key=${apiKey}&language=${getTmdbLanguage()}`,
+    `https://api.themoviedb.org/3/${mediaType}/${id}?api_key=${apiKey}&language=${tmdbLanguage(metadataLanguage)}${metadataLanguage === 'en' ? '' : '&append_to_response=translations'}`,
     {
-      ...(cachePublicDetails ? publicProviderCacheOptions('tmdb', mediaType, id) : { cache: 'no-store' as const }),
-      signal: AbortSignal.timeout(10000),
+      ...(cachePublicDetails ? publicProviderCacheOptions('tmdb', mediaType, id, metadataLanguage) : { cache: 'no-store' as const }),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000),
       headers: {
         Accept: 'application/json',
       },
     }
   )
+  if (!details || (details.id !== undefined && details.id !== id)) return null
+  return localizeTmdbText(details, metadataLanguage)
 }
 
-export async function getTmdbCandidateById(id: number, mediaType: 'movie' | 'tv') {
+export async function getTmdbCandidateById(id: number, mediaType: 'movie' | 'tv', metadataLanguage: MetadataLanguage = 'en', signal?: AbortSignal) {
   if (!Number.isSafeInteger(id) || id < 1) return null
   const apiKey = getTmdbApiKey()
   if (!apiKey) return null
-  const details = await getTmdbDetails(apiKey, id, mediaType)
+  const details = await getTmdbDetails(apiKey, id, mediaType, false, metadataLanguage, signal)
   const title = details?.title?.trim() || details?.name?.trim()
   if (!details || !title || details.adult) return null
 
@@ -610,6 +622,7 @@ export async function getTmdbCandidateById(id: number, mediaType: 'movie' | 'tv'
     externalRatingLabel: 'TMDB',
     externalRatingValue: normalizeExternalRating(details.vote_average),
     genres: sanitizeGenres((details.genres ?? []).map((genre) => genre.name)),
+    displayGenres: (details.genres ?? []).map(genre => genre.name.trim()).filter(Boolean).slice(0, 30),
     id: `tmdb:${mediaType}:${id}`,
     imageUrl: details.poster_path ? `https://image.tmdb.org/t/p/w780${details.poster_path}` : '',
     isAdult: false,
@@ -623,20 +636,20 @@ export async function getTmdbCandidateById(id: number, mediaType: 'movie' | 'tv'
   }, [title])
 }
 
-export async function getTmdbProviderDetails(id: number, mediaType: 'movie' | 'tv'): Promise<ProviderDetails | null> {
+export async function getTmdbProviderDetails(id: number, mediaType: 'movie' | 'tv', metadataLanguage: MetadataLanguage = 'en', signal?: AbortSignal): Promise<ProviderDetails | null> {
   if (!Number.isSafeInteger(id) || id < 1 || id > 2147483647) return null
   const apiKey = getTmdbApiKey()
   if (!apiKey) return null
-  const details = await getTmdbDetails(apiKey, id, mediaType, true)
+  const details = await getTmdbDetails(apiKey, id, mediaType, true, metadataLanguage, signal)
   if (!details || details.adult || !(details.title?.trim() || details.name?.trim())) {
-    discardInvalidProviderCache('tmdb', mediaType, id)
+    discardInvalidProviderCache('tmdb', mediaType, id, metadataLanguage)
     return null
   }
   return {
     provider: 'TMDB', url: `https://www.themoviedb.org/${mediaType}/${id}`,
     title: details.title?.trim() || details.name?.trim() || null,
     description: plainProviderDescription(details.overview ?? ''),
-    genres: normalizeGenreList((details.genres ?? []).map((genre) => genre.name)),
+    genres: (details.genres ?? []).map(genre => genre.name.trim()).filter(Boolean).slice(0, 30),
     year: (details.release_date ?? details.first_air_date)?.slice(0, 4) || null,
     format: mediaType === 'movie' ? 'Movie' : 'TV Series',
     durationMinutes: typeof details.runtime === 'number' && details.runtime > 0 ? details.runtime : null,
@@ -654,7 +667,8 @@ export async function searchTmdbCandidatesByType(
     throw new CatalogSearchProviderError('TMDB', 'TMDB API key is not configured.', null)
   }
 
-  const genreMap = await getTmdbGenres(apiKey, mediaType)
+  const language = options.metadataLanguage ? tmdbLanguage(options.metadataLanguage) : getTmdbLanguage(options.language)
+  const genreMap = await getTmdbGenres(apiKey, mediaType, language)
   const results = await Promise.all(
     searchTerms.map(async (searchTerm) => {
       const payload = await fetchProviderJson<{
@@ -677,7 +691,7 @@ export async function searchTmdbCandidatesByType(
         status_message?: string
       }>(
         'TMDB',
-        `https://api.themoviedb.org/3/search/${mediaType}?api_key=${apiKey}&language=${getTmdbLanguage(options.language)}&include_adult=false&page=${options.page ?? 1}&query=${encodeURIComponent(searchTerm)}`,
+        `https://api.themoviedb.org/3/search/${mediaType}?api_key=${apiKey}&language=${language}&include_adult=false&page=${options.page ?? 1}&query=${encodeURIComponent(searchTerm)}`,
         {
           cache: 'no-store',
           signal: options.signal,
@@ -689,9 +703,19 @@ export async function searchTmdbCandidatesByType(
 
       options.onPageInfo?.((payload.page ?? options.page ?? 1) < (payload.total_pages ?? 1))
 
+      // One page-level fallback, never a detail request for every result. Join by ID only.
+      let englishById = new Map<number, NonNullable<typeof payload.results>[number]>()
+      if (language !== 'en-US' && payload.results?.some(item => !item.overview?.trim())) {
+        const fallback = await safeFetchJson<{ results?: NonNullable<typeof payload.results> }>(
+          `https://api.themoviedb.org/3/search/${mediaType}?api_key=${apiKey}&language=en-US&include_adult=false&page=${options.page ?? 1}&query=${encodeURIComponent(searchTerm)}`,
+          { cache: 'no-store', signal: options.signal ?? AbortSignal.timeout(10000) }
+        )
+        englishById = new Map((fallback?.results ?? []).map(item => [item.id, item]))
+      }
+
       const candidates = await Promise.all(
         (payload.results ?? []).slice(0, getPageSize(options)).map(async (item) => {
-          const title =
+          const title = (options.metadataLanguage === 'original' ? item.original_title?.trim() || item.original_name?.trim() : '') ||
             item.title?.trim() ||
             item.name?.trim() ||
             item.original_title?.trim() ||
@@ -702,7 +726,7 @@ export async function searchTmdbCandidatesByType(
             return null
           }
 
-          const details = options.includeDetails === false ? null : await getTmdbDetails(apiKey, item.id, mediaType)
+          const details = options.includeDetails === false ? null : await getTmdbDetails(apiKey, item.id, mediaType, false, options.metadataLanguage ?? 'en', options.signal)
           const genres =
             details?.genres?.map((genre) => genre.name).filter(Boolean) ??
             (item.genre_ids ?? []).map((id) => genreMap.get(id) ?? '').filter(Boolean)
@@ -714,13 +738,14 @@ export async function searchTmdbCandidatesByType(
 
           return buildCandidate(
             {
-              description: item.overview ?? '',
+              description: details?.overview?.trim() || item.overview?.trim() || englishById.get(item.id)?.overview?.trim() || '',
               alternativeTitles: [item.original_title, item.original_name].filter((title): title is string => Boolean(title)),
               externalRatingLabel: 'TMDB',
               externalRatingValue: normalizeExternalRating(
                 details?.vote_average ?? item.vote_average ?? null
               ),
               genres: sanitizeGenres(genres),
+              displayGenres: genres.map(genre => genre.trim()).filter(Boolean).slice(0, 30),
               id: `tmdb:${mediaType}:${item.id}`,
               imageUrl: imagePath ? `https://image.tmdb.org/t/p/w780${imagePath}` : '',
               isAdult: item.adult ?? false,
@@ -1142,12 +1167,13 @@ export async function searchKitsuCandidates(
 export async function searchUniversalCatalog(
   searchTerms: string[],
   typeHint: QuickImportTypeHint,
-  _locale: Locale
+  _locale: Locale,
+  metadataLanguage: MetadataLanguage = 'en'
 ) {
   void _locale
   const [tmdbMovies, tmdbSeries, aniList] = await Promise.all([
-    searchTmdbCandidatesByType(searchTerms, 'movie'),
-    searchTmdbCandidatesByType(searchTerms, 'tv'),
+    searchTmdbCandidatesByType(searchTerms, 'movie', { metadataLanguage }),
+    searchTmdbCandidatesByType(searchTerms, 'tv', { metadataLanguage }),
     searchAniListCandidates(searchTerms, typeHint),
   ])
 
@@ -1226,9 +1252,9 @@ export async function searchOpenLibraryCandidates(searchTerms: string[], options
   return rankSearchResults(results.flat(), options)
 }
 
-export async function searchCatalogPage(query: string, type: CatalogSearchType, locale: Locale, source: CatalogSearchSource = 'primary', page = 1): Promise<CatalogSearchPage> {
+export async function searchCatalogPage(query: string, type: CatalogSearchType, locale: Locale, source: CatalogSearchSource = 'primary', page = 1, metadataLanguage: MetadataLanguage = 'en'): Promise<CatalogSearchPage> {
   let hasMore = false
-  const options: CatalogSearchOptions = { countryOfOrigin: getCatalogCountry(type), page, pageSize: 20, includeDetails: false, strict: true, onPageInfo: (next) => { hasMore = next } }
+  const options: CatalogSearchOptions = { metadataLanguage, countryOfOrigin: getCatalogCountry(type), page, pageSize: 20, includeDetails: false, strict: true, onPageInfo: (next) => { hasMore = next } }
   const terms = [query]
   const hint = type === 'anime' ? 'ANIME' : 'MANGA'
   let provider: CatalogProvider
@@ -1346,7 +1372,8 @@ async function searchAnimeMangaWithFallbacks(
 export async function searchCatalogByMediaType(
   searchTerms: string[],
   selectedType: CatalogSearchType,
-  locale: Locale
+  locale: Locale,
+  metadataLanguage: MetadataLanguage = 'en'
 ) {
   if (selectedType === 'anime') {
     return searchAnimeMangaWithFallbacks(searchTerms, 'ANIME', selectedType, locale)
@@ -1357,12 +1384,12 @@ export async function searchCatalogByMediaType(
   }
 
   if (selectedType === 'movie') {
-    const movies = await searchTmdbCandidatesByType(searchTerms, 'movie')
+    const movies = await searchTmdbCandidatesByType(searchTerms, 'movie', { metadataLanguage })
     return lockCandidateType(movies.slice(0, 8), selectedType)
   }
 
   if (selectedType === 'series') {
-    const series = await searchTmdbCandidatesByType(searchTerms, 'tv')
+    const series = await searchTmdbCandidatesByType(searchTerms, 'tv', { metadataLanguage })
     return lockCandidateType(series.slice(0, 8), selectedType)
   }
 

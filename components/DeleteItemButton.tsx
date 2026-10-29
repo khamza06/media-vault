@@ -1,5 +1,7 @@
 'use client'
 
+import { ui } from '../lib/ui-i18n'
+
 import { startTransition, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -21,7 +23,7 @@ export default function DeleteItemButton({
   title,
 }: DeleteItemButtonProps) {
   const router = useRouter()
-  const { t } = useLocale()
+  const { locale, t  } = useLocale()
   const { showToast } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)
   const pending = useRef(false)
@@ -43,7 +45,7 @@ export default function DeleteItemButton({
       return
     }
 
-    showToast(`Deleted "${title}".`)
+    showToast(ui(locale, "Deleted \"{value0}\".", { value0: title }))
     startTransition(() => {
       if (redirectTo) {
         router.push(redirectTo)
@@ -54,7 +56,7 @@ export default function DeleteItemButton({
       router.refresh()
     })
     } catch {
-      showToast('Could not confirm deletion. Refresh your vault before retrying.', 'error')
+      showToast(ui(locale, "Could not confirm deletion. Refresh your vault before retrying."), 'error')
     } finally {
       pending.current = false
       setIsDeleting(false)

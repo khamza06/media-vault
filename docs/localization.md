@@ -1,74 +1,106 @@
-# Localization
+# Localization — Russian Phase 1 (2026-10-29)
 
-English is the default. Settings offers Russian as an explicitly labelled beta.
-This is not a claim that every screen is translated: navigation and existing
-dictionary-backed controls are translated, while several newer screens still
-use English copy. Extend coverage page-by-page rather than translating stored
-values or applying automatic string replacement at runtime.
+## Preferences and data safety
 
-## Preference and Safety
+Interface language (`en` / `ru`) is independent of preferred metadata language
+(`en` / `ru` / `original`). Existing browsers default to English metadata.
+Settings exposes both choices; login exposes the interface-only switch.
 
-- The server reads the supported locale from `media-vault-locale` per request.
-- The switch updates local UI, best-effort browser storage and a same-site cookie,
-  then confirms through `/api/locale` before refreshing server components.
-- Blocked localStorage does not prevent cookie persistence. A failed request
-  releases pending state, preserves the chosen local language and offers a retry
-  by clicking the selected language again. It does not silently report success.
-- The document language also follows the current UI for accessibility, including
-  an offline local choice. Server-rendered pages start in the cookie language.
-- The locale API accepts exact `en`/`ru` codes, rejects malformed bodies, and
-  changes only the language cookie. No profile, RLS or auth credential is changed.
-- Language is a browser preference, not synced account data or a backup field.
+Preferences use independent same-site browser cookies and best-effort localStorage.
+`/api/locale` validates either/both fields, changes only specified cookies and
+replies `private, no-store`. They are browser-specific, not synchronized across
+devices, not account/profile fields, and not included in backups or public profile
+projections. No database migration is required.
 
-## Content Rules
+Localization never rewrites saved titles, notes, ratings, status, progress, dates,
+covers, lists or provider IDs. Saved library cards keep their saved title.
+Do not pass user titles, notes, list names/descriptions or provider prose through
+the interface translator. Public sharing and the notes-free `public_items`
+projection retain their existing access boundaries. No RLS/schema/auth changes.
 
-Keep dictionary keys and interpolation variables identical across languages.
-Russian text must be valid Unicode, not a double-decoded legacy encoding.
-Display helpers can translate types/statuses, including Re-Watching, but option
-values and database fields remain the original English model. Never translate
-user titles, Markdown notes, IDs or exported tracking data.
+## UI implementation
 
-Manrope already includes Cyrillic. Check mobile tab width and the menu footer
-after translations: a longer label must not cover Add New/Logout or create page
-overflow. Full navigation labels remain available to assistive technology even
-when a narrow tab truncates its visual text.
+- `lib/i18n.ts` retains the existing named-key dictionaries.
+- `lib/ui-messages.ts` adds typed gettext-style English source message IDs with
+  Russian translations. `ui()` formats explicit messages; `translateMessage()`
+  handles known application feedback/labels at presentation boundaries.
+- `translateError()` supplies a localized fallback for unknown upstream errors.
+  Canonical API/action error strings can remain English; the UI translates them.
+- Types/statuses, dates, numbers, progress units and count nouns are display-only.
+  Form values, URL filters, import payloads and exported data stay canonical.
+- Coverage includes Library, Discover, details/editing, auth/recovery, lists,
+  import, backup, Stats, Summary, Settings, public profiles/lists, loading/error
+  states, notifications and accessibility labels.
+- Native file inputs retain keyboard/upload behavior with localized visible
+  controls. Controlled selects render known labels before hydration.
+- The static offline shell reads only the UI preference through its small cached
+  script. Shell v4 still excludes authenticated HTML/RSC, private images and
+  arbitrary runtime assets. It contains no account state or network calls.
+- Language changes retain unsaved note drafts, abort stale metadata requests and
+  ignore late responses. They must not remount forms to discard private drafts.
 
-## Verification
+## TMDB metadata
 
-Tests check dictionary key/placeholder parity, exact Russian labels, locale
-validation, request cookies, storage/network failures and retry. Synthetic
-browser checks switch English/Russian, reload, and verify server language and
-responsive navigation without a real login or database write. Remaining work:
-page-specific Library/Discover/Import/Backup/Lists/Settings copy and consistent
-localized action feedback; auth email delivery remains a separate manual check.
+Preference is passed through header search, Discover, title suggestions, Quick
+Import, exact TMDB/IMDb lookup, previews and owned-item provider details.
+AniList/Shikimori usage is not expanded. No paid provider or machine translation.
 
-The next coverage increment translated Discover controls, catalog preview and
-owned-item About/Related panels. Source titles, genres, descriptions and
-server/provider error messages retain their source language; no automatic text
-translation or stored-value conversion is performed.
+Russian uses `ru-RU`; English uses `en-US`. Non-English detail requests append
+TMDB translations to the same request. Title and synopsis fall back independently:
+empty localized fields never erase an available English synopsis. Original prefers
+original title/name and the original-language synopsis, then English when absent.
+Movie and TV ID namespaces remain separate.
 
-Add New and the shared full-edit form now use the dictionaries too, including
-type/status display labels, episode/chapter/page fields, dates, Markdown help,
-file controls and local save/duplicate/network feedback. Canonical option values,
-source titles/genres, provider IDs and exact notes remain unchanged. Server-side
-validation/provider errors can still be English; outer page copy and remaining
-major screens are not fully translated. Keep the beta notice until those passes
-are complete. Switching languages must retain drafts rather than recreate forms.
+Mixed-language search cannot request each result's original language in one call:
+Original search shows original titles with an available search synopsis; preview
+resolves an original-language synopsis where TMDB provides it. Russian search
+makes at most one English fallback search per query/page when synopses are missing.
+It joins by TMDB ID only, never title. A result absent from that English page may
+need preview/details for its synopsis. There is no detail request per search card.
 
-Library coverage now includes the main heading, shelf names/descriptions,
-shared filters and active chips, result counts, view/density controls, Continue,
-completion counts and filtered empty states. Display options are generated
-separately from the canonical filter model: locale changes must never rename
-URL keys, status/type values, saved view modes or source provider identities.
-Owner cards now translate type/status/progress display, selection labels and
-accessible names while retaining source titles/genres and exact tracking data.
-Saved-view and Planning-picker copy is translated too; names and stored filter
-values remain untouched. Picker suggestions never add or update an item.
-Dense owner-card list triggers use a text-only compact presentation so the
-Russian label fits narrow two-column grids; other list triggers retain defaults.
+Localized display genres are separate from canonical candidate genres used by
+existing save/import rules. Provider details return requested-language genres.
+Provider source links and attribution remain present.
 
-The legacy `MediaLibrary` component, bulk dialogs, Add to list dialogs,
-onboarding and public-grid filters remain separate passes. Saved-view validation
-errors from the preference store can still be English; do not translate them by
-matching arbitrary error strings. Public cover placeholders keep their existing
-default labels and gain no private controls.
+Public metadata cache tags distinguish provider/type/ID/language. Existing TTLs
+remain one hour for details and six hours for taxonomy. Public requests contain no
+account cookies, user IDs or notes. Owned-item endpoints still authenticate and
+filter by owner on every request; responses remain `private, no-store`.
+
+## Verification and limits
+
+Regression tests cover preference isolation, blocked storage/retry, unsaved drafts,
+late-request cancellation, public title preservation/notes absence, field fallback,
+original text, cache namespaces and canonical IDs. The JSX coverage guard rejects
+hardcoded human-facing copy apart from explicit brands, paths and technical examples.
+It does not prove every third-party diagnostic or metadata field has Russian text.
+
+`e2e/localization.spec.ts` exercises real application routes without account writes:
+switch/reload/persistence, mobile public errors/recovery, and static offline UI.
+A temporary localhost fixture additionally exercises nine real components in EN/RU
+at 1440/320px (36 combinations), including selects/file inputs and public cards with
+a synthetic private note. Remove the fixture and its temporary test before release.
+These component fixtures do not simulate an authenticated production session.
+
+The opt-in `tests/providers/tmdb-localization.test.ts` performs five real public
+TMDB checks: Russian Inception/Breaking Bad, Hukkle English fallback, Parasite
+original Korean title/synopsis, and Russian search with an English interface.
+It makes no AniList/Shikimori requests or database writes.
+
+Books/anime/manga/manhwa/manhua metadata retain their existing provider behavior.
+Translation coverage depends on TMDB. Browser/OS-owned dialogs/date pickers and
+authentication email templates are outside application UI dictionaries.
+No live production RLS/account-data integrity test is implied by mocked tests or
+synthetic DOM checks. This phase does not create or mutate production user data.
+
+## Release
+
+Run unit tests, TypeScript, ESLint, browser checks and production build before push.
+The established production branch is `main`; GitHub's Vercel commit status records
+the associated deployment. Verify that status and production UI/cookie behavior
+before reporting the release live. Connector team access is independent of Git
+integration and can be unavailable even when Git-based deployments work.
+
+Rollback is application-only: revert the release commit or restore the preceding
+deployment. No migration/data rollback is needed. Old versions safely ignore the
+new metadata preference cookie.

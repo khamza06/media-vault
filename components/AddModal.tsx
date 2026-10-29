@@ -1,4 +1,6 @@
 'use client'
+import { translateError } from '../lib/ui-i18n'
+
 
 import { ChevronDown, Sparkles } from 'lucide-react'
 import { FormEvent, ReactNode, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
@@ -53,7 +55,7 @@ export default function AddModal({
   triggerContent,
 }: AddModalProps) {
   const router = useRouter()
-  const { locale, t } = useLocale()
+  const { locale, t, metadataLanguage } = useLocale()
   const { showToast } = useToast()
   const titleSearchSkipRef = useRef(false)
   const titleSearchRequestIdRef = useRef(0)
@@ -78,7 +80,12 @@ export default function AddModal({
   const [titleSuggestions, setTitleSuggestions] = useState<CatalogSearchCandidate[]>([])
   const [titleSearchError, setTitleSearchError] = useState('')
 
-  useEffect(() => () => { quickRequest.current.controller?.abort() }, [])
+  useEffect(() => {
+    setIsQuickImporting(false)
+    setQuickImportCandidates([])
+    setQuickImportMessage('')
+    return () => { quickRequest.current.controller?.abort(); quickRequest.current.pending = false; quickRequest.current.id += 1 }
+  }, [metadataLanguage])
 
   const quickImportPlaceholder = t('smartImport.placeholder')
 
@@ -163,7 +170,7 @@ export default function AddModal({
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ locale, query, type }),
+      body: JSON.stringify({ locale, metadataLanguage, query, type }),
     })
 
     const payload = (await response.json()) as {
@@ -176,7 +183,7 @@ export default function AddModal({
     }
 
     return payload.data ?? []
-  }, [locale])
+  }, [locale, metadataLanguage])
 
   const openFromExternalEvent = useEffectEvent((event: Event) => {
     const candidate = (event as CustomEvent<OpenAddModalDetail>).detail?.candidate
@@ -262,7 +269,7 @@ export default function AddModal({
       window.clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [fetchCatalogSuggestions, form.title, form.type, isOpen, locale])
+  }, [fetchCatalogSuggestions, form.title, form.type, isOpen, locale, metadataLanguage])
 
   async function fetchServerQuickImport(url: string, signal: AbortSignal): Promise<QuickImportResponseData> {
     const response = await fetch('/api/quick-import', {
@@ -271,7 +278,7 @@ export default function AddModal({
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ locale, url, type: quickImportType }),
+      body: JSON.stringify({ locale, metadataLanguage, url, type: quickImportType }),
     })
 
     const payload = (await response.json()) as {
@@ -537,7 +544,7 @@ export default function AddModal({
         {existingItemId && <Link href={`/items/${encodeURIComponent(existingItemId)}`} target="_blank" rel="noreferrer" prefetch={false} className="mx-4 mt-4 inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-blue-200 underline sm:mx-6">{t('smartImport.openExisting')}</Link>}
         <MediaItemForm
           coverFileName={coverFile?.name}
-          errorMessage={errorMessage}
+          errorMessage={translateError(locale, errorMessage)}
           form={form}
           isSubmitting={isSubmitting || isQuickImporting}
           onChange={updateField}

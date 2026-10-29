@@ -27,7 +27,7 @@ async function settledBeforeDeadline(operations: Array<Promise<CatalogSearchCand
   })))
 }
 
-export async function resolveQuickImport(input: string, locale: Locale, selectedType?: CatalogSearchType): Promise<QuickImportPayload> {
+export async function resolveQuickImport(input: string, locale: Locale, selectedType?: CatalogSearchType, metadataLanguage?: import('./metadata-language').MetadataLanguage): Promise<QuickImportPayload> {
   const signal = AbortSignal.timeout(18000)
   const warnings: string[] = []
   let metadata: MediaPageMetadata = { titles: [input], authors: [] }
@@ -38,7 +38,7 @@ export async function resolveQuickImport(input: string, locale: Locale, selected
     source = url.hostname
     if (exactProviderReference(url)) {
       try {
-        const exact = (await settledBeforeDeadline([resolveExactProviderUrl(url, signal).then(rows => rows ?? [])], signal))[0]
+        const exact = (await settledBeforeDeadline([resolveExactProviderUrl(url, signal, metadataLanguage).then(rows => rows ?? [])], signal))[0]
         if (exact.length) return result(exact, { titles: [exact[0].title], authors: [], type: exact[0].type as MediaPageMetadata['type'] }, source, [], true)
       } catch { /* An unavailable exact ID is not substituted with an unrelated title. */ }
       return result([], { titles: [], authors: [] }, source, ['exact-unavailable'])
@@ -64,7 +64,7 @@ export async function resolveQuickImport(input: string, locale: Locale, selected
   if (!terms.length) return result([], metadata, source, [...warnings, 'no-match'])
   const hint = metadata.type === 'Anime' ? 'ANIME' : ['Manga', 'Manhwa', 'Manhua'].includes(metadata.type ?? '') ? 'MANGA' : null
   const language = /^(zh[-_]?(?:Hant|TW))/i.test(metadata.language ?? '') ? 'zh-TW' : /\p{Script=Cyrillic}/u.test(terms[0]) ? 'ru-RU' : /[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(terms[0]) || /^ja/i.test(metadata.language ?? '') ? 'ja-JP' : /\p{Script=Hangul}/u.test(terms[0]) ? 'ko-KR' : /\p{Script=Han}/u.test(terms[0]) ? 'zh-CN' : 'en-US'
-  const options = { language, pageSize: 8, includeDetails: false, strict: true, signal, onPageInfo: () => {}, ...(metadata.type === 'Manhwa' ? { countryOfOrigin: 'KR' as const } : metadata.type === 'Manhua' ? { countryOfOrigin: 'CN' as const } : {}) }
+  const options = { language, metadataLanguage, pageSize: 8, includeDetails: false, strict: true, signal, onPageInfo: () => {}, ...(metadata.type === 'Manhwa' ? { countryOfOrigin: 'KR' as const } : metadata.type === 'Manhua' ? { countryOfOrigin: 'CN' as const } : {}) }
   const query = terms.slice(0, 1)
   const operations: Array<Promise<CatalogSearchCandidate[]>> = []
   if (!metadata.type || hint) operations.push(searchAniListCandidates(query, hint, options))

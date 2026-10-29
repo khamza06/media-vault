@@ -1,4 +1,8 @@
 'use client'
+import { translateMessage, translateError } from '../lib/ui-i18n'
+
+import { ui } from '../lib/ui-i18n'
+import { useLocale } from './LocaleProvider'
 
 import { useState, useTransition, type FormEvent } from 'react'
 import Link from 'next/link'
@@ -22,6 +26,8 @@ export default function ProfileSettingsPanel({
   initialError = null,
   initialProfile,
 }: ProfileSettingsPanelProps) {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const { showToast } = useToast()
   const [displayName, setDisplayName] = useState(initialProfile?.displayName ?? '')
@@ -75,7 +81,7 @@ export default function ProfileSettingsPanel({
 
     const url = new URL(publicPath, window.location.origin).toString()
     await navigator.clipboard.writeText(url)
-    showToast('Public profile link copied.')
+    showToast(ui(locale, "Public profile link copied."))
   }
 
   return (
@@ -86,39 +92,33 @@ export default function ProfileSettingsPanel({
             <UserRound className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Profile
-            </p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight text-white">
-              Public identity
-            </h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"> {ui(locale, "Profile")} </p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight text-white"> {ui(locale, "Public identity")} </h2>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block">
-            <span className="text-sm font-semibold text-slate-200">Display name</span>
+            <span className="text-sm font-semibold text-slate-200"> {ui(locale, "Display name")} </span>
             <input
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
               className="mt-2 min-h-11 w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
               maxLength={80}
-              placeholder="How visitors should see your name"
+              placeholder={ui(locale, "How visitors should see your name")}
             />
           </label>
 
           <label className="block">
-            <span className="text-sm font-semibold text-slate-200">Username</span>
+            <span className="text-sm font-semibold text-slate-200"> {ui(locale, "Username")} </span>
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               className="mt-2 min-h-11 w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
               placeholder="your-name"
             />
-            <span className="mt-2 block text-xs leading-5 text-slate-400">
-              Use 3-30 lowercase letters, numbers, underscores, or hyphens.
-              {normalizedUsername && normalizedUsername !== username ? (
-                <> It will be saved as `{normalizedUsername}`.</>
+            <span className="mt-2 block text-xs leading-5 text-slate-400"> {ui(locale, "Use 3-30 lowercase letters, numbers, underscores, or hyphens.")} {normalizedUsername && normalizedUsername !== username ? (
+                <> {ui(locale, "It will be saved as `")} {normalizedUsername}`.</>
               ) : null}
             </span>
           </label>
@@ -131,13 +131,8 @@ export default function ProfileSettingsPanel({
               className="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-blue-500"
             />
             <span>
-              <span className="block text-sm font-semibold text-white">
-                Make my vault public
-              </span>
-              <span className="mt-1 block text-xs leading-5 text-slate-400">
-                When enabled, anyone with your public profile link can view a read-only
-                version of your vault.
-              </span>
+              <span className="block text-sm font-semibold text-white"> {ui(locale, "Make my vault public")} </span>
+              <span className="mt-1 block text-xs leading-5 text-slate-400"> {ui(locale, "When enabled, anyone with your public profile link can view a read-only version of your vault.")} </span>
             </span>
           </label>
 
@@ -149,7 +144,7 @@ export default function ProfileSettingsPanel({
                   : 'border-red-500/30 bg-red-500/10 text-red-200'
               }`}
             >
-              {message}
+              {messageTone === 'error' ? translateError(locale, message) : translateMessage(locale, message)}
             </p>
           ) : null}
 
@@ -158,7 +153,7 @@ export default function ProfileSettingsPanel({
             disabled={isPending}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-blue-400/30 bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isPending ? 'Saving...' : 'Save profile settings'}
+            {isPending ? ui(locale, "Saving...") : ui(locale, "Save profile settings")}
           </button>
         </form>
       </section>
@@ -169,52 +164,38 @@ export default function ProfileSettingsPanel({
             <Globe2 className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Public Vault
-            </p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight text-white">
-              Share profile link
-            </h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"> {ui(locale, "Public Vault")} </p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight text-white"> {ui(locale, "Share profile link")} </h2>
           </div>
         </div>
 
         <div className="space-y-4">
           {publicPath ? (
             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <p className="text-sm font-semibold text-white">Public profile URL</p>
+              <p className="text-sm font-semibold text-white"> {ui(locale, "Public profile URL")} </p>
               <p className="mt-2 break-all text-sm text-blue-200">{publicPath}</p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link
                   href={publicPath}
                   className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-900"
                 >
-                  <ExternalLink className="h-4 w-4" />
-                  Open public profile
-                </Link>
+                  <ExternalLink className="h-4 w-4" /> {ui(locale, "Open public profile")} </Link>
                 <button
                   type="button"
                   onClick={copyPublicLink}
                   className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-blue-400/30 hover:bg-slate-900"
                 >
-                  <Copy className="h-4 w-4" />
-                  Copy public profile link
-                </button>
+                  <Copy className="h-4 w-4" /> {ui(locale, "Copy public profile link")} </button>
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
-              Choose and save a username before sharing your public profile.
-            </div>
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100"> {ui(locale, "Choose and save a username before sharing your public profile.")} </div>
           )}
 
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-            <p className="text-sm font-semibold text-white">
-              Current visibility: {profile?.isPublic ? 'Public' : 'Private'}
+            <p className="text-sm font-semibold text-white"> {ui(locale, "Current visibility:")} {profile?.isPublic ? ui(locale, 'Public') : ui(locale, 'Private')}
             </p>
-            <p className="mt-2 text-xs leading-5 text-slate-400">
-              Public visitors can only read vault items while this profile is public.
-              Edit, delete, import, backup, and list-management controls stay private.
-            </p>
+            <p className="mt-2 text-xs leading-5 text-slate-400"> {ui(locale, "Public visitors can only read vault items while this profile is public. Edit, delete, import, backup, and list-management controls stay private.")} </p>
           </div>
         </div>
       </section>

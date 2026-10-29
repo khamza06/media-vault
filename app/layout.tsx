@@ -10,8 +10,9 @@ import { ToastProvider } from '../components/ToastProvider'
 import VaultPreferencesProvider from '../components/VaultPreferencesProvider'
 import { getCurrentUser } from '../lib/auth/dal'
 import { getConfiguredSiteUrl } from '../lib/auth/site-url'
-import { getRequestLocale } from '../lib/i18n-server'
+import { getRequestLocale, getRequestMetadataLanguage } from '../lib/i18n-server'
 import { t } from '../lib/i18n'
+import { ui } from '../lib/ui-i18n'
 import './globals.css'
 
 const manrope = localFont({
@@ -43,7 +44,7 @@ const siteUrl = getConfiguredSiteUrl() ?? 'https://media-vault.app'
 const siteDescription =
   'Track anime, manga, movies, series, and books in one personal media vault.'
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
     default: 'Media Vault',
@@ -105,6 +106,16 @@ export const metadata: Metadata = {
   },
 }
 
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale()
+  const description = ui(locale, 'Track anime, manga, movies, series, and books in one personal media vault.')
+  return {
+    ...baseMetadata, description,
+    openGraph: { ...baseMetadata.openGraph, description, locale: locale === 'ru' ? 'ru_RU' : 'en_US' },
+    twitter: { ...baseMetadata.twitter, description },
+  }
+}
+
 export const viewport: Viewport = {
   colorScheme: 'dark',
   themeColor: '#0f172a',
@@ -119,11 +130,12 @@ export default async function RootLayout({
 }>) {
   const user = await getCurrentUser()
   const locale = await getRequestLocale()
+  const metadataLanguage = await getRequestMetadataLanguage()
   const profileResult = user ? await getOrCreateProfile() : null
   const displayName = profileResult?.profile?.displayName?.trim()
   const username = profileResult?.profile?.username?.trim()
   const accountLabel =
-    displayName || (username ? `@${username}` : undefined) || user?.email?.split('@')[0] || 'Account'
+    displayName || (username ? `@${username}` : undefined) || user?.email?.split('@')[0] || ui(locale, 'Account')
 
   return (
     <html
@@ -135,7 +147,7 @@ export default async function RootLayout({
         className="min-h-full bg-slate-950 text-slate-100"
         suppressHydrationWarning
       >
-        <LocaleProvider locale={locale}>
+        <LocaleProvider locale={locale} metadataLanguage={metadataLanguage}>
           <a href="#main-content" className="vault-skip-link">{t(locale, 'nav.skipToContent')}</a>
           <ToastProvider>
             <VaultPreferencesProvider userId={user?.id ?? null}>

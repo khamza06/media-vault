@@ -251,20 +251,20 @@ export function getDefaultStatus(type: string): MediaStatus {
   return defaultStatusesByType[type]
 }
 
-export function getCurrentProgressLabel(type: string) {
+export function getCurrentProgressLabel(type: string, locale: import('./i18n').Locale = 'en') {
   if (usesChapterProgress(type)) {
-    return 'Current Chapter'
+    return locale === 'ru' ? 'Текущая глава' : 'Current Chapter'
   }
 
-  return usesPageProgress(type) ? 'Current Page' : 'Current Episode'
+  return usesPageProgress(type) ? (locale === 'ru' ? 'Текущая страница' : 'Current Page') : (locale === 'ru' ? 'Текущий эпизод' : 'Current Episode')
 }
 
-export function getTotalProgressLabel(type: string) {
+export function getTotalProgressLabel(type: string, locale: import('./i18n').Locale = 'en') {
   if (usesChapterProgress(type)) {
-    return 'Total Chapters'
+    return locale === 'ru' ? 'Всего глав' : 'Total Chapters'
   }
 
-  return usesPageProgress(type) ? 'Total Pages' : 'Total Episodes'
+  return usesPageProgress(type) ? (locale === 'ru' ? 'Всего страниц' : 'Total Pages') : (locale === 'ru' ? 'Всего эпизодов' : 'Total Episodes')
 }
 
 export function getProgressUnitLabel(type: string) {
@@ -496,18 +496,20 @@ export function formatGenres(genres: string[]) {
   return genres.join(', ')
 }
 
-export function formatProgressValue(item: Pick<MediaItem, 'progress' | 'totalProgress' | 'type'>) {
-  const unit = getProgressUnitLabel(item.type)
+export function formatProgressValue(item: Pick<MediaItem, 'progress' | 'totalProgress' | 'type'>, locale: import('./i18n').Locale = 'en') {
+  const rawUnit = getProgressUnitLabel(item.type)
+  const unit = locale === 'ru' ? ({ 'ch.': 'гл.', 'pg.': 'стр.', watch: 'просм.', 'ep.': 'эп.' }[rawUnit] ?? rawUnit) : rawUnit
+  const number = (value: number) => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : 'en-US').format(value)
 
   if (item.totalProgress && item.totalProgress > 0) {
-    return `${unit} ${item.progress} / ${item.totalProgress}`
+    return `${unit} ${number(item.progress)} / ${number(item.totalProgress)}`
   }
 
   if (item.progress > 0) {
-    return `${unit} ${item.progress}`
+    return `${unit} ${number(item.progress)}`
   }
 
-  return 'Not started yet'
+  return locale === 'ru' ? 'Пока не начато' : 'Not started yet'
 }
 
 export function formatExternalRatingValue(label: string, value: number) {

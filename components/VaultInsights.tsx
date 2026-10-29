@@ -1,3 +1,5 @@
+
+import { ui } from '../lib/ui-i18n'
 import type { Locale } from '../lib/i18n'
 import type { MediaItem } from '../lib/media'
 
@@ -10,8 +12,7 @@ const mangaLikeTypes = new Set(['Manga', 'Manhwa', 'Manhua'])
 const animeLikeTypes = new Set(['Anime'])
 
 export default function VaultInsights({ items, locale }: VaultInsightsProps) {
-  void locale
-  const copy = getCopy()
+  const copy = getCopy(locale)
   const totalItems = items.length
   const inProgressCount = items.filter(
     (item) => item.status === 'Watching' || item.status === 'Reading'
@@ -160,24 +161,24 @@ function ProgressMetric({ label, value }: { label: string; value: string }) {
   )
 }
 
-function getCopy() {
+function getCopy(locale: import('../lib/i18n').Locale = 'en') {
   return {
-    eyebrow: 'Summary',
-    title: 'Vault Summary',
+    eyebrow: ui(locale, 'Summary'),
+    title: ui(locale, "Vault Summary"),
     description:
-      'A focused BI layer for your library: core counts, current momentum, media mix, and total tracked progress.',
-    totalCount: 'Total Count',
-    inProgress: 'In Progress',
-    completed: 'Completed',
-    totalProgress: 'Total Progress',
-    mediaMix: 'Media Mix',
-    mediaMixDescription: 'A quick split of the dominant media families in your database.',
-    ofLibrary: '{count} in library',
-    mangaFamily: 'Manga Family',
-    anime: 'Anime',
-    otherMedia: 'Other Media',
-    progressOverview: 'Progress Overview',
-    averagePerTitle: 'Average progress per title',
-    completionRatio: 'Completion ratio',
+      ui(locale, 'A focused BI layer for your library: core counts, current momentum, media mix, and total tracked progress.'),
+    totalCount: ui(locale, "Total Count"),
+    inProgress: ui(locale, "In Progress"),
+    completed: ui(locale, 'Completed'),
+    totalProgress: ui(locale, "Total Progress"),
+    mediaMix: ui(locale, "Media Mix"),
+    mediaMixDescription: ui(locale, "A quick split of the dominant media families in your database."),
+    ofLibrary: ui(locale, "{count} in library"),
+    mangaFamily: ui(locale, "Manga Family"),
+    anime: ui(locale, 'Anime'),
+    otherMedia: ui(locale, "Other Media"),
+    progressOverview: ui(locale, "Progress Overview"),
+    averagePerTitle: ui(locale, "Average progress per title"),
+    completionRatio: ui(locale, "Completion ratio"),
   }
 }

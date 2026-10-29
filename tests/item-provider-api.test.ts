@@ -1,3 +1,4 @@
+vi.mock('../lib/i18n-server', () => ({ getRequestMetadataLanguage: async () => 'en' }))
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ getCurrentUser: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn(), getAniListProviderDetails: vi.fn(), getTmdbProviderDetails: vi.fn() }))
 vi.mock('../lib/auth/dal', () => mocks)

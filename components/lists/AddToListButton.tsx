@@ -1,4 +1,9 @@
 'use client'
+import { translateError } from '../../lib/ui-i18n'
+import { translateMessage } from '../../lib/ui-i18n'
+
+import { ui, countNoun } from '../../lib/ui-i18n'
+import { useLocale } from '../LocaleProvider'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -34,6 +39,8 @@ export default function AddToListButton({
   buttonAriaLabel,
   compact = false,
 }: AddToListButtonProps) {
+  const { locale } = useLocale()
+
   const router = useRouter()
   const { showToast } = useToast()
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -94,7 +101,7 @@ export default function AddToListButton({
         const nextError = result.error ?? 'Could not add this item to all selected lists.'
         setError(nextError)
         if (result.added > 0) {
-          setMessage(`Added to ${result.added} list${result.added === 1 ? '' : 's'}. Skipped ${result.skipped}. Failed ${result.failed}. Review your lists before retrying.`)
+          setMessage(ui(locale, "Added to {value0} list{value1}. Skipped {value2}. Failed {value3}. Review your lists before retrying.", { value0: result.added, value1: result.added === 1 ? '' : 's', value2: result.skipped, value3: result.failed }))
           router.refresh()
         }
         showToast(nextError, 'error')
@@ -104,16 +111,16 @@ export default function AddToListButton({
       const nextMessage =
         result.added > 0
           ? result.skipped > 0
-            ? `Added to ${result.added} list${result.added === 1 ? '' : 's'}. ${result.skipped} skipped.`
-            : `Added to ${result.added} list${result.added === 1 ? '' : 's'}.`
-          : 'This item was already in the selected lists.'
+            ? ui(locale, "Added to {value0} list{value1}. {value2} skipped.", { value0: result.added, value1: result.added === 1 ? '' : 's', value2: result.skipped })
+            : ui(locale, "Added to {value0} list{value1}.", { value0: result.added, value1: result.added === 1 ? '' : 's' })
+          : ui(locale, "This item was already in the selected lists.")
 
       setMessage(nextMessage)
       setSelectedIds(new Set())
       showToast(nextMessage)
       router.refresh()
     } catch {
-      const nextError = 'Connection interrupted. Some list additions may have saved. Refresh and review your lists before retrying. Your selection is still here.'
+      const nextError = ui(locale, "Connection interrupted. Some list additions may have saved. Refresh and review your lists before retrying. Your selection is still here.")
       setError(nextError)
       showToast(nextError, 'error')
     } finally {
@@ -138,10 +145,10 @@ export default function AddToListButton({
           setError(null)
         }}
         className={buttonClassName}
-        aria-label={buttonAriaLabel ?? `Add ${itemTitle} to a custom list`}
+        aria-label={buttonAriaLabel ?? ui(locale, "Add {value0} to a custom list", { value0: itemTitle })}
       >
         {compact && variant === 'card' ? null : <ListPlus className="h-4 w-4" />}
-        <span>{buttonLabel ?? (variant === 'detail' ? 'Add to list' : 'List')}</span>
+        <span>{buttonLabel ?? (variant === 'detail' ? ui(locale, "Add to list") : 'List')}</span>
       </button>
 
       {isOpen ? (
@@ -156,14 +163,9 @@ export default function AddToListButton({
           <div className="min-w-0 p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200/75">
-                  Custom lists
-                </p>
-                <h2 id={titleId} className="mt-2 text-xl font-bold text-slate-100">
-                  Add to list
-                </h2>
-                <p className="mt-2 break-words text-sm leading-6 text-slate-400 [overflow-wrap:anywhere]">
-                  Choose one or more custom lists for {itemTitle}.
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200/75"> {ui(locale, "Custom lists")} </p>
+                <h2 id={titleId} className="mt-2 text-xl font-bold text-slate-100"> {ui(locale, "Add to list")} </h2>
+                <p className="mt-2 break-words text-sm leading-6 text-slate-400 [overflow-wrap:anywhere]"> {ui(locale, "Choose one or more custom lists for")} {itemTitle}.
                 </p>
               </div>
               <button
@@ -171,7 +173,7 @@ export default function AddToListButton({
                 onClick={closeDialog}
                 disabled={isAdding}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 text-slate-200 transition hover:border-blue-400/40 disabled:opacity-60"
-                aria-label="Close add to list dialog"
+                aria-label={ui(locale, "Close add to list dialog")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -180,19 +182,13 @@ export default function AddToListButton({
             <div className="mt-5 max-h-[min(360px,40dvh)] overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-2">
               {lists.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900 p-5 text-center">
-                  <h3 className="text-base font-semibold text-slate-100">
-                    You do not have any custom lists yet.
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
-                    Create a list first, then come back and add this item.
-                  </p>
+                  <h3 className="text-base font-semibold text-slate-100"> {ui(locale, "You do not have any custom lists yet.")} </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400"> {ui(locale, "Create a list first, then come back and add this item.")} </p>
                   <Link
                     href="/lists"
                     className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-400"
                     onClick={closeDialog}
-                  >
-                    Create a list
-                  </Link>
+                  > {ui(locale, "Create a list")} </Link>
                 </div>
               ) : (
                 <div className="grid gap-2">
@@ -228,7 +224,7 @@ export default function AddToListButton({
                             {list.name}
                           </span>
                           <span className="mt-1 block text-xs text-slate-400">
-                            {list.itemCount} item{list.itemCount === 1 ? '' : 's'}
+                            {list.itemCount} {countNoun(locale, list.itemCount, "item")}
                           </span>
                         </span>
                       </button>
@@ -240,12 +236,12 @@ export default function AddToListButton({
 
             {message ? (
               <p role="status" className={`mt-4 rounded-xl border px-4 py-3 text-sm ${error ? 'border-amber-400/30 bg-amber-500/10 text-amber-100' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'}`}>
-                {message}
+                {translateMessage(locale, message)}
               </p>
             ) : null}
             {error ? (
               <p role="alert" className="mt-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-                {error}
+                {translateError(locale, error)}
               </p>
             ) : null}
 
@@ -255,9 +251,7 @@ export default function AddToListButton({
                 onClick={closeDialog}
                 disabled={isAdding}
                 className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-blue-400/40 disabled:opacity-60"
-              >
-                Cancel
-              </button>
+              > {ui(locale, "Cancel")} </button>
               <button
                 type="button"
                 onClick={handleAdd}
@@ -265,10 +259,10 @@ export default function AddToListButton({
                 className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isAdding
-                  ? 'Adding...'
+                  ? ui(locale, "Adding...")
                   : selectedIds.size > 0
-                    ? `Add to ${selectedIds.size} list${selectedIds.size === 1 ? '' : 's'}`
-                    : 'Add to selected lists'}
+                    ? ui(locale, "Add to {value0} list{value1}", { value0: selectedIds.size, value1: selectedIds.size === 1 ? '' : 's' })
+                    : ui(locale, "Add to selected lists")}
               </button>
             </div>
           </div>
